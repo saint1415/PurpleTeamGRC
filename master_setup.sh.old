@@ -1,0 +1,853 @@
+#!/bin/bash
+################################################################################
+# Purple Team GRC Platform - Master Setup Script v3.0
+# Description: Production-ready installation with dual-location support,
+#              pre-flight validation, auto-sync, and launcher integration
+# Author: Internal Security Team
+# Version: 3.0.1 - Fixed for flat directory structure
+# FIX: Now supports flat directory structure (all files in root)
+################################################################################
+
+set -e  # Exit on error
+set -u  # Exit on undefined variable
+
+################################################################################
+# CRITICAL FIX: Detect actual user and home directory FIRST
+################################################################################
+# This must be at the top before any directory definitions
+# When running with sudo, $HOME resolves to /root, which is wrong
+# We need the actual user's home directory, not root's
+
+if [ -n "${SUDO_USER:-}" ]; then
+    ACTUAL_USER="$SUDO_USER"
+    ACTUAL_HOME=$(eval echo ~$SUDO_USER)
+else
+    ACTUAL_USER="$(whoami)"
+    ACTUAL_HOME="$HOME"
+fi
+
+################################################################################
+# VARIABLES & CONFIGURATION
+################################################################################
+
+# Version information
+VERSION="3.0.1"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+# Installation locations - NOW using ACTUAL_HOME instead of $HOME
+SYSTEM_INSTALL_DIR="/opt/purple-team"
+USER_INSTALL_DIR="$ACTUAL_HOME/.purple-team"
+
+# Color codes for output
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+CYAN='\033[0;36m'
+MAGENTA='\033[0;35m'
+NC='\033[0m' # No Color
+
+# Log file locations
+SYSTEM_LOG_DIR="/var/log/purple-team"
+USER_LOG_DIR="$ACTUAL_HOME/.purple-team/logs"
+SETUP_LOG="$SYSTEM_LOG_DIR/setup.log"
+
+# Create log directory if needed
+mkdir -p "$SYSTEM_LOG_DIR" 2>/dev/null || SETUP_LOG="/tmp/purple_team_setup.log"
+exec > >(tee -a "$SETUP_LOG") 2>&1
+
+################################################################################
+# HELPER FUNCTIONS
+################################################################################
+
+print_header() {
+    echo ""
+    echo -e "${BLUE}================================================================${NC}"
+    echo -e "${BLUE} $1${NC}"
+    echo -e "${BLUE}================================================================${NC}"
+    echo ""
+}
+
+print_success() {
+    echo -e "${GREEN}✓ $1${NC}"
+}
+
+print_error() {
+    echo -e "${RED}✗ $1${NC}"
+}
+
+print_warning() {
+    echo -e "${YELLOW}⚠ $1${NC}"
+}
+
+print_info() {
+    echo -e "${CYAN}ℹ $1${NC}"
+}
+
+print_section() {
+    echo ""
+    echo -e "${MAGENTA}────────────────────────────────────────────────────────────${NC}"
+    echo -e "${MAGENTA}▶ $1${NC}"
+    echo -e "${MAGENTA}────────────────────────────────────────────────────────────${NC}"
+}
+
+check_root() {
+    if [[ $EUID -ne 0 ]]; then
+        print_error "This script must be run as root (use sudo)"
+        print_info "Usage: sudo ./master_setup.sh"
+        exit 1
+    fi
+}
+
+confirm_action() {
+    local prompt="$1"
+    local default="${2:-N}"
+    
+    if [[ "$default" == "y" || "$default" == "Y" ]]; then
+        read -p "$prompt [Y/n]:" response
+        response=${response:-Y}
+    else
+        read -p "$prompt [y/N]:" response
+        response=${response:-N}
+    fi
+    
+    case "$response" in
+        [yY][eE][sS]|[yY]) return 0 ;;
+        *) return 1 ;;
+    esac
+}
+
+################################################################################
+# PRE-FLIGHT CHECKS
+################################################################################
+
+run_preflight_checks() {
+    print_header "PRE-FLIGHT CHECKS - System Validation"
+    
+    local warnings=0
+    local errors=0
+    
+    # OS Check
+    print_section "Operating System Verification"
+    if [ -f /etc/os-release ]; then
+        . /etc/os-release
+        if [[ "$ID" == "kali" ]]; then
+            print_success "Running on Kali Linux"
+            
+            # Check for Kali Purple
+            if dpkg -l | grep -q "kali-linux-purple" 2>/dev/null; then
+                print_success "Kali Purple detected"
+            else
+                print_warning "Standard Kali detected (not Kali Purple)"
+                print_info "Consider installing: apt install kali-linux-purple"
+                ((warnings++))
+            fi
+        else
+            print_warning "Not running on Kali Linux (detected: $PRETTY_NAME)"
+            print_info "Some features may not work as expected"
+            ((warnings++))
+        fi
+    fi
+    
+    # Network Check
+    print_section "Network Connectivity"
+    if ping -c 1 8.8.8.8 &> /dev/null; then
+        print_success "Internet connectivity confirmed"
+    else
+        print_error "No internet connectivity"
+        print_info "Some installations may fail"
+        ((errors++))
+    fi
+    
+    # Disk Space
+    print_section "Disk Space Requirements"
+    local available_gb=$(df -BG / | tail -1 | awk '{print $4}' | sed 's/G//')
+    print_info "Available disk space: ${available_gb}GB"
+    
+    if [ "$available_gb" -lt 20 ]; then
+        print_error "Insufficient disk space: ${available_gb}GB (minimum 20GB required)"
+        ((errors++))
+    elif [ "$available_gb" -lt 50 ]; then
+        print_warning "Low disk space: ${available_gb}GB (recommended 50GB+)"
+        ((warnings++))
+    else
+        print_success "Sufficient disk space: ${available_gb}GB available"
+    fi
+    
+    # Memory Check
+    print_section "Memory (RAM)"
+    local total_ram_gb=$(free -g | awk '/^Mem:/{print $2}')
+    print_info "Total RAM: ${total_ram_gb}GB"
+    
+    if [ "$total_ram_gb" -lt 4 ]; then
+        print_warning "Low RAM: ${total_ram_gb}GB (recommended 8GB+)"
+        ((warnings++))
+    elif [ "$total_ram_gb" -lt 16 ]; then
+        print_success "RAM adequate: ${total_ram_gb}GB"
+    else
+        print_success "RAM excellent: ${total_ram_gb}GB"
+    fi
+    
+    # CPU Check
+    print_section "CPU Information"
+    local cpu_cores=$(nproc)
+    print_info "CPU cores available: $cpu_cores"
+    
+    if [ "$cpu_cores" -lt 2 ]; then
+        print_warning "Low CPU cores: $cpu_cores (recommended 4+)"
+        ((warnings++))
+    else
+        print_success "CPU cores adequate: $cpu_cores"
+    fi
+    
+    # Python Check
+    print_section "Python Version Check"
+    if command -v python3 &> /dev/null; then
+        local python_version=$(python3 --version | awk '{print $2}')
+        print_info "Python version: $python_version"
+        
+        local python_major=$(echo "$python_version" | cut -d. -f1)
+        local python_minor=$(echo "$python_version" | cut -d. -f2)
+        
+        if [ "$python_major" -eq 3 ] && [ "$python_minor" -ge 10 ]; then
+            print_success "Python $python_major.$python_minor detected (compatible)"
+        else
+            print_error "Python 3.10+ required (found $python_version)"
+            ((errors++))
+        fi
+    else
+        print_error "Python 3 not found"
+        ((errors++))
+    fi
+    
+    # Git Check
+    print_section "Git Availability"
+    if command -v git &> /dev/null; then
+        print_success "Git installed"
+    else
+        print_warning "Git not found (will be installed)"
+        ((warnings++))
+    fi
+    
+    # Essential Tools Check
+    print_section "Essential Command-Line Tools"
+    local missing_tools=()
+    
+    for tool in curl wget nmap netcat python3-pip; do
+        if command -v "${tool%%-*}" &> /dev/null || dpkg -l | grep -q "^ii  $tool " 2>/dev/null; then
+            print_success "$tool found"
+        else
+            print_warning "$tool not found"
+            missing_tools+=("$tool")
+            ((warnings++))
+        fi
+    done
+    
+    if [ ${#missing_tools[@]} -gt 0 ]; then
+        print_info "Missing tools will be installed: ${missing_tools[*]}"
+    fi
+    
+    # Summary
+    print_section "Pre-flight Check Summary"
+    if [ $errors -gt 0 ]; then
+        print_error "Critical errors found: $errors"
+        print_warning "Installation may fail. Resolve errors and try again."
+        if ! confirm_action "Continue anyway?"; then
+            exit 1
+        fi
+    elif [ $warnings -gt 0 ]; then
+        print_warning "Some checks failed or tools are missing"
+        print_info "Installation will attempt to resolve issues automatically"
+    else
+        print_success "All pre-flight checks passed"
+    fi
+    
+    echo ""
+    if ! confirm_action "Continue with installation?"; then
+        print_info "Installation cancelled"
+        exit 0
+    fi
+}
+
+################################################################################
+# DIRECTORY STRUCTURE
+################################################################################
+
+create_directory_structure() {
+    print_header "DIRECTORY STRUCTURE CREATION"
+    
+    # System directories
+    print_section "Creating System Directories ($SYSTEM_INSTALL_DIR)"
+    
+    local system_dirs=(
+        "$SYSTEM_INSTALL_DIR"
+        "$SYSTEM_INSTALL_DIR/scanners"
+        "$SYSTEM_INSTALL_DIR/utilities"
+        "$SYSTEM_INSTALL_DIR/utils"
+        "$SYSTEM_INSTALL_DIR/config"
+        "$SYSTEM_INSTALL_DIR/docs"
+        "$SYSTEM_INSTALL_DIR/results"
+        "$SYSTEM_INSTALL_DIR/logs"
+        "$SYSTEM_INSTALL_DIR/tools"
+    )
+    
+    for dir in "${system_dirs[@]}"; do
+        if [ -d "$dir" ]; then
+            print_info "Exists: $dir"
+        else
+            mkdir -p "$dir"
+            print_success "Created: $dir"
+        fi
+    done
+    
+    # User directories
+    print_section "Creating User Directories ($USER_INSTALL_DIR)"
+    
+    local user_dirs=(
+        "$USER_INSTALL_DIR"
+        "$USER_INSTALL_DIR/config"
+        "$USER_INSTALL_DIR/results"
+        "$USER_INSTALL_DIR/logs"
+        "$USER_INSTALL_DIR/venv"
+    )
+    
+    for dir in "${user_dirs[@]}"; do
+        mkdir -p "$dir"
+        chown -R "$ACTUAL_USER:$ACTUAL_USER" "$dir"
+        print_success "Created: $dir"
+    done
+    
+    print_success "Directory structure created"
+}
+
+################################################################################
+# SYSTEM UPDATE
+################################################################################
+
+update_system() {
+    print_header "SYSTEM UPDATE"
+    
+    print_section "Updating Package Lists"
+    if confirm_action "Run apt update?"; then
+        print_info "Updating apt repositories..."
+        apt update -qq
+        print_success "Package lists updated"
+    fi
+    
+    print_section "Checking for Upgradable Packages"
+    local upgradable=$(apt list --upgradable 2>/dev/null | grep -c "upgradable" || echo "0")
+    
+    if [ "$upgradable" -gt 0 ]; then
+        print_info "Found $upgradable upgradable packages"
+        if confirm_action "Upgrade system packages?"; then
+            print_info "Running apt upgrade (this may take several minutes)..."
+            DEBIAN_FRONTEND=noninteractive apt upgrade -y -qq
+            print_success "System packages upgraded"
+        fi
+    else
+        print_success "System is up to date"
+    fi
+}
+
+################################################################################
+# SECURITY TOOLS INSTALLATION
+################################################################################
+
+install_security_tools() {
+    print_header "SECURITY TOOLS INSTALLATION"
+    
+    print_section "Installing Essential Tools"
+    
+    # Core security tools
+    local essential_tools=(
+        "nmap"
+        "masscan"
+        "nikto"
+        "sqlmap"
+        "metasploit-framework"
+        "hydra"
+        "john"
+        "hashcat"
+        "aircrack-ng"
+        "wireshark"
+        "tcpdump"
+        "netcat-traditional"
+        "curl"
+        "wget"
+        "git"
+        "python3-pip"
+        "python3-venv"
+        "jq"
+    )
+    
+    print_info "Installing ${#essential_tools[@]} essential packages..."
+    
+    for tool in "${essential_tools[@]}"; do
+        if dpkg -l | grep -q "^ii  $tool " 2>/dev/null; then
+            print_success "$tool already installed"
+        else
+            print_info "Installing $tool..."
+            DEBIAN_FRONTEND=noninteractive apt install -y -qq "$tool" 2>/dev/null || {
+                print_warning "Failed to install $tool (continuing)"
+            }
+        fi
+    done
+    
+    # Kali Purple metapackage
+    print_section "Installing Kali Purple Tools (if available)"
+    if confirm_action "Install kali-linux-purple metapackage?"; then
+        print_info "Installing Kali Purple tools (this will take 10-30 minutes)..."
+        DEBIAN_FRONTEND=noninteractive apt install -y kali-linux-purple 2>/dev/null || {
+            print_warning "Failed to install kali-linux-purple (continuing)"
+        }
+        print_success "Kali Purple tools installed"
+    fi
+    
+    print_success "Security tools installation complete"
+}
+
+################################################################################
+# PYTHON ENVIRONMENT
+################################################################################
+
+setup_python_environment() {
+    print_header "PYTHON ENVIRONMENT SETUP"
+    
+    print_section "Creating Virtual Environment"
+    
+    # System venv
+    if [ ! -d "$SYSTEM_INSTALL_DIR/venv" ]; then
+        print_info "Creating system virtual environment..."
+        python3 -m venv "$SYSTEM_INSTALL_DIR/venv"
+        print_success "System venv created: $SYSTEM_INSTALL_DIR/venv"
+    else
+        print_info "System venv already exists"
+    fi
+    
+    # User venv
+    if [ ! -d "$USER_INSTALL_DIR/venv" ]; then
+        print_info "Creating user virtual environment..."
+        sudo -u "$ACTUAL_USER" python3 -m venv "$USER_INSTALL_DIR/venv"
+        chown -R "$ACTUAL_USER:$ACTUAL_USER" "$USER_INSTALL_DIR/venv"
+        print_success "User venv created: $USER_INSTALL_DIR/venv"
+    else
+        print_info "User venv already exists"
+    fi
+    
+    # Install Python dependencies
+    print_section "Installing Python Dependencies"
+    
+    if [ -f "$SCRIPT_DIR/requirements.txt" ]; then
+        print_info "Installing dependencies from requirements.txt..."
+        "$SYSTEM_INSTALL_DIR/venv/bin/pip" install --quiet --upgrade pip
+        "$SYSTEM_INSTALL_DIR/venv/bin/pip" install --quiet -r "$SCRIPT_DIR/requirements.txt"
+        print_success "Python dependencies installed"
+    else
+        print_warning "requirements.txt not found, skipping dependency installation"
+        print_info "You can manually install dependencies later"
+    fi
+    
+    print_success "Python environment setup complete"
+}
+
+################################################################################
+# CONFIGURATION FILES
+################################################################################
+
+create_config_files() {
+    print_header "CONFIGURATION FILES CREATION"
+    
+    print_section "Copying Configuration Templates"
+    
+    # Copy config templates
+    local config_files=(
+        "config-template.yaml"
+        "config-healthcare.yaml"
+        "config-finance.yaml"
+        "config-retail.yaml"
+        "config-government.yaml"
+    )
+    
+    for config_file in "${config_files[@]}"; do
+        if [ -f "$SCRIPT_DIR/$config_file" ]; then
+            cp "$SCRIPT_DIR/$config_file" "$SYSTEM_INSTALL_DIR/config/"
+            print_success "Copied: $config_file"
+        fi
+    done
+    
+    print_section "Creating User Configuration"
+    
+    # Create user config from template
+    if [ -f "$SYSTEM_INSTALL_DIR/config/config-template.yaml" ]; then
+        if [ ! -f "$USER_INSTALL_DIR/config.yaml" ]; then
+            cp "$SYSTEM_INSTALL_DIR/config/config-template.yaml" "$USER_INSTALL_DIR/config.yaml"
+            chown "$ACTUAL_USER:$ACTUAL_USER" "$USER_INSTALL_DIR/config.yaml"
+            print_success "User config created: $USER_INSTALL_DIR/config.yaml"
+            print_info "Edit this file to customize for your client"
+        else
+            print_info "User config already exists (preserving)"
+        fi
+    else
+        print_warning "No config template found, creating minimal config..."
+        cat > "$USER_INSTALL_DIR/config.yaml" << 'EOFCONFIG'
+# Purple Team GRC Platform - User Configuration
+client:
+  name: "CHANGEME"
+  industry: "technology"
+
+network:
+  auto_detect: true
+  ranges: []
+  exclusions: []
+
+scanning:
+  stealth_level: 3
+  max_rate: 100
+
+results:
+  output_dir: "~/.purple-team/results/"
+  formats: ["json", "html", "csv"]
+  retention_days: 90
+EOFCONFIG
+        chown "$ACTUAL_USER:$ACTUAL_USER" "$USER_INSTALL_DIR/config.yaml"
+        print_success "Minimal config created"
+    fi
+    
+    print_success "Configuration files ready"
+}
+
+################################################################################
+# CORE SCRIPTS INSTALLATION - FIXED FOR FLAT DIRECTORY STRUCTURE
+################################################################################
+
+install_core_scripts() {
+    print_header "CORE SCRIPTS INSTALLATION"
+    
+    print_section "Copying Python Scripts from Current Directory"
+    
+    local py_copied=0
+    local sh_copied=0
+    
+    # Category 1: Scanner scripts
+    print_info "Categorizing and copying scripts..."
+    
+    for script in "$SCRIPT_DIR"/*.py; do
+        if [ -f "$script" ]; then
+            local basename=$(basename "$script")
+            local dest_dir=""
+            
+            # Categorize based on filename patterns
+            case "$basename" in
+                *scan*|*vuln*|*network_scanner*|*compliance*|*integrated_grc*|*quick_scan*|*zero_config*)
+                    dest_dir="$SYSTEM_INSTALL_DIR/scanners"
+                    ;;
+                *dashboard*|*report*|*email*|*evidence*|*questionnaire*|*executive*|*risk_scorer*)
+                    dest_dir="$SYSTEM_INSTALL_DIR/utilities"
+                    ;;
+                *path_helper*|*network-detector*|*pre-flight*|*update-manager*|*backup*|*health*|*patch*|*port*|*service*|*asset*|*cert*|*config_change*|*scheduler*|*finding*)
+                    dest_dir="$SYSTEM_INSTALL_DIR/utils"
+                    ;;
+                *)
+                    # Default to utils if unknown
+                    dest_dir="$SYSTEM_INSTALL_DIR/utils"
+                    ;;
+            esac
+            
+            if [ -n "$dest_dir" ]; then
+                cp "$script" "$dest_dir/"
+                chmod +x "$dest_dir/$basename"
+                ((py_copied++))
+            fi
+        fi
+    done
+    
+    if [ $py_copied -gt 0 ]; then
+        print_success "Copied $py_copied Python scripts"
+    else
+        print_warning "No Python scripts found in $SCRIPT_DIR"
+    fi
+    
+    # Copy shell scripts
+    print_section "Copying Shell Scripts"
+    
+    for script in "$SCRIPT_DIR"/*.sh; do
+        if [ -f "$script" ]; then
+            local basename=$(basename "$script")
+            # Don't copy master_setup.sh to installation
+            if [ "$basename" != "master_setup.sh" ]; then
+                cp "$script" "$SYSTEM_INSTALL_DIR/utils/"
+                chmod +x "$SYSTEM_INSTALL_DIR/utils/$basename"
+                print_success "Copied: $basename"
+                ((sh_copied++))
+            fi
+        fi
+    done
+    
+    # Copy launcher scripts
+    print_section "Copying Launcher Scripts"
+    
+    if [ -f "$SCRIPT_DIR/purple-team-launcher" ]; then
+        cp "$SCRIPT_DIR/purple-team-launcher" "$SYSTEM_INSTALL_DIR/utils/"
+        chmod +x "$SYSTEM_INSTALL_DIR/utils/purple-team-launcher"
+        print_success "Copied: purple-team-launcher"
+    else
+        print_warning "purple-team-launcher not found"
+    fi
+    
+    if [ -f "$SCRIPT_DIR/purple-team-gui" ]; then
+        cp "$SCRIPT_DIR/purple-team-gui" "$SYSTEM_INSTALL_DIR/utils/"
+        chmod +x "$SYSTEM_INSTALL_DIR/utils/purple-team-gui"
+        print_success "Copied: purple-team-gui"
+    else
+        print_warning "purple-team-gui not found"
+    fi
+    
+    # Copy documentation
+    print_section "Copying Documentation"
+    
+    local doc_count=0
+    for doc in "$SCRIPT_DIR"/*.md "$SCRIPT_DIR"/*.html; do
+        if [ -f "$doc" ]; then
+            cp "$doc" "$SYSTEM_INSTALL_DIR/docs/"
+            ((doc_count++))
+        fi
+    done
+    
+    if [ $doc_count -gt 0 ]; then
+        print_success "Copied $doc_count documentation files"
+    else
+        print_warning "No documentation files found"
+    fi
+    
+    # Summary
+    print_section "Script Installation Summary"
+    print_info "Python scripts: $py_copied"
+    print_info "Shell scripts: $sh_copied"
+    print_info "Documentation: $doc_count"
+    
+    print_success "Core scripts installation complete"
+}
+
+################################################################################
+# LAUNCHER INSTALLATION
+################################################################################
+
+install_launchers() {
+    print_header "LAUNCHER INSTALLATION"
+    
+    print_section "Installing System Launchers"
+    
+    # Terminal launcher
+    if [ -f "$SYSTEM_INSTALL_DIR/utils/purple-team-launcher" ]; then
+        ln -sf "$SYSTEM_INSTALL_DIR/utils/purple-team-launcher" /usr/local/bin/purple-team
+        chmod +x /usr/local/bin/purple-team
+        print_success "Terminal launcher installed: purple-team"
+        print_info "Usage: purple-team"
+    else
+        print_warning "Terminal launcher not found"
+    fi
+    
+    # GUI launcher
+    if [ -f "$SYSTEM_INSTALL_DIR/utils/purple-team-gui" ]; then
+        ln -sf "$SYSTEM_INSTALL_DIR/utils/purple-team-gui" /usr/local/bin/purple-team-gui
+        chmod +x /usr/local/bin/purple-team-gui
+        print_success "GUI launcher installed: purple-team-gui"
+        print_info "Usage: purple-team-gui"
+    else
+        print_warning "GUI launcher not found"
+    fi
+    
+    # Create desktop entry
+    print_section "Creating Desktop Entry"
+    
+    if [ -f "$SYSTEM_INSTALL_DIR/utils/purple-team-gui" ]; then
+        cat > /usr/share/applications/purple-team.desktop << EOF
+[Desktop Entry]
+Version=1.0
+Type=Application
+Name=Purple Team GRC Platform
+Comment=Security Assessment & Compliance Platform
+Exec=/usr/local/bin/purple-team-gui
+Icon=security-high
+Terminal=false
+Categories=Security;System;
+EOF
+        print_success "Desktop entry created"
+    fi
+    
+    print_success "Launchers installed"
+}
+
+################################################################################
+# SYSTEMD SERVICES (Optional)
+################################################################################
+
+setup_systemd_services() {
+    print_header "SYSTEMD SERVICES SETUP"
+    
+    print_section "Creating Sync Service"
+    
+    # Create sync service (optional for auto-sync on boot)
+    cat > /etc/systemd/system/purple-team-sync.service << EOF
+[Unit]
+Description=Purple Team GRC Platform Auto-Sync
+After=network.target
+
+[Service]
+Type=oneshot
+ExecStart=/opt/purple-team/utils/sync-manager.sh
+User=root
+
+[Install]
+WantedBy=multi-user.target
+EOF
+    
+    print_success "Sync service created (disabled by default)"
+    print_info "Enable with: systemctl enable purple-team-sync.service"
+}
+
+################################################################################
+# SYNC MANAGER SETUP
+################################################################################
+
+setup_sync_manager() {
+    print_header "SYNC MANAGER SETUP"
+    
+    print_section "Configuring Sync Manager"
+    
+    if [ -f "$SYSTEM_INSTALL_DIR/utils/sync-manager.sh" ]; then
+        chmod +x "$SYSTEM_INSTALL_DIR/utils/sync-manager.sh"
+        print_success "Sync manager configured"
+        print_info "Run manually: /opt/purple-team/utils/sync-manager.sh"
+    else
+        print_warning "sync-manager.sh not found"
+    fi
+}
+
+################################################################################
+# FINAL SETUP
+################################################################################
+
+final_setup() {
+    print_header "FINAL SETUP"
+    
+    print_section "Setting Permissions"
+    
+    # Set ownership for user directories
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$USER_INSTALL_DIR"
+    print_success "User directories ownership set"
+    
+    # Create log directory for user
+    mkdir -p "$SYSTEM_LOG_DIR/$ACTUAL_USER"
+    chown -R "$ACTUAL_USER:$ACTUAL_USER" "$SYSTEM_LOG_DIR/$ACTUAL_USER"
+    print_success "User log directory created"
+    
+    # Update PATH if needed
+    print_section "Updating User Environment"
+    
+    local bashrc="$ACTUAL_HOME/.bashrc"
+    if ! grep -q "purple-team" "$bashrc" 2>/dev/null; then
+        echo "" >> "$bashrc"
+        echo "# Purple Team GRC Platform" >> "$bashrc"
+        echo 'export PATH="/usr/local/bin:$PATH"' >> "$bashrc"
+        print_success "Updated .bashrc"
+    fi
+    
+    print_success "Final setup complete"
+}
+
+################################################################################
+# INSTALLATION SUMMARY
+################################################################################
+
+print_installation_summary() {
+    print_header "INSTALLATION SUMMARY"
+    
+    echo ""
+    echo -e "${GREEN}Installation Complete!${NC}"
+    echo ""
+    echo "Installed Components:"
+    echo "  ✓ System installation: $SYSTEM_INSTALL_DIR"
+    echo "  ✓ User configuration: $USER_INSTALL_DIR"
+    echo "  ✓ Python environment with dependencies"
+    echo "  ✓ Security tools and scanners"
+    echo "  ✓ Terminal launcher: purple-team"
+    echo "  ✓ GUI launcher: purple-team-gui"
+    echo ""
+    echo "Quick Start:"
+    echo "  1. Launch terminal interface: purple-team"
+    echo "  2. Launch GUI interface: purple-team-gui"
+    echo "  3. Edit config: nano $USER_INSTALL_DIR/config.yaml"
+    echo "  4. View documentation: $SYSTEM_INSTALL_DIR/docs/"
+    echo ""
+    echo "Next Steps:"
+    echo "  • Review configuration: $USER_INSTALL_DIR/config.yaml"
+    echo "  • Customize for your client/industry"
+    echo "  • Run initial scan to validate installation"
+    echo "  • Review deployment guide in docs/"
+    echo ""
+    print_success "Installation log: $SETUP_LOG"
+    echo ""
+}
+
+################################################################################
+# MAIN EXECUTION
+################################################################################
+
+main() {
+    clear
+    
+    echo ""
+    echo -e "${BLUE}╔═══════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║                                                                   ║${NC}"
+    echo -e "${BLUE}║           Purple Team GRC Platform - Master Setup v3.0           ║${NC}"
+    echo -e "${BLUE}║                                                                   ║${NC}"
+    echo -e "${BLUE}║  Production-Ready Security Assessment & Compliance Platform      ║${NC}"
+    echo -e "${BLUE}║                                                                   ║${NC}"
+    echo -e "${BLUE}╚═══════════════════════════════════════════════════════════════════╝${NC}"
+    echo ""
+    echo "This script will:"
+    echo "  • Validate system requirements (pre-flight checks)"
+    echo "  • Install security tools and dependencies"
+    echo "  • Setup dual installation (system-wide + per-user)"
+    echo "  • Configure Python environments"
+    echo "  • Install launchers and sync manager"
+    echo "  • Create configuration files"
+    echo ""
+    echo "Estimated time: 10-20 minutes"
+    echo ""
+    
+    # Check for root first
+    check_root
+    
+    if ! confirm_action "Proceed with installation?"; then
+        echo ""
+        print_info "Installation cancelled by user"
+        exit 0
+    fi
+    
+    # Execute installation phases
+    run_preflight_checks
+    create_directory_structure
+    update_system
+    install_security_tools
+    setup_python_environment
+    create_config_files
+    install_core_scripts
+    install_launchers
+    setup_systemd_services
+    setup_sync_manager
+    final_setup
+    print_installation_summary
+    
+    echo ""
+    print_success "Setup complete! Ready for deployment."
+    echo ""
+}
+
+# Execute main function
+main "$@"
+
+################################################################################
+# END OF SCRIPT
+################################################################################

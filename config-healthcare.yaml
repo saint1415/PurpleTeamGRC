@@ -1,0 +1,412 @@
+# Purple Team GRC Platform Configuration
+# Version: 3.0
+# Industry: HEALTHCARE
+# Compliance: HIPAA, FDA 21 CFR Part 11, HITECH, SOC 2
+# Auto-generated: 2026-01-01
+
+# ============================================================================
+# CLIENT INFORMATION
+# ============================================================================
+client:
+  name: "Healthcare Client Name"
+  industry: "healthcare"
+  engagement_type: "hipaa_audit"  # hipaa_audit, security_assessment, pentest
+  engagement_date: "2026-01-01"
+  consultant: "Consultant Name"
+  contact_email: "privacy@healthcareclient.com"
+  
+  # Healthcare-specific information
+  healthcare:
+    entity_type: "covered_entity"  # covered_entity, business_associate, hybrid
+    phi_in_scope: true
+    patient_count: 0  # Approximate number of patient records
+    regulated_systems: []  # List of systems containing ePHI
+
+# ============================================================================
+# NETWORK CONFIGURATION
+# ============================================================================
+network:
+  auto_detect: true
+  ranges: []
+  exclusions: []
+    # Common healthcare exclusions:
+    # - "10.x.x.x"  # EHR/EMR systems (schedule separately)
+    # - "10.x.x.x"  # PACS/imaging systems (schedule separately)
+    # - "10.x.x.x"  # Medical devices (requires FDA consideration)
+  
+  dns_servers:
+    - "8.8.8.8"
+    - "1.1.1.1"
+  
+  prefer_wired: true
+  scan_all_interfaces: true
+  
+  # Healthcare-specific network considerations
+  healthcare_network:
+    medical_device_network: false  # Separate medical device network present?
+    guest_network_isolated: true   # Guest WiFi isolated from PHI network?
+    iot_devices_present: true      # Medical IoT devices present?
+
+# ============================================================================
+# COMPLIANCE FRAMEWORKS (HEALTHCARE-SPECIFIC)
+# ============================================================================
+compliance:
+  frameworks:
+    - "HIPAA"          # Health Insurance Portability and Accountability Act
+    - "HITECH"         # Health Information Technology for Economic and Clinical Health
+    - "FDA_21CFR11"    # FDA 21 CFR Part 11 (if applicable)
+    - "SOC2"           # SOC 2 Type II
+    - "NIST"           # NIST Cybersecurity Framework
+    - "ISO27001"       # ISO/IEC 27001
+  
+  # HIPAA-specific controls
+  hipaa:
+    security_rule:
+      administrative_safeguards: true
+      physical_safeguards: true
+      technical_safeguards: true
+    
+    privacy_rule:
+      minimum_necessary: true
+      phi_authorization: true
+      notice_of_privacy_practices: true
+    
+    breach_notification:
+      enabled: true
+      threshold_records: 500  # Notify HHS if breach affects 500+ individuals
+  
+  # Evidence collection (enhanced for healthcare audits)
+  evidence:
+    collect_screenshots: true
+    collect_logs: true
+    collect_configs: true
+    retention_days: 2555  # 7 years (HIPAA requirement)
+    
+    # Healthcare-specific evidence
+    phi_handling:
+      redact_phi: true           # Automatically redact PHI from evidence
+      encrypt_evidence: true     # Encrypt all collected evidence
+      audit_access: true         # Audit all access to evidence files
+    
+    # Map evidence to HIPAA controls
+    hipaa_mapping:
+      automatic: true
+      include_citations: true    # Include regulatory citations
+
+# ============================================================================
+# SCANNING CONFIGURATION (HEALTHCARE-OPTIMIZED)
+# ============================================================================
+scanning:
+  # More conservative scanning for healthcare (avoid disrupting patient care)
+  stealth_level: 2  # Higher stealth for healthcare environments
+  max_rate: 50      # Lower rate to avoid network disruption
+  
+  random_delay_min: 60    # Longer delays
+  random_delay_max: 600   # Up to 10 minutes between scans
+  
+  timing_template: "T1"   # Sneaky timing
+  max_threads: 5          # Fewer concurrent operations
+  
+  port_profiles:
+    quick: "22,80,443,3389"
+    common: "22,80,135,139,443,445,1433,3306,3389,5900,8080,8443"
+    healthcare_specific: "22,80,443,1433,3306,3389,5432,7001,7002,8080,8443,9200,11112"  # EHR/PACS ports
+    top100: "--top-ports 100"
+    top1000: "--top-ports 1000"
+    all: "-p-"
+  
+  default_ports: "healthcare_specific"
+  
+  version_detection: true
+  os_detection: false  # Disabled by default (can disrupt medical devices)
+  
+  # Healthcare-specific scanning rules
+  healthcare_scanning:
+    avoid_medical_devices: true      # Skip known medical device IPs
+    scheduled_maintenance_window: true  # Only scan during maintenance windows
+    maintenance_windows:
+      - day: "Sunday"
+        start: "02:00"
+        end: "06:00"
+    
+    # Medical device handling
+    medical_devices:
+      scan_enabled: false  # Require explicit approval
+      require_vendor_approval: true
+      document_approvals: true
+
+# ============================================================================
+# SCHEDULING (HEALTHCARE MAINTENANCE WINDOWS)
+# ============================================================================
+schedule:
+  # All scans during low-traffic periods only
+  vulnerability_scan:
+    enabled: true
+    day: "Sunday"      # Weekend only
+    time: "02:00"      # Early morning
+    notify: true
+  
+  network_scan:
+    enabled: true
+    day: "Sunday"
+    time: "03:30"
+    notify: true
+  
+  compliance_check:
+    enabled: true
+    day: "Saturday"    # Weekly HIPAA compliance validation
+    time: "02:00"
+    notify: true
+  
+  health_check:
+    enabled: true
+    frequency: "daily"
+    time: "06:00"
+    notify_on_failure: true
+  
+  # HIPAA-specific scheduled tasks
+  hipaa_tasks:
+    risk_assessment:
+      enabled: true
+      frequency: "annual"  # Annual HIPAA risk assessment
+      next_due: "2027-01-01"
+    
+    security_awareness_review:
+      enabled: true
+      frequency: "annual"
+
+# ============================================================================
+# RESULTS & REPORTING (HIPAA-COMPLIANT)
+# ============================================================================
+results:
+  output_dir: "~/.purple-team/results/"
+  retention_days: 2555  # 7 years (HIPAA requirement)
+  auto_archive: true
+  archive_location: "~/.purple-team/results/archived/"
+  
+  formats:
+    - "json"
+    - "html"
+    - "csv"
+    - "pdf"
+  
+  branding:
+    company_name: "Your Healthcare Security Consulting Firm"
+    logo_path: ""
+    footer_text: "Confidential - HIPAA Protected Health Information"
+  
+  executive_reports:
+    include_charts: true
+    include_recommendations: true
+    risk_matrix: true
+    
+    # HIPAA-specific reporting
+    hipaa_reporting:
+      include_control_mapping: true
+      include_gap_analysis: true
+      include_remediation_plan: true
+      cite_regulations: true  # Include regulatory citations (45 CFR §164.xxx)
+
+# ============================================================================
+# DASHBOARD
+# ============================================================================
+dashboard:
+  host: "127.0.0.1"
+  port: 5000
+  debug: false
+  auth_enabled: true
+  username: "admin"
+  password_hash: ""
+  session_timeout: 15  # Shorter timeout for healthcare (15 minutes)
+
+# ============================================================================
+# LOGGING (HIPAA AUDIT TRAIL)
+# ============================================================================
+logging:
+  level: "INFO"
+  max_size_mb: 100
+  backup_count: 50  # More backup logs for compliance
+  
+  user_logs: "~/.purple-team/logs/"
+  system_logs: "/var/log/purple-team/{username}/"
+  
+  rotate_daily: true
+  
+  # HIPAA audit trail requirements
+  hipaa_audit_trail:
+    enabled: true
+    log_all_access: true        # Log all access to PHI
+    log_modifications: true     # Log all modifications
+    tamper_detection: true      # Detect log tampering
+    retention_days: 2555        # 7 years
+
+# ============================================================================
+# EMAIL NOTIFICATIONS
+# ============================================================================
+email:
+  enabled: false
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  use_tls: true
+  username: ""
+  password: ""
+  from_address: ""
+  to_addresses: []
+  subject_prefix: "[HIPAA Audit]"
+  include_summary: true
+  include_full_report: false
+  
+  # Encrypt all email attachments
+  encrypt_attachments: true
+
+# ============================================================================
+# EXPLOIT VALIDATION (DISABLED FOR HEALTHCARE)
+# ============================================================================
+exploit_validation:
+  enabled: false  # ⚠️ Typically disabled in healthcare environments
+  test_credentials: []
+
+# ============================================================================
+# INTEGRATION SETTINGS
+# ============================================================================
+integrations:
+  thehive:
+    enabled: false
+    url: "http://localhost:9000"
+    api_key: ""
+    organization: "healthcare"
+    auto_create_cases: true  # Create incidents for HIPAA violations
+  
+  wazuh:
+    enabled: false
+    url: "http://localhost:55000"
+    username: ""
+    password: ""
+    auto_import_alerts: true
+  
+  suricata:
+    enabled: false
+    eve_log_path: "/var/log/suricata/eve.json"
+    import_alerts: true
+  
+  zeek:
+    enabled: false
+    log_directory: "/var/log/zeek/"
+    import_logs: false
+
+# ============================================================================
+# ADVANCED SETTINGS
+# ============================================================================
+advanced:
+  python_stable: "3.11"
+  python_latest: "3.12"
+  prefer_stable: true
+  
+  venv_system: "/opt/purple-team/venv"
+  venv_user: "~/.purple-team/venv"
+  
+  auto_update_check: true
+  auto_install_updates: false
+  check_breaking_changes: true
+  
+  max_concurrent_scans: 2  # Reduced for healthcare
+  scan_timeout_minutes: 180  # Longer timeout (3 hours)
+  
+  auto_backup: true
+  backup_location: "/opt/purple-team-backups/"
+  backup_retention_days: 90
+  
+  # Healthcare-specific advanced settings
+  healthcare_advanced:
+    phi_encryption:
+      enabled: true
+      algorithm: "AES-256"
+      key_rotation_days: 90
+    
+    access_controls:
+      require_2fa: true
+      session_timeout_minutes: 15
+      failed_login_lockout: 3
+
+# ============================================================================
+# HIPAA CONTROL MAPPING
+# ============================================================================
+# This section maps platform capabilities to HIPAA Security Rule requirements
+hipaa_control_mapping:
+  administrative_safeguards:
+    security_management_process:
+      - "Risk analysis: risk_scorer.py"
+      - "Risk management: compliance_checker.py"
+      - "Sanction policy: evidence_manager.py (audit trail)"
+      - "Information system activity review: health_check_monitor.py"
+    
+    assigned_security_responsibility:
+      - "Security Official designation: (manual process)"
+    
+    workforce_security:
+      - "Authorization/supervision: (manual process)"
+      - "Workforce clearance: (manual process)"
+      - "Termination procedures: (manual process)"
+    
+    information_access_management:
+      - "Access authorization: dashboard authentication"
+      - "Access establishment/modification: (manual process)"
+    
+    security_awareness_training:
+      - "Training: (manual process - track with questionnaire_responder.py)"
+    
+    security_incident_procedures:
+      - "Response and reporting: evidence_manager.py + TheHive integration"
+    
+    contingency_plan:
+      - "Data backup: backup_restore.py"
+      - "Disaster recovery: backup_restore.py"
+      - "Emergency mode: (manual process)"
+    
+    evaluation:
+      - "Periodic evaluation: compliance_checker.py (scheduled)"
+    
+    business_associate_contracts:
+      - "Written contract: (manual process - track with questionnaire_responder.py)"
+  
+  physical_safeguards:
+    facility_access_controls:
+      - "Facility security plan: (manual process)"
+      - "Access control/validation: (manual process)"
+    
+    workstation_use:
+      - "Workstation policies: (manual process - verify with compliance_checker.py)"
+    
+    workstation_security:
+      - "Physical safeguards: (manual process - verify with compliance_checker.py)"
+    
+    device_and_media_controls:
+      - "Disposal: (manual process)"
+      - "Media re-use: (manual process)"
+      - "Accountability: asset_inventory_tracker.py"
+      - "Data backup/storage: backup_restore.py"
+  
+  technical_safeguards:
+    access_control:
+      - "Unique user identification: dashboard user management"
+      - "Emergency access: (manual process)"
+      - "Automatic logoff: dashboard session timeout"
+      - "Encryption: (verify with compliance_checker.py)"
+    
+    audit_controls:
+      - "Audit logging: All scripts log to dual locations"
+      - "Log review: health_check_monitor.py"
+    
+    integrity:
+      - "Mechanism to authenticate ePHI: (verify with compliance_checker.py)"
+    
+    person_or_entity_authentication:
+      - "Authentication procedures: dashboard authentication"
+    
+    transmission_security:
+      - "Integrity controls: (verify with network_scanner.py - TLS/SSL checks)"
+      - "Encryption: (verify with compliance_checker.py - data in transit)"
+
+# ============================================================================
+# END OF HEALTHCARE CONFIGURATION
+# ============================================================================
