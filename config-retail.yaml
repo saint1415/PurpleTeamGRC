@@ -1,0 +1,178 @@
+# Purple Team GRC Platform Configuration
+# Version: 3.0
+# Industry: RETAIL
+# Compliance: PCI-DSS, CCPA, SOC 2
+# Auto-generated: 2026-01-01
+
+client:
+  name: "Retail Client Name"
+  industry: "retail"
+  engagement_type: "pci_assessment"
+  engagement_date: "2026-01-01"
+  consultant: "Consultant Name"
+  contact_email: "security@retailclient.com"
+  
+  retail:
+    entity_type: "merchant"
+    pci_scope: true
+    pci_level: "Level 1"  # Based on transaction volume
+    ecommerce: true
+    physical_stores: true
+    transaction_volume: 0
+
+network:
+  auto_detect: true
+  ranges: []
+  exclusions: []
+  dns_servers: ["8.8.8.8", "1.1.1.1"]
+  prefer_wired: true
+  scan_all_interfaces: true
+  
+  retail_network:
+    pos_network: false
+    ecommerce_platform: true
+    payment_gateway_hosted: true
+
+compliance:
+  frameworks:
+    - "PCI-DSS"
+    - "CCPA"
+    - "SOC2"
+    - "NIST"
+    - "ISO27001"
+  
+  pci_dss:
+    version: "4.0"
+    requirements:
+      req_1_firewall: true
+      req_2_defaults: true
+      req_3_protect_data: true
+      req_4_encrypt_transmission: true
+      req_5_malware: true
+      req_6_secure_systems: true
+      req_7_access_controls: true
+      req_8_identify_users: true
+      req_9_physical_access: true
+      req_10_log_access: true
+      req_11_test_security: true
+      req_12_security_policy: true
+    cardholder_data_environment:
+      in_scope: true
+      segmentation_implemented: true
+  
+  evidence:
+    collect_screenshots: true
+    collect_logs: true
+    collect_configs: true
+    retention_days: 1095  # 3 years (PCI requirement)
+    encrypt_evidence: true
+
+scanning:
+  stealth_level: 3
+  max_rate: 100
+  random_delay_min: 30
+  random_delay_max: 300
+  timing_template: "T2"
+  max_threads: 10
+  port_profiles:
+    quick: "22,80,443,3389"
+    common: "22,80,443,3306,3389,8080,8443"
+    retail_specific: "22,80,443,3306,3389,5432,8080,8443,9200"
+    pci_scan: "22,80,443,3389,8080,8443"
+  default_ports: "retail_specific"
+  version_detection: true
+  os_detection: true
+  
+  retail_scanning:
+    avoid_peak_hours: true
+    peak_hours:
+      start: "10:00"
+      end: "20:00"
+    avoid_black_friday: true
+    avoid_cyber_monday: true
+    avoid_holiday_season: true
+
+schedule:
+  vulnerability_scan:
+    enabled: true
+    day: "Tuesday"
+    time: "03:00"
+    notify: true
+  network_scan:
+    enabled: true
+    day: "Thursday"
+    time: "03:00"
+    notify: true
+  compliance_check:
+    enabled: true
+    day: "Sunday"
+    time: "02:00"
+    notify: true
+  health_check:
+    enabled: true
+    frequency: "daily"
+    time: "06:00"
+  
+  retail_tasks:
+    pci_quarterly_scan:
+      enabled: true
+      frequency: "quarterly"
+      next_due: "2026-03-31"
+    seasonal_prep:
+      holiday_scan: true
+      pre_holiday_date: "2026-11-01"
+
+results:
+  output_dir: "~/.purple-team/results/"
+  retention_days: 1095
+  auto_archive: true
+  formats: ["json", "html", "csv", "pdf"]
+  branding:
+    company_name: "Your Retail Security Consulting Firm"
+    footer_text: "Confidential - PCI Protected Information"
+  executive_reports:
+    include_charts: true
+    pci_requirement_mapping: true
+
+dashboard:
+  host: "127.0.0.1"
+  port: 5000
+  debug: false
+  auth_enabled: true
+  session_timeout: 30
+
+logging:
+  level: "INFO"
+  max_size_mb: 100
+  backup_count: 20
+  user_logs: "~/.purple-team/logs/"
+  system_logs: "/var/log/purple-team/{username}/"
+  rotate_daily: true
+  
+  pci_audit_trail:
+    enabled: true
+    log_all_access: true
+    retention_days: 1095
+
+email:
+  enabled: false
+  subject_prefix: "[PCI Audit]"
+  encrypt_attachments: true
+
+exploit_validation:
+  enabled: false
+
+advanced:
+  python_stable: "3.11"
+  prefer_stable: true
+  auto_update_check: true
+  auto_install_updates: false
+
+pci_dss_mapping:
+  requirement_6:
+    - "Quarterly vulnerability scans: vulnerability_scanner.py"
+  requirement_10:
+    - "Audit logging: All platform scripts"
+  requirement_11:
+    - "Quarterly ASV scans: vulnerability_scanner.py"
+    - "Internal network scans: network_scanner.py"

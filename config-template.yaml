@@ -1,0 +1,336 @@
+# Purple Team GRC Platform Configuration
+# Version: 3.0
+# Industry: General/Technology
+# Auto-generated: 2026-01-01
+
+# ============================================================================
+# CLIENT INFORMATION
+# ============================================================================
+client:
+  name: "Client Name Here"
+  industry: "technology"  # healthcare, finance, retail, government, technology
+  engagement_type: "audit"  # audit, pentest, compliance, assessment
+  engagement_date: "2026-01-01"
+  consultant: "Consultant Name"
+  contact_email: "client@example.com"
+
+# ============================================================================
+# NETWORK CONFIGURATION
+# ============================================================================
+network:
+  # Auto-detection (recommended - let platform detect network ranges)
+  auto_detect: true  # Set to false for manual configuration
+  
+  # Manual network ranges (populated by network-detector.py or manually)
+  # Leave empty if auto_detect is true
+  ranges: []
+    # Examples (auto-detected or manually added):
+    # - "10.50.0.0/16"
+    # - "192.168.10.0/24"
+    # - "172.16.0.0/12"
+  
+  # Exclusions (never scan these hosts - critical infrastructure)
+  exclusions: []
+    # Examples:
+    # - "10.50.0.1"      # Gateway
+    # - "10.50.0.10"     # Domain Controller
+    # - "192.168.10.1"   # Firewall
+    # - "192.168.10.5"   # Production Database Server
+  
+  # DNS servers for name resolution
+  dns_servers:
+    - "8.8.8.8"     # Google DNS
+    - "1.1.1.1"     # Cloudflare DNS
+  
+  # Interface preferences
+  prefer_wired: true  # Prefer wired (eth0) over wireless (wlan0) if both active
+  scan_all_interfaces: true  # Scan all active interfaces (prompt user if multiple)
+
+# ============================================================================
+# COMPLIANCE FRAMEWORKS
+# ============================================================================
+compliance:
+  # Select applicable frameworks
+  frameworks:
+    - "SOC2"      # SOC 2 Type II
+    - "NIST"      # NIST Cybersecurity Framework
+    - "ISO27001"  # ISO/IEC 27001
+    # Add industry-specific frameworks as needed:
+    # - "HIPAA"        # Healthcare
+    # - "PCI-DSS"      # Payment cards
+    # - "SOX"          # Financial reporting
+    # - "FedRAMP"      # Government cloud
+  
+  # Evidence collection settings
+  evidence:
+    collect_screenshots: true   # Capture visual evidence
+    collect_logs: true          # Collect relevant log files
+    collect_configs: true       # Capture configuration files
+    retention_days: 365         # Audit trail retention (1 year minimum)
+    auto_organize: true         # Organize evidence by framework
+
+# ============================================================================
+# SCANNING CONFIGURATION
+# ============================================================================
+scanning:
+  # Stealth settings (1 = maximum stealth/slowest, 5 = aggressive/fastest)
+  # Level 1: Ultra-stealth (5min delay, T0 timing)
+  # Level 2: High stealth (3min delay, T1 timing)
+  # Level 3: Balanced (30sec delay, T2 timing) ⭐ RECOMMENDED
+  # Level 4: Fast (10sec delay, T3 timing)
+  # Level 5: Maximum speed (no delay, T4 timing)
+  stealth_level: 3
+  
+  # Maximum scan rate (packets per second)
+  max_rate: 100  # Reduce to 50 for more stealth, increase to 300 for speed
+  
+  # Random delay between scans (seconds)
+  random_delay_min: 30    # Minimum wait between scans
+  random_delay_max: 300   # Maximum wait between scans
+  
+  # Nmap timing template (T0=paranoid to T5=insane)
+  # T0: Paranoid (300sec delay between probes)
+  # T1: Sneaky (15sec delay)
+  # T2: Polite (0.4sec delay) ⭐ RECOMMENDED
+  # T3: Normal (default)
+  # T4: Aggressive (fast)
+  # T5: Insane (very fast, may miss results)
+  timing_template: "T2"
+  
+  # Thread limits (concurrent operations)
+  max_threads: 10  # Reduce for stealth, increase for speed
+  
+  # Port scan profiles
+  port_profiles:
+    quick: "21,22,23,80,443"  # Minimal essential ports
+    common: "21,22,23,25,53,80,110,135,139,143,443,445,993,995,1433,3306,3389,5900,8080,8443"
+    top100: "--top-ports 100"   # Nmap's top 100 ports
+    top1000: "--top-ports 1000" # Nmap's top 1000 ports
+    all: "-p-"  # All 65535 ports (very slow!)
+  
+  # Default port profile for scans
+  default_ports: "common"  # Use 'common' for most engagements
+  
+  # Service version detection
+  version_detection: true  # Detect service versions (more accurate)
+  
+  # OS fingerprinting
+  os_detection: false  # Disable by default (requires root, more intrusive)
+
+# ============================================================================
+# SCHEDULING (Automated Scans)
+# ============================================================================
+schedule:
+  # Vulnerability scans
+  vulnerability_scan:
+    enabled: true
+    day: "Monday"      # Day of week
+    time: "02:00"      # 24-hour format (2:00 AM)
+    notify: true       # Send email notification on completion
+  
+  # Network discovery scans
+  network_scan:
+    enabled: true
+    day: "Wednesday"
+    time: "02:00"
+    notify: true
+  
+  # Compliance validation checks
+  compliance_check:
+    enabled: true
+    day: "Friday"
+    time: "02:00"
+    notify: true
+  
+  # Daily health checks
+  health_check:
+    enabled: true
+    frequency: "daily"  # daily, weekly, hourly
+    time: "06:00"       # 6:00 AM
+    notify_on_failure: true  # Only notify if issues detected
+
+# ============================================================================
+# RESULTS & REPORTING
+# ============================================================================
+results:
+  # Output directory (auto-detected based on user installation)
+  # Do not modify unless you have specific requirements
+  output_dir: "~/.purple-team/results/"
+  
+  # Retention policy
+  retention_days: 90      # Archive results after 90 days
+  auto_archive: true      # Automatically compress old results
+  archive_location: "~/.purple-team/results/archived/"
+  
+  # Output formats (select all that apply)
+  formats:
+    - "json"    # Machine-readable (for automation)
+    - "html"    # Human-readable web reports
+    - "csv"     # Spreadsheet format (Excel/analysis)
+    - "pdf"     # Executive summary reports
+  
+  # Report branding/customization
+  branding:
+    company_name: "Your Security Consulting Firm"
+    logo_path: ""  # Path to logo image (optional, e.g., /opt/purple-team/assets/logo.png)
+    footer_text: "Confidential - Client Privileged"
+    
+  # Executive report settings
+  executive_reports:
+    include_charts: true
+    include_recommendations: true
+    risk_matrix: true
+
+# ============================================================================
+# DASHBOARD (Web Interface)
+# ============================================================================
+dashboard:
+  host: "127.0.0.1"  # Localhost only for security (do not expose externally!)
+  port: 5000         # Default Flask port
+  debug: false       # Never enable in production
+  
+  # Authentication (strongly recommended)
+  auth_enabled: true
+  username: "admin"
+  password_hash: ""  # Auto-generated during installation (do not edit manually)
+  
+  # Session timeout (minutes)
+  session_timeout: 30
+
+# ============================================================================
+# LOGGING
+# ============================================================================
+logging:
+  # Log level: DEBUG (verbose), INFO (standard), WARNING, ERROR, CRITICAL
+  level: "INFO"
+  
+  # Log file rotation
+  max_size_mb: 100      # Rotate logs at 100MB
+  backup_count: 10      # Keep 10 backup log files
+  
+  # Dual logging locations (automatic)
+  user_logs: "~/.purple-team/logs/"                 # User-specific logs
+  system_logs: "/var/log/purple-team/{username}/"   # System-wide audit trail (requires sudo)
+  
+  # Log rotation schedule
+  rotate_daily: true
+  
+  # Log format
+  include_timestamp: true
+  include_level: true
+  include_source: true  # Include script name in logs
+
+# ============================================================================
+# EMAIL NOTIFICATIONS
+# ============================================================================
+email:
+  enabled: false  # Enable for automated email reports
+  
+  # SMTP configuration
+  smtp_server: "smtp.gmail.com"
+  smtp_port: 587
+  use_tls: true
+  
+  # Authentication (use app passwords, not account passwords!)
+  username: ""  # your-email@gmail.com
+  password: ""  # Gmail app password (not your account password)
+  
+  # Sender/recipient
+  from_address: ""     # sender@example.com
+  to_addresses: []     # ["recipient1@example.com", "recipient2@example.com"]
+  
+  # Email content
+  subject_prefix: "[Purple Team]"
+  include_summary: true
+  include_full_report: false  # Attach full report (large files!)
+
+# ============================================================================
+# EXPLOIT VALIDATION (⚠️ ONLY USE IN ISOLATED TEST ENVIRONMENTS!)
+# ============================================================================
+exploit_validation:
+  enabled: false  # ⚠️ Only enable in controlled lab environments
+  
+  # Test credentials (⚠️ WARNING: Only use in isolated test labs!)
+  # NEVER use real credentials or enable this in production environments
+  test_credentials: []
+    # Example (DO NOT USE REAL CREDENTIALS):
+    # - {username: "testuser", password: "testpass", protocol: "ssh"}
+    # - {username: "admin", password: "admin123", protocol: "smb"}
+  
+  # Exploit database update
+  auto_update_exploits: true
+  exploit_db_path: "/opt/purple-team/exploit-db/"
+
+# ============================================================================
+# INTEGRATION SETTINGS (SOC Tool Integration)
+# ============================================================================
+integrations:
+  # TheHive (Incident Response Platform)
+  thehive:
+    enabled: false
+    url: "http://localhost:9000"
+    api_key: ""
+    organization: "default"
+    auto_create_cases: false  # Automatically create cases for critical findings
+  
+  # Wazuh (SIEM)
+  wazuh:
+    enabled: false
+    url: "http://localhost:55000"
+    username: ""
+    password: ""
+    auto_import_alerts: false
+  
+  # Suricata (IDS/IPS)
+  suricata:
+    enabled: false
+    eve_log_path: "/var/log/suricata/eve.json"
+    import_alerts: false
+  
+  # Zeek (Network Analysis)
+  zeek:
+    enabled: false
+    log_directory: "/var/log/zeek/"
+    import_logs: false
+  
+  # Malcolm (Network Traffic Analysis)
+  malcolm:
+    enabled: false
+    url: "http://localhost:9200"
+    username: ""
+    password: ""
+
+# ============================================================================
+# ADVANCED SETTINGS
+# ============================================================================
+advanced:
+  # Python version management
+  python_stable: "3.11"    # Known-good stable version
+  python_latest: "3.12"    # Latest version (may have compatibility issues)
+  prefer_stable: true      # Use stable by default, fallback from latest if issues
+  
+  # Virtual environment locations (auto-managed)
+  venv_system: "/opt/purple-team/venv"
+  venv_user: "~/.purple-team/venv"
+  
+  # Update behavior
+  auto_update_check: true       # Check for updates on every launch
+  auto_install_updates: false   # Prompt before installing (recommended)
+  check_breaking_changes: true  # Analyze release notes for breaking changes
+  
+  # Performance tuning
+  max_concurrent_scans: 3       # Maximum simultaneous scan jobs
+  scan_timeout_minutes: 120     # Timeout for individual scans (2 hours)
+  
+  # Backup settings
+  auto_backup: true
+  backup_location: "/opt/purple-team-backups/"
+  backup_retention_days: 30
+
+# ============================================================================
+# END OF CONFIGURATION
+# ============================================================================
+# For help with configuration options, see:
+# - Documentation: /opt/purple-team/docs/
+# - Deployment Guide: Purple_Team_Deployment_Guide_v3.html
+# - Support: Review troubleshooting appendix in deployment guide

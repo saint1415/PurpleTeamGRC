@@ -1,0 +1,156 @@
+#!/usr/bin/env python3
+"""
+Purple Team GRC Platform v3.0 - Terminal Launcher
+Interactive terminal menu for all platform operations
+
+Usage:
+    purple-team-launcher
+"""
+
+import subprocess
+import sys
+from pathlib import Path
+
+class Colors:
+    GREEN = '\033[0;32m'
+    YELLOW = '\033[1;33m'
+    RED = '\033[0;31m'
+    BLUE = '\033[0;34m'
+    CYAN = '\033[0;36m'
+    BOLD = '\033[1m'
+    NC = '\033[0m'
+
+def print_header():
+    """Print application header"""
+    print(f"\n{Colors.BLUE}{'=' * 70}{Colors.NC}")
+    print(f"{Colors.BLUE}{'Purple Team GRC Platform v3.0':^70}{Colors.NC}")
+    print(f"{Colors.BLUE}{'=' * 70}{Colors.NC}\n")
+
+def print_menu():
+    """Print main menu"""
+    print(f"{Colors.BOLD}Main Menu:{Colors.NC}\n")
+    print(f"  {Colors.CYAN}Network & Discovery:{Colors.NC}")
+    print("    1) Network Discovery & Auto-Detection")
+    print("    2) Quick Network Scan")
+    print("    3) Full Network Scan")
+    print()
+    print(f"  {Colors.CYAN}Vulnerability Assessment:{Colors.NC}")
+    print("    4) Quick Vulnerability Scan (Sample)")
+    print("    5) Full Vulnerability Scan")
+    print("    6) Targeted Scan (Specific IP)")
+    print()
+    print(f"  {Colors.CYAN}Compliance:{Colors.NC}")
+    print("    7) Compliance Scan (SOC 2, HIPAA, PCI-DSS, etc.)")
+    print("    8) Generate Compliance Report")
+    print()
+    print(f"  {Colors.CYAN}Reports & Evidence:{Colors.NC}")
+    print("    9) Generate Executive Report")
+    print("   10) Create Evidence Package")
+    print()
+    print(f"  {Colors.CYAN}System Management:{Colors.NC}")
+    print("   11) Run Pre-Flight Checks")
+    print("   12) Check for Updates")
+    print("   13) Sync Installations (opt â†” home)")
+    print("   14) View Configuration")
+    print()
+    print("    0) Exit")
+    print()
+
+def run_script(script_path, args=""):
+    """Execute a script using the virtual environment Python"""
+    # Try virtual environment first, fall back to system Python
+    venv_python = "/opt/purple-team/venv/bin/python3"
+    
+    if Path(venv_python).exists():
+        python_cmd = venv_python
+    else:
+        python_cmd = "python3"
+        print(f"{Colors.YELLOW}Note: Using system Python (venv not found){Colors.NC}")
+    
+    cmd = f"sudo {python_cmd} {script_path} {args}"
+    subprocess.run(cmd, shell=True)
+
+def main_loop():
+    """Main menu loop"""
+    while True:
+        print_header()
+        print_menu()
+        
+        try:
+            choice = input(f"{Colors.BOLD}Select option [0-14]: {Colors.NC}")
+            print()
+            
+            if choice == '0':
+                print(f"{Colors.GREEN}Goodbye!{Colors.NC}\n")
+                break
+            elif choice == '1':
+                run_script("/opt/purple-team/utils/network-detector.py")
+            elif choice == '2':
+                # Quick Scan - prompt for scan type
+                print(f"{Colors.CYAN}Quick Scan Types:{Colors.NC}")
+                print("  1) Port scan")
+                print("  2) Vulnerability check")
+                print("  3) Web scan")
+                print("  4) SSL/TLS check")
+                print("  5) Host discovery")
+                print()
+                scan_choice = input("Select scan type [1-5]: ")
+                
+                scan_types = {
+                    '1': 'port',
+                    '2': 'vuln',
+                    '3': 'web',
+                    '4': 'ssl',
+                    '5': 'discovery'
+                }
+                
+                scan_type = scan_types.get(scan_choice)
+                if scan_type:
+                    target = input("Enter target (IP or hostname): ")
+                    # Correct argument order: --save BEFORE the subcommand
+                    run_script("/opt/purple-team/scanners/quick_scan.py", f"--save {scan_type} {target}")
+                else:
+                    print(f"{Colors.RED}Invalid scan type!{Colors.NC}")
+            elif choice == '3':
+                run_script("/opt/purple-team/scanners/network_scanner.py")
+            elif choice == '4':
+                run_script("/opt/purple-team/scanners/vulnerability_scanner.py", "--sample 10")
+            elif choice == '5':
+                run_script("/opt/purple-team/scanners/vulnerability_scanner.py")
+            elif choice == '6':
+                ip = input("Enter target IP address: ")
+                run_script("/opt/purple-team/scanners/quick_scan.py", f"vuln {ip}")
+            elif choice == '7':
+                run_script("/opt/purple-team/scanners/compliance_checker.py")
+            elif choice == '8':
+                run_script("/opt/purple-team/utilities/executive_report_generator.py")
+            elif choice == '9':
+                run_script("/opt/purple-team/utilities/executive_report_generator.py")
+            elif choice == '10':
+                run_script("/opt/purple-team/utilities/evidence_manager.py", "--create-package")
+            elif choice == '11':
+                run_script("/opt/purple-team/utils/pre-flight-checker.py", "--verbose")
+            elif choice == '12':
+                run_script("/opt/purple-team/utils/update-manager.py")
+            elif choice == '13':
+                subprocess.run("sudo /opt/purple-team/utils/sync-manager.sh --verbose", shell=True)
+            elif choice == '14':
+                subprocess.run(f"cat {Path.home()}/.purple-team/config.yaml | less", shell=True)
+            else:
+                print(f"{Colors.RED}Invalid choice!{Colors.NC}")
+            
+            input(f"\n{Colors.BOLD}Press Enter to continue...{Colors.NC}")
+            
+        except KeyboardInterrupt:
+            print(f"\n\n{Colors.YELLOW}Cancelled{Colors.NC}\n")
+            break
+        except Exception as e:
+            print(f"\n{Colors.RED}Error: {e}{Colors.NC}\n")
+            input(f"{Colors.BOLD}Press Enter to continue...{Colors.NC}")
+
+if __name__ == "__main__":
+    try:
+        main_loop()
+    except KeyboardInterrupt:
+        print(f"\n{Colors.GREEN}Goodbye!{Colors.NC}\n")
+        sys.exit(0)

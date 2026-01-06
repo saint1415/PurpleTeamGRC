@@ -1,0 +1,297 @@
+# Purple Team GRC Platform Configuration
+# Version: 3.0
+# Industry: Comprehensive (All Frameworks)
+# Auto-generated: 2026-01-03
+
+# ============================================================================
+# CLIENT INFORMATION
+# ============================================================================
+client:
+  name: "Client Name Here"
+  industry: "multi-sector"  # Multiple industries or comprehensive coverage
+  engagement_type: "comprehensive-audit"  # audit, pentest, compliance, assessment
+  engagement_date: "2026-01-03"
+  consultant: "Consultant Name"
+  contact_email: "client@example.com"
+
+# ============================================================================
+# NETWORK CONFIGURATION
+# ============================================================================
+network:
+  # Auto-detection (recommended - let platform detect network ranges)
+  auto_detect: true  # Set to false for manual configuration
+  
+  # Manual network ranges (populated by network-detector.py or manually)
+  # Leave empty if auto_detect is true
+  ranges: []
+    # Examples (auto-detected or manually added):
+    # - "10.50.0.0/16"
+    # - "192.168.10.0/24"
+    # - "172.16.0.0/12"
+  
+  # Exclusions (never scan these hosts - critical infrastructure)
+  exclusions: []
+    # Examples:
+    # - "10.50.0.1"      # Gateway
+    # - "10.50.0.10"     # Domain Controller
+    # - "192.168.10.1"   # Firewall
+  
+  # DNS servers for name resolution
+  dns_servers:
+    - "8.8.8.8"     # Google DNS
+    - "1.1.1.1"     # Cloudflare DNS
+  
+  # Interface preferences
+  prefer_wired: true
+  scan_all_interfaces: true
+
+# ============================================================================
+# COMPLIANCE FRAMEWORKS - COMPREHENSIVE (ALL)
+# ============================================================================
+compliance:
+  # ALL available frameworks enabled
+  frameworks:
+    # General Security & Risk
+    - "NIST"           # NIST Cybersecurity Framework
+    - "ISO27001"       # ISO/IEC 27001 Information Security
+    - "ISO27002"       # ISO/IEC 27002 Security Controls
+    - "CIS"            # CIS Critical Security Controls
+    - "COBIT"          # COBIT 2019 Governance Framework
+    
+    # Industry-Specific
+    - "HIPAA"          # Healthcare - Health Insurance Portability
+    - "HITECH"         # Healthcare - Health Information Technology
+    - "PCI-DSS"        # Payment Card Industry Data Security
+    - "SOX"            # Sarbanes-Oxley (Financial Reporting)
+    - "GLBA"           # Gramm-Leach-Bliley Act (Financial)
+    - "FERPA"          # Family Educational Rights (Education)
+    - "FISMA"          # Federal Information Security (Government)
+    - "FedRAMP"        # Federal Risk & Authorization (Gov Cloud)
+    - "CMMC"           # Cybersecurity Maturity Model (Defense)
+    - "ITAR"           # International Traffic in Arms (Defense)
+    
+    # Audit & Assurance
+    - "SOC2"           # SOC 2 Type II (Trust Services)
+    - "SOC1"           # SOC 1 (Financial Controls)
+    
+    # Privacy & Data Protection
+    - "GDPR"           # General Data Protection Regulation (EU)
+    - "CCPA"           # California Consumer Privacy Act
+    - "CPRA"           # California Privacy Rights Act
+    - "PIPEDA"         # Personal Information Protection (Canada)
+    
+    # Cloud & Technology
+    - "CSA-CCM"        # Cloud Security Alliance Cloud Controls
+    - "AWS-Well-Arch"  # AWS Well-Architected Framework
+    - "Azure-Security" # Azure Security Benchmark
+    - "GCP-Security"   # Google Cloud Security Best Practices
+    
+    # Regional & International
+    - "BSI-C5"         # German Cloud Computing Compliance (BSI)
+    - "MTCS"           # Multi-Tier Cloud Security (Singapore)
+    - "PDPA"           # Personal Data Protection Act (Singapore)
+    
+  # Evidence collection settings
+  evidence:
+    collect_screenshots: true   # Capture visual evidence
+    collect_logs: true          # Collect relevant log files
+    collect_configs: true       # Capture configuration files
+    retention_days: 2555        # 7 years for comprehensive compliance
+    auto_organize: true         # Organize evidence by framework
+
+# ============================================================================
+# SCANNING CONFIGURATION
+# ============================================================================
+scanning:
+  # Balanced stealth for comprehensive scanning
+  stealth_level: 3  # Balanced (recommended for comprehensive scans)
+  
+  max_rate: 100
+  random_delay_min: 30
+  random_delay_max: 300
+  timing_template: "T2"
+  
+  # Thread limits
+  max_threads: 10
+  max_concurrent_hosts: 50
+  
+  # Port scanning
+  port_scan_enabled: true
+  common_ports_only: false  # Scan ALL ports for comprehensive assessment
+  custom_ports: []
+  
+  # Service detection
+  service_detection: true
+  version_detection: true
+  os_detection: true
+  
+  # Vulnerability scanning
+  vulnerability_scan: true
+  exploit_validation: false  # Disabled for safety in comprehensive mode
+  
+  # Web application scanning
+  web_scan_enabled: true
+  spider_depth: 3
+  form_fuzzing: true
+  
+  # Network analysis
+  packet_capture: true
+  traffic_analysis: true
+  protocol_analysis: true
+  
+  # Wireless (if applicable)
+  wireless_scan: false  # Enable if wireless networks in scope
+  
+  # Active Directory (if applicable)
+  ad_enumeration: true
+  ad_replication: false
+  bloodhound_collection: true
+
+# ============================================================================
+# RESULTS & REPORTING
+# ============================================================================
+results:
+  # Output directory (relative to ~/.purple-team/)
+  output_dir: "results/comprehensive/"
+  
+  # Report formats to generate
+  formats:
+    - "json"      # Machine-readable
+    - "html"      # Interactive dashboard
+    - "csv"       # Spreadsheet import
+    - "pdf"       # Executive summary
+    - "xml"       # For SIEM import
+  
+  # Log retention
+  retention_days: 2555  # 7 years for comprehensive compliance
+  
+  # Auto-upload to central repository
+  auto_upload: false
+  upload_destination: ""
+  
+  # Report customization
+  include_executive_summary: true
+  include_technical_details: true
+  include_remediation: true
+  include_compliance_mapping: true  # Map findings to ALL frameworks
+  
+  # Risk scoring
+  use_cvss: true        # Common Vulnerability Scoring System
+  use_custom_risk: true # Client-specific risk matrix
+  
+  # Dashboard
+  generate_dashboard: true
+  dashboard_port: 8080
+  dashboard_auth: true
+
+# ============================================================================
+# NOTIFICATIONS
+# ============================================================================
+notifications:
+  email_enabled: false
+  email_to: []
+  email_on_completion: true
+  email_on_critical: true
+  
+  slack_enabled: false
+  slack_webhook: ""
+  
+  syslog_enabled: true
+  syslog_server: "localhost"
+
+# ============================================================================
+# SCHEDULING (FOR RECURRING COMPREHENSIVE SCANS)
+# ============================================================================
+scheduling:
+  enabled: false
+  frequency: "monthly"  # daily, weekly, monthly, quarterly
+  day_of_week: "sunday"
+  time: "02:00"
+  
+  # Stagger scans to avoid network impact
+  stagger_delay_hours: 2
+
+# ============================================================================
+# INTEGRATIONS
+# ============================================================================
+integrations:
+  # SIEM Integration
+  splunk:
+    enabled: false
+    hec_endpoint: ""
+    hec_token: ""
+  
+  elasticsearch:
+    enabled: false
+    host: "localhost"
+    port: 9200
+  
+  # Ticketing
+  jira:
+    enabled: false
+    url: ""
+    project_key: ""
+    api_token: ""
+  
+  servicenow:
+    enabled: false
+    instance: ""
+    username: ""
+    password: ""
+  
+  # GRC Platforms
+  archer:
+    enabled: false
+    url: ""
+    api_key: ""
+  
+  auditboard:
+    enabled: false
+    url: ""
+    api_key: ""
+
+# ============================================================================
+# ADVANCED SETTINGS
+# ============================================================================
+advanced:
+  # Performance tuning
+  memory_limit_mb: 4096
+  disk_cache_size_mb: 2048
+  
+  # Retry logic
+  max_retries: 3
+  retry_delay_seconds: 60
+  
+  # Logging
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR
+  verbose_logging: false
+  
+  # Proxy settings (if required)
+  http_proxy: ""
+  https_proxy: ""
+  no_proxy: "localhost,127.0.0.1"
+  
+  # Custom tool paths
+  custom_tools_dir: "/opt/purple-team/custom-tools/"
+  
+  # Plugin support
+  plugins_enabled: true
+  plugin_dir: "/opt/purple-team/plugins/"
+
+# ============================================================================
+# NOTES
+# ============================================================================
+# This comprehensive configuration enables ALL available compliance frameworks
+# and performs the most thorough assessment possible.
+#
+# WARNING: Comprehensive scans take significantly longer than targeted scans.
+# Estimated time: 4-8 hours for a typical 50-host network
+#
+# Use Cases:
+# - Multi-industry clients (e.g., healthcare + finance)
+# - Pre-M&A due diligence requiring complete coverage
+# - Annual comprehensive security assessments
+# - Establishing baseline for new compliance program
+# - Gap analysis across multiple frameworks simultaneously
+#
+# For faster, targeted scans, use industry-specific templates instead.
