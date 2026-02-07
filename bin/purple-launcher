@@ -1,0 +1,1164 @@
+#!/usr/bin/env python3
+"""
+Purple Team Platform v6.0 - Main Launcher
+Systems Thinking Security Assessment Platform
+
+A polished, easy-to-use interface for comprehensive security assessments.
+Integrates Red Team, Blue Team, and Purple Team capabilities.
+v6.0: OpenVAS parity - threat intel, asset mgmt, credentialed scanning,
+      QoD scoring, false positive overrides, delta reports, Windows support.
+"""
+
+import os
+import sys
+from pathlib import Path
+
+# Resolve installation directory
+SCRIPT_DIR = Path(__file__).resolve().parent
+PURPLE_HOME = SCRIPT_DIR.parent
+os.environ['PURPLE_TEAM_HOME'] = str(PURPLE_HOME)
+
+# Add lib to path
+sys.path.insert(0, str(PURPLE_HOME / 'lib'))
+sys.path.insert(0, str(PURPLE_HOME / 'utilities'))
+sys.path.insert(0, str(PURPLE_HOME / 'scanners'))
+
+from tui import tui, C
+from tool_discovery import tool_discovery, ToolInfo
+from human_behavior import HumanBehavior
+from paths import paths
+from config import config
+
+# v6.0 imports - graceful fallback if modules not yet available
+try:
+    from platform_detect import get_platform_info
+    platform_info = get_platform_info()
+except ImportError:
+    platform_info = None
+
+try:
+    from evidence import get_evidence_manager
+except ImportError:
+    get_evidence_manager = None
+
+try:
+    from credential_manager import get_credential_manager
+except ImportError:
+    get_credential_manager = None
+
+try:
+    from threat_intel import get_threat_intel
+except ImportError:
+    get_threat_intel = None
+
+
+class PurpleLauncher:
+    """Main launcher for Purple Team Platform."""
+
+    VERSION = "6.0"
+
+    def __init__(self):
+        self.behavior = HumanBehavior('normal')
+        self.tools_checked = False
+        self.platform = platform_info
+
+    def show_banner(self):
+        """Display the main banner."""
+        tui.clear()
+        subtitle = "Systems Thinking Security Assessment"
+        if self.platform:
+            subtitle += f" | {self.platform.os_name} {self.platform.architecture}"
+        tui.banner(
+            "PURPLE TEAM PLATFORM",
+            subtitle,
+            self.VERSION
+        )
+
+    def check_prerequisites(self) -> bool:
+        """Check and optionally install prerequisites."""
+        tui.section("Checking Prerequisites", C.CYAN)
+        print()
+
+        # Discover tools
+        tool_discovery.discover_all()
+        print()
+
+        # Check required tools
+        required_missing = tool_discovery.get_required_missing()
+
+        if not required_missing:
+            tui.success("All required tools are available")
+            self.tools_checked = True
+            tui.section_end(C.CYAN)
+            return True
+
+        # Show missing tools
+        tui.warning(f"Missing {len(required_missing)} required tools:")
+        for name, tool in required_missing.items():
+            print(f"  {C.RED}{tui.CROSS}{C.RESET} {name}: {tool.description}")
+
+        print()
+        tui.section_end(C.CYAN)
+
+        # Offer to install
+        if tui.confirm("Would you like to install missing tools?", default=True):
+            return self.install_prerequisites(required_missing)
+
+        return False
+
+    def install_prerequisites(self, missing: dict) -> bool:
+        """Install missing prerequisites."""
+        tui.section("Installing Prerequisites", C.YELLOW)
+        print()
+
+        success_count = 0
+        for name, tool in missing.items():
+            if tool_discovery.install_tool(name):
+                success_count += 1
+
+        print()
+        tui.section_end(C.YELLOW)
+
+        if success_count == len(missing):
+            tui.success("All tools installed successfully")
+            self.tools_checked = True
+            return True
+        else:
+            tui.warning(f"Installed {success_count}/{len(missing)} tools")
+            return success_count > 0
+
+    def show_tool_status(self):
+        """Display detailed tool status."""
+        self.show_banner()
+        tui.section("Security Tool Inventory", C.CYAN)
+        print()
+
+        if not tool_discovery.discovered:
+            tool_discovery.discover_all()
+            print()
+
+        tool_discovery.display_status()
+
+        # Summary
+        available = tool_discovery.get_available()
+        missing = tool_discovery.get_missing()
+
+        print()
+        tui.info(f"Total: {len(available)} available, {len(missing)} missing")
+
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def show_main_menu(self):
+        """Display the main menu."""
+        options = [
+            ('1', f'{C.BRIGHT_RED}Red Team{C.RESET} - Attack Simulation', 'Offensive security testing, vulnerability exploitation'),
+            ('2', f'{C.BRIGHT_BLUE}Blue Team{C.RESET} - Detection & Defense', 'Security monitoring, threat detection, hardening'),
+            ('3', f'{C.BRIGHT_MAGENTA}Purple Team{C.RESET} - Integrated Assessment', 'Combined red/blue operations with gap analysis'),
+            ('---', '', ''),
+            ('4', 'Quick Scan', 'Fast security posture check (15-30 min)'),
+            ('5', 'Standard Assessment', 'Comprehensive scan with compliance (1-2 hours)'),
+            ('6', 'Deep Assessment', 'Full security audit with evidence (2-4 hours)'),
+            ('---', '', ''),
+            ('7', 'Compliance & Reports', 'Generate compliance reports and exports'),
+            ('8', 'Schedule Scans', 'Configure automated monthly assessments'),
+            ('9', 'Tool Status', 'View available security tools'),
+            ('---', '', ''),
+            ('s', 'Settings', 'Configure platform settings'),
+            ('h', 'Help', 'View documentation and guides'),
+            ('q', 'Quit', 'Exit the platform'),
+        ]
+
+        return tui.menu("Main Menu", options, C.MAGENTA)
+
+    def show_red_team_menu(self):
+        """Red Team submenu."""
+        self.show_banner()
+        options = [
+            ('1', 'Network Reconnaissance', 'Discover hosts, ports, services'),
+            ('2', 'Vulnerability Scanning', 'Find exploitable weaknesses'),
+            ('3', 'Web Application Testing', 'OWASP Top 10, injection, XSS'),
+            ('4', 'Password Auditing', 'Test password strength and policies'),
+            ('5', 'Exploit Validation', 'Safely test if vulnerabilities are exploitable'),
+            ('---', '', ''),
+            ('6', 'ATT&CK Simulation', 'MITRE ATT&CK technique testing'),
+            ('7', 'Phishing Simulation', 'Test email security awareness'),
+            ('8', 'Social Engineering', 'Test human security controls'),
+            ('---', '', ''),
+            ('9', f'{C.BRIGHT_GREEN}OpenVAS Integration{C.RESET}', 'GVM/OpenVAS scanning and import'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to main menu'),
+        ]
+
+        return tui.menu("Red Team Operations", options, C.RED)
+
+    def show_blue_team_menu(self):
+        """Blue Team submenu."""
+        self.show_banner()
+        options = [
+            ('1', 'Security Hardening Audit', 'CIS benchmarks, system hardening'),
+            ('2', 'Malware Detection', 'Scan for malware, rootkits, IOCs'),
+            ('3', 'Log Analysis', 'Review security logs for anomalies'),
+            ('4', 'File Integrity Check', 'Verify critical file integrity'),
+            ('5', 'Network Traffic Analysis', 'Analyze traffic for threats'),
+            ('---', '', ''),
+            ('6', 'Detection Rule Testing', 'Validate SIEM/IDS rules'),
+            ('7', 'Incident Response Drill', 'Practice IR procedures'),
+            ('8', 'Threat Hunting', 'Proactive threat search'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to main menu'),
+        ]
+
+        return tui.menu("Blue Team Operations", options, C.BLUE)
+
+    def show_purple_team_menu(self):
+        """Purple Team submenu."""
+        self.show_banner()
+        options = [
+            ('1', 'Detection Gap Analysis', 'Find what blue team missed from red team'),
+            ('2', 'Control Effectiveness', 'Measure security control performance'),
+            ('3', 'Attack Path Mapping', 'Map potential attack chains'),
+            ('4', 'Coverage Assessment', 'ATT&CK technique coverage analysis'),
+            ('---', '', ''),
+            ('5', 'Full Purple Assessment', 'Complete red+blue+gap analysis'),
+            ('6', 'Continuous Validation', 'Ongoing security validation'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to main menu'),
+        ]
+
+        return tui.menu("Purple Team Operations", options, C.MAGENTA)
+
+    def show_compliance_menu(self):
+        """Compliance and reporting submenu."""
+        self.show_banner()
+        options = [
+            ('1', 'Generate Audit Report', 'Full compliance audit with citations'),
+            ('2', 'NIST 800-53 Report', 'NIST SP 800-53 Rev 5 controls'),
+            ('3', 'HIPAA Report', 'Healthcare compliance assessment'),
+            ('4', 'PCI-DSS Report', 'Payment card industry compliance'),
+            ('5', 'SOC 2 Report', 'Service organization controls'),
+            ('6', 'ISO 27001 Report', 'Information security management'),
+            ('---', '', ''),
+            ('7', 'Export for GRC Platform', 'OSCAL, CSV, Drata, Vanta formats'),
+            ('8', 'View Past Reports', 'Browse generated reports'),
+            ('9', f'{C.BRIGHT_CYAN}Delta Report{C.RESET}', 'Compare two scan sessions side-by-side'),
+            ('t', f'{C.BRIGHT_CYAN}Trend Analysis{C.RESET}', 'View security trends over time'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to main menu'),
+        ]
+
+        return tui.menu("Compliance & Reports", options, C.GREEN)
+
+    def show_settings_menu(self):
+        """Settings submenu."""
+        self.show_banner()
+
+        # Show current settings
+        tui.section("Current Settings", C.CYAN)
+        tui.keyvalue({
+            'Installation': str(paths.home),
+            'Retention': f"{config.get_retention_days()} days",
+            'Scan Window': f"{config.get('scheduling.window_start', '18:00')} - {config.get('scheduling.window_end', '20:00')}",
+            'Behavior Profile': self.behavior.profile,
+        })
+        tui.section_end(C.CYAN)
+
+        options = [
+            ('1', 'Scan Timing', 'Configure scan windows and delays'),
+            ('2', 'Behavior Profile', 'Stealth, normal, fast, aggressive'),
+            ('3', 'Compliance Frameworks', 'Select frameworks to assess'),
+            ('4', 'Network Targets', 'Configure scan targets and exclusions'),
+            ('5', 'Notifications', 'Email alerts and reporting'),
+            ('---', '', ''),
+            ('6', 'View Full Config', 'Display current configuration'),
+            ('7', 'Reset to Defaults', 'Restore default settings'),
+            ('---', '', ''),
+            ('8', f'{C.BRIGHT_YELLOW}Manage Overrides{C.RESET}', 'False positive & severity override rules'),
+            ('9', f'{C.BRIGHT_YELLOW}Manage Credentials{C.RESET}', 'SSH/WinRM/SNMP credentials for auth scanning'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to main menu'),
+        ]
+
+        return tui.menu("Settings", options, C.YELLOW)
+
+    def run_quick_scan(self):
+        """Run a quick security scan."""
+        self.show_banner()
+        tui.section("Quick Security Scan", C.GREEN)
+        print()
+        tui.info("Running quick security posture check...")
+        tui.info(f"Behavior profile: {self.behavior.profile}")
+        print()
+
+        try:
+            from orchestrator import AssessmentOrchestrator
+            orchestrator = AssessmentOrchestrator()
+            results = orchestrator.run_full_assessment(assessment_type='quick')
+
+            print()
+            tui.success(f"Scan complete! Session: {results.get('session_id', 'N/A')}")
+            tui.info(f"Total findings: {results.get('summary', {}).get('total_findings', 0)}")
+        except Exception as e:
+            tui.error(f"Scan failed: {e}")
+
+        tui.section_end(C.GREEN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_standard_assessment(self):
+        """Run a standard assessment."""
+        self.show_banner()
+        tui.section("Standard Assessment", C.CYAN)
+        print()
+        tui.info("Running comprehensive security assessment...")
+        tui.info("This will take 1-2 hours to complete.")
+        print()
+
+        if not tui.confirm("Continue with standard assessment?", default=True):
+            return
+
+        try:
+            from orchestrator import AssessmentOrchestrator
+            orchestrator = AssessmentOrchestrator()
+            results = orchestrator.run_full_assessment(assessment_type='standard')
+
+            print()
+            tui.success(f"Assessment complete! Session: {results.get('session_id', 'N/A')}")
+        except Exception as e:
+            tui.error(f"Assessment failed: {e}")
+
+        tui.section_end(C.CYAN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_deep_assessment(self):
+        """Run a deep assessment."""
+        self.show_banner()
+        tui.section("Deep Security Assessment", C.MAGENTA)
+        print()
+        tui.info("Running full security audit with evidence collection...")
+        tui.info("This will take 2-4 hours to complete.")
+        tui.warning("Ensure you have authorization before proceeding.")
+        print()
+
+        if not tui.confirm("Continue with deep assessment?", default=False):
+            return
+
+        try:
+            from orchestrator import AssessmentOrchestrator
+            orchestrator = AssessmentOrchestrator()
+            results = orchestrator.run_full_assessment(assessment_type='deep')
+
+            print()
+            tui.success(f"Audit complete! Session: {results.get('session_id', 'N/A')}")
+        except Exception as e:
+            tui.error(f"Audit failed: {e}")
+
+        tui.section_end(C.MAGENTA)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def generate_audit_report(self):
+        """Generate a full audit report."""
+        self.show_banner()
+        tui.section("Generating Audit Report", C.GREEN)
+        print()
+
+        try:
+            from audit_report import AuditReportGenerator
+
+            # Get output folder
+            from datetime import datetime
+            month_folder = datetime.now().strftime("%B-%Y")
+            default_folder = str(paths.reports / month_folder)
+
+            output_folder = tui.input("Output folder", default=default_folder)
+            output_path = Path(output_folder)
+            output_path.mkdir(parents=True, exist_ok=True)
+
+            tui.info(f"Generating reports to: {output_path}")
+            print()
+
+            generator = AuditReportGenerator()
+            generator.generate_all_reports(str(output_path))
+
+            print()
+            tui.success(f"Reports generated in: {output_path}")
+
+        except Exception as e:
+            tui.error(f"Report generation failed: {e}")
+
+        tui.section_end(C.GREEN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_delta_report(self):
+        """Compare two scan sessions."""
+        self.show_banner()
+        tui.section("Delta Report", C.CYAN)
+        print()
+
+        try:
+            from delta_report import DeltaReporter
+
+            # List available sessions
+            if get_evidence_manager:
+                em = get_evidence_manager()
+                sessions = em.get_all_sessions() if hasattr(em, 'get_all_sessions') else []
+                if sessions:
+                    tui.info("Recent sessions:")
+                    for s in sessions[:10]:
+                        sid = s.get('session_id', '?')
+                        stype = s.get('scan_type', '?')
+                        started = s.get('start_time', '?')
+                        print(f"  {C.CYAN}{sid[:12]}{C.RESET} | {stype} | {started}")
+                    print()
+
+            session_1 = tui.input("Baseline session ID (older)")
+            session_2 = tui.input("Compare session ID (newer)")
+
+            if session_1 and session_2:
+                reporter = DeltaReporter()
+                comparison = reporter.compare_sessions(session_1, session_2)
+
+                # Display summary
+                print()
+                tui.info("Delta Report Summary:")
+                new_count = len(comparison.get('new_findings', []))
+                resolved_count = len(comparison.get('resolved_findings', []))
+                persistent_count = len(comparison.get('persistent_findings', []))
+                changed_count = len(comparison.get('changed_severity', []))
+
+                print(f"  {C.RED}New findings:{C.RESET}        {new_count}")
+                print(f"  {C.GREEN}Resolved findings:{C.RESET}  {resolved_count}")
+                print(f"  {C.YELLOW}Persistent:{C.RESET}         {persistent_count}")
+                print(f"  {C.CYAN}Severity changed:{C.RESET}   {changed_count}")
+
+                # Offer HTML export
+                print()
+                if tui.confirm("Generate HTML delta report?", default=True):
+                    output_path = paths.reports / f"delta_{session_1[:8]}_{session_2[:8]}.html"
+                    reporter.generate_delta_html(comparison, str(output_path))
+                    tui.success(f"Delta report saved: {output_path}")
+            else:
+                tui.error("Both session IDs are required")
+
+        except ImportError:
+            tui.error("Delta report module not available")
+        except Exception as e:
+            tui.error(f"Delta report failed: {e}")
+
+        tui.section_end(C.CYAN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_trend_analysis(self):
+        """Show security trend analysis."""
+        self.show_banner()
+        tui.section("Trend Analysis", C.CYAN)
+        print()
+
+        try:
+            from delta_report import DeltaReporter
+
+            n = tui.input("Number of recent sessions to analyze", default="5")
+            n = int(n)
+
+            reporter = DeltaReporter()
+            trends = reporter.trend_analysis(last_n_sessions=n)
+
+            if trends:
+                risk_trend = trends.get('risk_trend', 'unknown')
+                trend_color = C.GREEN if risk_trend == 'decreasing' else (
+                    C.RED if risk_trend == 'increasing' else C.YELLOW
+                )
+                print(f"  Risk trend: {trend_color}{risk_trend}{C.RESET}")
+                print(f"  Mean time to remediate: {trends.get('mean_time_to_remediate', 'N/A')} days")
+
+                recurring = trends.get('top_recurring_findings', [])
+                if recurring:
+                    print(f"\n  Top recurring findings:")
+                    for finding in recurring[:5]:
+                        print(f"    - {finding}")
+
+                # ASCII chart
+                if hasattr(reporter, 'generate_trend_ascii'):
+                    print()
+                    print(reporter.generate_trend_ascii(trends))
+            else:
+                tui.info("Not enough data for trend analysis")
+
+        except ImportError:
+            tui.error("Delta report module not available")
+        except Exception as e:
+            tui.error(f"Trend analysis failed: {e}")
+
+        tui.section_end(C.CYAN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def show_help(self):
+        """Display help information."""
+        self.show_banner()
+        tui.section("Help & Documentation", C.CYAN)
+
+        print(f"""
+{C.BOLD}Purple Team Platform v{self.VERSION}{C.RESET}
+Systems Thinking Security Assessment
+
+{C.YELLOW}Quick Start:{C.RESET}
+  1. Run 'Quick Scan' for a fast security check
+  2. Run 'Standard Assessment' for comprehensive testing
+  3. Generate reports for compliance evidence
+
+{C.YELLOW}Key Concepts:{C.RESET}
+  {C.RED}Red Team{C.RESET}   - Offensive testing, find vulnerabilities
+  {C.BLUE}Blue Team{C.RESET}  - Defensive testing, detect threats
+  {C.MAGENTA}Purple Team{C.RESET} - Integrated testing, close gaps
+
+{C.YELLOW}v6.0 New Features:{C.RESET}
+  Threat Intel    - CISA KEV + EPSS enrichment on all findings
+  Asset Inventory - Persistent asset tracking across scans
+  Delta Reports   - Compare scans, track remediation trends
+  QoD Scoring     - OpenVAS-compatible quality of detection
+  Auth Scanning   - SSH/WinRM credentialed checks
+  Overrides       - False positive & severity management
+  OpenVAS         - GVM integration (scan, import, sync)
+  Cross-Platform  - Windows 11 + WSL support
+
+{C.YELLOW}Files:{C.RESET}
+  Results:  {paths.results}
+  Reports:  {paths.reports}
+  Evidence: {paths.evidence}
+  Logs:     {paths.logs}
+
+{C.YELLOW}Documentation:{C.RESET}
+  CHANGELOG-v6.md        - v6.0 release notes
+  README.txt             - Quick start guide
+  AUDITOR_GUIDE.md       - Guide for auditors
+  DESIGN_PHILOSOPHY.md   - Systems thinking approach
+
+{C.YELLOW}Commands:{C.RESET}
+  purple-launcher          - This interactive menu
+  purple-team quick        - Quick scan (CLI)
+  purple-team check        - System check
+  purple-team setup        - Run setup/install tools
+""")
+
+        tui.section_end(C.CYAN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def show_openvas_menu(self):
+        """OpenVAS/GVM Integration submenu."""
+        self.show_banner()
+        options = [
+            ('1', 'Run OpenVAS Scan', 'Launch GVM scan against targets'),
+            ('2', 'Import OpenVAS Report', 'Import XML report from existing scan'),
+            ('3', 'Sync Findings', 'Merge OpenVAS results with local DB'),
+            ('4', 'Configure Connection', 'Set GVM daemon host/port/credentials'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to Red Team menu'),
+        ]
+        return tui.menu("OpenVAS Integration", options, C.GREEN)
+
+    def handle_openvas(self):
+        """Handle OpenVAS menu."""
+        while True:
+            choice = self.show_openvas_menu()
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '1':
+                self.run_openvas_scan()
+            elif choice == '2':
+                self.import_openvas_report()
+            elif choice == '3':
+                self.sync_openvas_findings()
+            elif choice == '4':
+                tui.info("Configure GVM connection in config/active/config.yaml")
+                tui.info("Keys: openvas.host, openvas.port, openvas.username, openvas.password")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_openvas_scan(self):
+        """Run an OpenVAS scan."""
+        self.show_banner()
+        tui.section("OpenVAS/GVM Scan", C.GREEN)
+        try:
+            from openvas_scanner import OpenVASScanner
+            scanner = OpenVASScanner()
+            if not scanner.gvm_available:
+                tui.error("OpenVAS/GVM not detected on this system")
+                tui.info("Install GVM: https://greenbone.github.io/docs/latest/")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                return
+
+            tui.info(f"GVM mode: {scanner.gvm_mode}")
+            targets_input = tui.input("Target(s)", default="auto-detect")
+            if targets_input == "auto-detect":
+                from network import get_scan_targets
+                targets = get_scan_targets()
+            else:
+                targets = [t.strip() for t in targets_input.split(',')]
+
+            if not targets:
+                tui.error("No targets available")
+            else:
+                tui.info(f"Scanning: {targets}")
+                results = scanner.scan(targets=targets, scan_type='standard')
+                summary = scanner.get_summary()
+                tui.success(f"OpenVAS scan complete: {summary.get('findings_count', 0)} findings")
+        except ImportError:
+            tui.error("OpenVAS scanner module not available")
+        except Exception as e:
+            tui.error(f"OpenVAS scan failed: {e}")
+
+        tui.section_end(C.GREEN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def import_openvas_report(self):
+        """Import an OpenVAS XML report."""
+        self.show_banner()
+        tui.section("Import OpenVAS Report", C.GREEN)
+        try:
+            from openvas_scanner import OpenVASScanner
+            xml_path = tui.input("Path to OpenVAS XML report")
+            if xml_path and Path(xml_path).exists():
+                scanner = OpenVASScanner()
+                results = scanner.import_openvas_report(xml_path)
+                imported = len(results.get('findings', []))
+                tui.success(f"Imported {imported} findings from OpenVAS report")
+            else:
+                tui.error("File not found")
+        except ImportError:
+            tui.error("OpenVAS scanner module not available")
+        except Exception as e:
+            tui.error(f"Import failed: {e}")
+
+        tui.section_end(C.GREEN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def sync_openvas_findings(self):
+        """Sync findings between OpenVAS and local DB."""
+        self.show_banner()
+        tui.section("Sync OpenVAS Findings", C.GREEN)
+        try:
+            from openvas_scanner import OpenVASScanner
+            scanner = OpenVASScanner()
+            if not scanner.gvm_available:
+                tui.error("OpenVAS/GVM not detected")
+            else:
+                tui.info("Syncing findings...")
+                results = scanner.sync_findings()
+                tui.success(f"Sync complete: {results.get('synced', 0)} findings merged")
+        except ImportError:
+            tui.error("OpenVAS scanner module not available")
+        except Exception as e:
+            tui.error(f"Sync failed: {e}")
+
+        tui.section_end(C.GREEN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def handle_red_team(self):
+        """Handle Red Team menu."""
+        while True:
+            choice = self.show_red_team_menu()
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '1':
+                self.run_scanner('network_scanner')
+            elif choice == '2':
+                self.run_scanner('vulnerability_scanner')
+            elif choice == '3':
+                self.run_scanner('web_scanner')
+            elif choice == '9':
+                self.handle_openvas()
+            else:
+                tui.warning("Feature coming soon...")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def handle_blue_team(self):
+        """Handle Blue Team menu."""
+        while True:
+            choice = self.show_blue_team_menu()
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '1':
+                self.run_scanner('compliance_scanner')
+            elif choice == '2':
+                tui.info("Running malware detection...")
+                # TODO: Integrate yara, clamav
+            else:
+                tui.warning("Feature coming soon...")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def handle_purple_team(self):
+        """Handle Purple Team menu."""
+        while True:
+            choice = self.show_purple_team_menu()
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '5':
+                self.run_deep_assessment()
+            else:
+                tui.warning("Feature coming soon...")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def handle_compliance(self):
+        """Handle Compliance menu."""
+        while True:
+            choice = self.show_compliance_menu()
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '1':
+                self.generate_audit_report()
+            elif choice == '8':
+                self.view_reports()
+            elif choice == '9':
+                self.run_delta_report()
+            elif choice == 't' or choice == 'T':
+                self.run_trend_analysis()
+            else:
+                tui.warning("Feature coming soon...")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def handle_settings(self):
+        """Handle Settings menu."""
+        while True:
+            choice = self.show_settings_menu()
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '2':
+                self.set_behavior_profile()
+            elif choice == '6':
+                self.view_config()
+            elif choice == '8':
+                self.manage_overrides()
+            elif choice == '9':
+                self.manage_credentials()
+            else:
+                tui.warning("Feature coming soon...")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def set_behavior_profile(self):
+        """Set the behavior profile."""
+        self.show_banner()
+        options = [
+            ('1', 'Stealth', 'Very slow, maximum evasion - for testing detection'),
+            ('2', 'Normal (Recommended)', 'Balanced speed and stealth'),
+            ('3', 'Fast', 'Quick but still human-like'),
+            ('4', 'Aggressive', 'Minimal delays - speed priority'),
+        ]
+
+        choice = tui.menu("Select Behavior Profile", options, C.YELLOW)
+
+        profiles = {'1': 'stealth', '2': 'normal', '3': 'fast', '4': 'aggressive'}
+        if choice in profiles:
+            self.behavior = HumanBehavior(profiles[choice])
+            tui.success(f"Profile set to: {profiles[choice]}")
+        else:
+            tui.info("Profile unchanged")
+
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def view_config(self):
+        """View current configuration."""
+        self.show_banner()
+        tui.section("Current Configuration", C.CYAN)
+
+        config_path = paths.config / 'active' / 'config.yaml'
+        if config_path.exists():
+            print(config_path.read_text())
+        else:
+            tui.warning("No configuration file found")
+
+        tui.section_end(C.CYAN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def view_reports(self):
+        """View generated reports."""
+        self.show_banner()
+        tui.section("Generated Reports", C.GREEN)
+
+        import os
+        reports_dir = paths.reports
+
+        if not reports_dir.exists():
+            tui.warning("No reports directory found")
+        else:
+            for item in sorted(reports_dir.iterdir(), reverse=True)[:10]:
+                if item.is_dir():
+                    count = len(list(item.glob('*')))
+                    print(f"  {C.CYAN}{tui.TRIANGLE}{C.RESET} {item.name}/ ({count} files)")
+                else:
+                    size = item.stat().st_size / 1024
+                    print(f"  {C.DIM}{tui.BULLET}{C.RESET} {item.name} ({size:.1f} KB)")
+
+        tui.section_end(C.GREEN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def manage_overrides(self):
+        """Manage finding overrides (false positives, severity changes)."""
+        self.show_banner()
+        tui.section("Finding Overrides", C.YELLOW)
+
+        if get_evidence_manager is None:
+            tui.error("Evidence manager not available")
+            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        em = get_evidence_manager()
+
+        while True:
+            print()
+            overrides = em.get_overrides()
+
+            if overrides:
+                tui.info(f"Active overrides: {len(overrides)}")
+                print()
+                for i, override in enumerate(overrides, 1):
+                    rule = override.get('match_rule', {})
+                    action = override.get('action', '?')
+                    reason = override.get('reason', '')
+                    expires = override.get('expires_at', 'never')
+                    rule_desc = rule.get('title', rule.get('cve', str(rule)))
+                    action_color = C.RED if action == 'false_positive' else C.YELLOW
+                    print(f"  {i}. [{action_color}{action}{C.RESET}] {rule_desc}")
+                    print(f"     Reason: {reason} | Expires: {expires}")
+            else:
+                tui.info("No overrides configured")
+
+            print()
+            options = [
+                ('1', 'Add Override', 'Create new false positive or severity override'),
+                ('2', 'Delete Override', 'Remove an existing override'),
+                ('3', 'Delete Expired', 'Clean up expired overrides'),
+                ('---', '', ''),
+                ('b', 'Back', 'Return to settings'),
+            ]
+            choice = tui.menu("Override Management", options, C.YELLOW)
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '1':
+                self._add_override(em)
+            elif choice == '2':
+                if overrides:
+                    idx = tui.input("Override number to delete")
+                    try:
+                        idx = int(idx) - 1
+                        if 0 <= idx < len(overrides):
+                            em.delete_override(overrides[idx]['override_id'])
+                            tui.success("Override deleted")
+                        else:
+                            tui.error("Invalid number")
+                    except (ValueError, KeyError):
+                        tui.error("Invalid input")
+                else:
+                    tui.info("No overrides to delete")
+            elif choice == '3':
+                # Delete expired overrides
+                from datetime import datetime
+                now = datetime.utcnow().isoformat()
+                deleted = 0
+                for ov in overrides:
+                    exp = ov.get('expires_at')
+                    if exp and exp != 'never' and exp < now:
+                        em.delete_override(ov['override_id'])
+                        deleted += 1
+                tui.success(f"Deleted {deleted} expired overrides")
+
+        tui.section_end(C.YELLOW)
+
+    def _add_override(self, em):
+        """Interactive override creation."""
+        print()
+        tui.info("Create a new finding override")
+        print()
+
+        # Action type
+        action_options = [
+            ('1', 'False Positive', 'Mark matching findings as false positives'),
+            ('2', 'Severity Change', 'Override severity level'),
+            ('3', 'Accepted Risk', 'Acknowledge and accept the risk'),
+        ]
+        action_choice = tui.menu("Override Action", action_options, C.YELLOW)
+        actions = {'1': 'false_positive', '2': 'severity_change', '3': 'accepted_risk'}
+        action = actions.get(action_choice)
+        if not action:
+            return
+
+        # Match rule
+        print()
+        tui.info("Define match criteria (leave blank to skip):")
+        title = tui.input("Finding title (or substring)", default="")
+        cve = tui.input("CVE ID (e.g. CVE-2024-1234)", default="")
+        asset = tui.input("Asset IP", default="")
+        scanner = tui.input("Scanner name", default="")
+
+        match_rule = {}
+        if title:
+            match_rule['title'] = title
+        if cve:
+            match_rule['cve'] = cve
+        if asset:
+            match_rule['asset'] = asset
+        if scanner:
+            match_rule['scanner'] = scanner
+
+        if not match_rule:
+            tui.error("At least one match criterion required")
+            return
+
+        # New severity (if severity change)
+        new_severity = None
+        if action == 'severity_change':
+            new_severity = tui.input("New severity (CRITICAL/HIGH/MEDIUM/LOW/INFO)")
+
+        # Reason
+        reason = tui.input("Reason for override")
+        if not reason:
+            tui.error("Reason is required")
+            return
+
+        # Expiration
+        expires_input = tui.input("Expires in days (0 = never)", default="0")
+        try:
+            expires_days = int(expires_input) if expires_input != "0" else None
+        except ValueError:
+            expires_days = None
+
+        em.add_override(match_rule, action, reason,
+                       new_severity=new_severity, expires_days=expires_days)
+        tui.success("Override created")
+
+    def manage_credentials(self):
+        """Manage credentials for authenticated scanning."""
+        self.show_banner()
+        tui.section("Credential Management", C.YELLOW)
+
+        if get_credential_manager is None:
+            tui.error("Credential manager not available")
+            tui.info("Ensure lib/credential_manager.py is installed")
+            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        cm = get_credential_manager()
+
+        while True:
+            print()
+            creds = cm.list_credentials() if hasattr(cm, 'list_credentials') else []
+
+            if creds:
+                tui.info(f"Stored credentials: {len(creds)}")
+                print()
+                for i, cred in enumerate(creds, 1):
+                    ctype = cred.get('type', '?')
+                    name = cred.get('name', '?')
+                    target = cred.get('target_pattern', '*')
+                    print(f"  {i}. [{C.CYAN}{ctype}{C.RESET}] {name} -> {target}")
+            else:
+                tui.info("No credentials configured")
+
+            print()
+            options = [
+                ('1', 'Add SSH Credential', 'SSH password or key authentication'),
+                ('2', 'Add SNMP Community', 'SNMP community string'),
+                ('3', 'Test Credential', 'Verify connectivity with stored credential'),
+                ('4', 'Remove Credential', 'Delete a stored credential'),
+                ('---', '', ''),
+                ('b', 'Back', 'Return to settings'),
+            ]
+            choice = tui.menu("Credential Management", options, C.YELLOW)
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '1':
+                name = tui.input("Credential name (e.g. 'linux-servers')")
+                target = tui.input("Target pattern (IP, CIDR, or *)", default="*")
+                username = tui.input("Username")
+                key_or_pass = tui.input("Key file path (or leave blank for password)", default="")
+                if key_or_pass:
+                    cm.add_credential(name, 'ssh_key', target,
+                                     username=username, key_file=key_or_pass)
+                else:
+                    import getpass
+                    password = getpass.getpass("Password: ")
+                    cm.add_credential(name, 'ssh_password', target,
+                                     username=username, password=password)
+                tui.success(f"Credential '{name}' added")
+            elif choice == '2':
+                name = tui.input("Credential name")
+                target = tui.input("Target pattern", default="*")
+                community = tui.input("SNMP community string")
+                cm.add_credential(name, 'snmp', target, community=community)
+                tui.success(f"SNMP credential '{name}' added")
+            elif choice == '3':
+                if creds:
+                    idx = tui.input("Credential number to test")
+                    target_ip = tui.input("Target IP to test against")
+                    try:
+                        idx = int(idx) - 1
+                        if 0 <= idx < len(creds):
+                            result = cm.test_credential(target_ip, creds[idx])
+                            if result:
+                                tui.success("Credential test successful")
+                            else:
+                                tui.error("Credential test failed")
+                    except (ValueError, IndexError):
+                        tui.error("Invalid input")
+                else:
+                    tui.info("No credentials to test")
+            elif choice == '4':
+                if creds:
+                    idx = tui.input("Credential number to remove")
+                    try:
+                        idx = int(idx) - 1
+                        if 0 <= idx < len(creds) and hasattr(cm, 'remove_credential'):
+                            cm.remove_credential(creds[idx].get('name'))
+                            tui.success("Credential removed")
+                    except (ValueError, IndexError):
+                        tui.error("Invalid input")
+
+        tui.section_end(C.YELLOW)
+
+    def run_scanner(self, scanner_name: str):
+        """Run a specific scanner."""
+        self.show_banner()
+        tui.section(f"Running {scanner_name}", C.CYAN)
+
+        try:
+            scanner_path = PURPLE_HOME / 'scanners' / f'{scanner_name}.py'
+            if scanner_path.exists():
+                import subprocess
+                subprocess.run([sys.executable, str(scanner_path)])
+            else:
+                tui.error(f"Scanner not found: {scanner_name}")
+        except Exception as e:
+            tui.error(f"Scanner failed: {e}")
+
+        tui.section_end(C.CYAN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run(self):
+        """Main run loop."""
+        # Initial setup
+        self.show_banner()
+
+        # Check prerequisites
+        if not self.check_prerequisites():
+            if not tui.confirm("Continue without all required tools?", default=False):
+                print("Exiting. Run setup to install required tools.")
+                return
+
+        # Main loop
+        while True:
+            self.show_banner()
+            choice = self.show_main_menu()
+
+            if choice == 'q' or choice == 'Q':
+                tui.info("Goodbye!")
+                break
+            elif choice == '1':
+                self.handle_red_team()
+            elif choice == '2':
+                self.handle_blue_team()
+            elif choice == '3':
+                self.handle_purple_team()
+            elif choice == '4':
+                self.run_quick_scan()
+            elif choice == '5':
+                self.run_standard_assessment()
+            elif choice == '6':
+                self.run_deep_assessment()
+            elif choice == '7':
+                self.handle_compliance()
+            elif choice == '8':
+                tui.info("Scheduling coming soon...")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            elif choice == '9':
+                self.show_tool_status()
+            elif choice == 's' or choice == 'S':
+                self.handle_settings()
+            elif choice == 'h' or choice == 'H':
+                self.show_help()
+            else:
+                tui.warning("Invalid option")
+                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+
+def main():
+    """Entry point."""
+    # Windows terminal color support
+    if sys.platform == 'win32':
+        try:
+            import colorama
+            colorama.init()
+        except ImportError:
+            # Enable ANSI on Windows 10+ without colorama
+            try:
+                import ctypes
+                kernel32 = ctypes.windll.kernel32
+                kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
+            except Exception:
+                pass
+
+    launcher = PurpleLauncher()
+
+    # Handle CLI arguments
+    if len(sys.argv) > 1:
+        cmd = sys.argv[1].lower()
+
+        if cmd in ('--help', '-h', 'help'):
+            print(f"""
+Purple Team Platform v{launcher.VERSION}
+Usage: purple-launcher [command]
+
+Commands:
+  (none)     Interactive menu
+  quick      Run quick scan
+  standard   Run standard assessment
+  deep       Run deep assessment
+  tools      Show tool status
+  delta      Compare two scan sessions
+  help       Show this help
+
+Examples:
+  purple-launcher          # Interactive mode
+  purple-launcher quick    # Quick scan
+  purple-launcher tools    # Check available tools
+  purple-launcher delta    # Compare scan sessions
+""")
+            return
+
+        elif cmd == 'quick':
+            launcher.show_banner()
+            launcher.run_quick_scan()
+            return
+
+        elif cmd == 'standard':
+            launcher.show_banner()
+            launcher.run_standard_assessment()
+            return
+
+        elif cmd == 'deep':
+            launcher.show_banner()
+            launcher.run_deep_assessment()
+            return
+
+        elif cmd == 'tools':
+            launcher.show_banner()
+            launcher.show_tool_status()
+            return
+
+        elif cmd == 'delta':
+            launcher.show_banner()
+            launcher.run_delta_report()
+            return
+
+    # Interactive mode
+    try:
+        launcher.run()
+    except KeyboardInterrupt:
+        print(f"\n{C.YELLOW}Interrupted. Goodbye!{C.RESET}")
+
+
+if __name__ == "__main__":
+    main()

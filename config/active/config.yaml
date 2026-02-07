@@ -1,0 +1,118 @@
+# Purple Team Portable Configuration
+# 365-day retention for compliance
+
+version: '4.0.0'
+
+platform:
+  name: Purple Team Portable
+  mode: portable
+  auto_detect_networks: true
+
+scanning:
+  stealth_level: 3
+  delay_min_seconds: 30
+  delay_max_seconds: 300
+  concurrent_scans: 1
+  timeout_minutes: 120
+  excluded_hosts: []
+  excluded_ports: []
+
+scheduling:
+  enabled: false
+  window_start: '18:00'
+  window_end: '20:00'
+  randomize_start: true
+  frequency: monthly
+  day_of_month: 1
+  run_until_complete: true
+
+retention:
+  days: 365
+  compress_after_days: 30
+  archive_format: tar.gz
+  auto_cleanup: true
+
+evidence:
+  collect_screenshots: false
+  hash_algorithm: sha256
+  include_raw_output: true
+  timestamp_format: '%Y-%m-%d %H:%M:%S UTC'
+
+compliance:
+  frameworks:
+    - NIST-800-53
+    - HIPAA
+    - SOC1-Type2
+    - SOC2-Type2
+    - PCI-DSS-v4
+    - ISO27001-2022
+    - CMMC
+    - FedRAMP
+    - GDPR
+    - SOX
+  auto_map_findings: true
+  generate_attestations: true
+  include_remediation: true
+
+reporting:
+  formats:
+    - json
+    - html
+    - csv
+    - pdf
+  executive_summary: true
+  technical_details: true
+  include_evidence_refs: true
+
+export:
+  oscal: true
+  scap: false
+  csv_grc: true
+  json_api: true
+
+network:
+  auto_detect: true
+  scan_ranges: []
+  exclude_ranges:
+    - 127.0.0.0/8
+  dns_resolution: true
+
+tools:
+  nmap:
+    enabled: true
+    extra_args: ''
+  nikto:
+    enabled: true
+    extra_args: ''
+  nuclei:
+    enabled: true
+    extra_args: ''
+    templates: default
+  testssl:
+    enabled: true
+    extra_args: ''
+
+notifications:
+  enabled: false
+  email:
+    enabled: false
+    smtp_server: ''
+    smtp_port: 587
+    use_tls: true
+    recipients: []
+  on_critical: true
+  on_complete: true
+
+integrations:
+  thehive:
+    enabled: false
+    url: ''
+    api_key: ''
+  wazuh:
+    enabled: false
+    url: ''
+    api_key: ''
+  siem:
+    enabled: false
+    type: ''
+    endpoint: ''
