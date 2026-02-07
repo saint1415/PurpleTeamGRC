@@ -1,34 +1,7 @@
-# Purple Team GRC Platform - Python Dependencies
-# Version: 3.0
-# Compatible with Python 3.10+
-
-# Network & Security Scanning
-python-nmap>=0.7.1
-netifaces>=0.11.0
-psutil>=5.9.5
-requests>=2.31.0
-
-# Web Framework & Dashboard
-Flask>=3.0.0
-Flask-CORS>=4.0.0
-
-# Data Processing & Reports
-openpyxl>=3.1.2
-Jinja2>=3.1.2
-PyYAML>=6.0.1
-
-# Email & Notifications
-secure-smtplib>=0.1.1
-
-# Utilities
-python-dateutil>=2.8.2
-colorama>=0.4.6
+pyyaml>=6.0
+requests>=2.28.0
+python-dateutil>=2.8.0
+colorama>=0.4.0
 tabulate>=0.9.0
-
-# System Monitoring
-distro>=1.8.0
-
-# Optional but Recommended
-# cryptography>=41.0.0
-# paramiko>=3.3.1
-# scapy>=2.5.0
+netifaces>=0.11.0
+psutil>=5.9.0

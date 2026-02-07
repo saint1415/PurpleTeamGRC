@@ -1,0 +1,355 @@
+#!/usr/bin/env bash
+#
+# Purple Team Portable - Main Launcher
+# Portable launcher that works from any installation location.
+#
+
+set -e
+
+# Resolve script directory (works with symlinks)
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+    DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+    SOURCE="$(readlink "$SOURCE")"
+    [[ $SOURCE != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+SCRIPT_DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+
+# Set PURPLE_TEAM_HOME
+export PURPLE_TEAM_HOME="$(dirname "$SCRIPT_DIR")"
+
+# Check for virtual environment
+VENV_DIR="$PURPLE_TEAM_HOME/venv"
+PYTHON_BIN="python3"
+
+if [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python3" ]; then
+    PYTHON_BIN="$VENV_DIR/bin/python3"
+elif [ -d "$VENV_DIR" ] && [ -f "$VENV_DIR/bin/python" ]; then
+    PYTHON_BIN="$VENV_DIR/bin/python"
+fi
+
+# Add lib to Python path
+export PYTHONPATH="$PURPLE_TEAM_HOME/lib:$PYTHONPATH"
+
+# Colors
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
+PURPLE='\033[0;35m'
+CYAN='\033[0;36m'
+NC='\033[0m' # No Color
+
+show_banner() {
+    echo -e "${PURPLE}"
+    echo "╔═══════════════════════════════════════════════════════════╗"
+    echo "║          PURPLE TEAM PORTABLE v4.0                        ║"
+    echo "║          GRC & Security Assessment Platform               ║"
+    echo "╠═══════════════════════════════════════════════════════════╣"
+    echo "║  Installation: $PURPLE_TEAM_HOME"
+    echo "╚═══════════════════════════════════════════════════════════╝"
+    echo -e "${NC}"
+}
+
+show_menu() {
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
+    echo -e "${GREEN}  MAIN MENU${NC}"
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
+    echo ""
+    echo -e "${YELLOW}  ASSESSMENTS${NC}"
+    echo "    1) Quick Assessment (15-30 min)"
+    echo "    2) Standard Assessment (1-2 hours)"
+    echo "    3) Deep Assessment (2-4 hours)"
+    echo ""
+    echo -e "${YELLOW}  INDIVIDUAL SCANS${NC}"
+    echo "    4) Network Discovery & Port Scan"
+    echo "    5) Vulnerability Scan"
+    echo "    6) Web Application Scan"
+    echo "    7) SSL/TLS Assessment"
+    echo "    8) Compliance Check"
+    echo ""
+    echo -e "${YELLOW}  REPORTS & EXPORTS${NC}"
+    echo "    9) Generate Reports"
+    echo "   10) Export for GRC Platforms"
+    echo "   11) View Results"
+    echo ""
+    echo -e "${YELLOW}  SCHEDULING${NC}"
+    echo "   12) Schedule Monthly Scans"
+    echo "   13) View Schedule"
+    echo ""
+    echo -e "${YELLOW}  UTILITIES${NC}"
+    echo "   14) System Check"
+    echo "   15) Configuration"
+    echo ""
+    echo "    0) Exit"
+    echo ""
+    echo -e "${CYAN}═══════════════════════════════════════════════════════════${NC}"
+}
+
+run_assessment() {
+    local type=$1
+    echo -e "${GREEN}Starting $type assessment...${NC}"
+    $PYTHON_BIN -c "
+import sys
+sys.path.insert(0, '$PURPLE_TEAM_HOME/lib')
+sys.path.insert(0, '$PURPLE_TEAM_HOME/utilities')
+from orchestrator import AssessmentOrchestrator
+orchestrator = AssessmentOrchestrator()
+results = orchestrator.run_full_assessment(assessment_type='$type')
+print(f\"\\nAssessment complete! Session: {results.get('session_id')}\")
+print(f\"Total findings: {results.get('summary', {}).get('total_findings', 0)}\")
+"
+}
+
+run_scanner() {
+    local scanner=$1
+    echo -e "${GREEN}Running $scanner scanner...${NC}"
+    $PYTHON_BIN "$PURPLE_TEAM_HOME/scanners/$scanner.py"
+}
+
+run_reports() {
+    echo -e "${GREEN}Report Generation${NC}"
+    $PYTHON_BIN -c "
+import sys
+sys.path.insert(0, '$PURPLE_TEAM_HOME/lib')
+sys.path.insert(0, '$PURPLE_TEAM_HOME/utilities')
+from reporter import ReportGenerator
+from config import config
+
+reporter = ReportGenerator()
+frameworks = config.get_frameworks()
+
+print('Available frameworks:', frameworks)
+for fw in frameworks:
+    try:
+        path = reporter.generate_compliance_report(fw)
+        print(f'Generated: {path}')
+    except Exception as e:
+        print(f'Error generating {fw} report: {e}')
+"
+}
+
+run_export() {
+    echo -e "${GREEN}Exporting for GRC platforms...${NC}"
+    $PYTHON_BIN -c "
+import sys
+sys.path.insert(0, '$PURPLE_TEAM_HOME/lib')
+sys.path.insert(0, '$PURPLE_TEAM_HOME/utilities')
+from exporter import ComplianceExporter
+from config import config
+
+exporter = ComplianceExporter()
+frameworks = config.get_frameworks()
+
+for fw in frameworks:
+    print(f'\\nExporting {fw}...')
+    paths = exporter.export_all_formats(fw)
+    for fmt, path in paths.items():
+        print(f'  {fmt}: {path}')
+"
+}
+
+view_results() {
+    echo -e "${GREEN}Recent Results:${NC}"
+    ls -lt "$PURPLE_TEAM_HOME/data/results/" 2>/dev/null | head -20 || echo "No results yet"
+    echo ""
+    echo -e "${GREEN}Recent Reports:${NC}"
+    ls -lt "$PURPLE_TEAM_HOME/data/reports/" 2>/dev/null | head -10 || echo "No reports yet"
+}
+
+schedule_scans() {
+    $PYTHON_BIN "$PURPLE_TEAM_HOME/bin/scheduler.py" --setup
+}
+
+view_schedule() {
+    $PYTHON_BIN "$PURPLE_TEAM_HOME/bin/scheduler.py" --status
+}
+
+check_prerequisites() {
+    # Returns 0 if all tools available, 1 if some missing
+    local missing=0
+    local missing_tools=""
+
+    for tool in nmap nikto nuclei testssl.sh; do
+        if ! command -v $tool &> /dev/null; then
+            # Check tools directory too
+            if [ ! -x "$PURPLE_TEAM_HOME/tools/$tool" ] && \
+               [ ! -x "$PURPLE_TEAM_HOME/tools/testssl.sh/testssl.sh" -o "$tool" != "testssl.sh" ]; then
+                missing=1
+                missing_tools="$missing_tools $tool"
+            fi
+        fi
+    done
+
+    if [ $missing -eq 1 ]; then
+        echo -e "${RED}═══════════════════════════════════════════════════════════${NC}"
+        echo -e "${RED}  MISSING PREREQUISITES:${missing_tools}${NC}"
+        echo -e "${RED}═══════════════════════════════════════════════════════════${NC}"
+        echo ""
+        echo "Some required security tools are not installed."
+        echo ""
+        echo "Options:"
+        echo "  1) Run setup to install missing tools"
+        echo "  2) Continue anyway (scans requiring missing tools will fail)"
+        echo "  3) Exit"
+        echo ""
+        read -p "Select option [1]: " prereq_choice
+        prereq_choice=${prereq_choice:-1}
+
+        case $prereq_choice in
+            1)
+                echo ""
+                echo "Running setup..."
+                bash "$PURPLE_TEAM_HOME/setup.sh"
+                return $?
+                ;;
+            2)
+                echo ""
+                echo -e "${YELLOW}Continuing with missing tools...${NC}"
+                return 0
+                ;;
+            3)
+                echo "Exiting."
+                exit 0
+                ;;
+            *)
+                bash "$PURPLE_TEAM_HOME/setup.sh"
+                return $?
+                ;;
+        esac
+    fi
+    return 0
+}
+
+system_check() {
+    echo -e "${GREEN}System Check${NC}"
+    echo ""
+    echo -e "${YELLOW}Installation:${NC} $PURPLE_TEAM_HOME"
+    echo -e "${YELLOW}Python:${NC} $PYTHON_BIN"
+    echo ""
+    echo -e "${YELLOW}Required Tools:${NC}"
+
+    local missing_tools=()
+    for tool in nmap nikto nuclei testssl.sh; do
+        if command -v $tool &> /dev/null; then
+            echo -e "  ${GREEN}✓${NC} $tool: $(which $tool)"
+        elif [ -x "$PURPLE_TEAM_HOME/tools/$tool" ]; then
+            echo -e "  ${GREEN}✓${NC} $tool: $PURPLE_TEAM_HOME/tools/$tool"
+        elif [ -x "$PURPLE_TEAM_HOME/tools/testssl.sh/testssl.sh" ] && [ "$tool" = "testssl.sh" ]; then
+            echo -e "  ${GREEN}✓${NC} $tool: $PURPLE_TEAM_HOME/tools/testssl.sh/testssl.sh"
+        else
+            echo -e "  ${RED}✗${NC} $tool: NOT FOUND"
+            missing_tools+=("$tool")
+        fi
+    done
+
+    echo ""
+    echo -e "${YELLOW}Directories:${NC}"
+    for dir in config data/results data/evidence data/logs data/reports; do
+        if [ -d "$PURPLE_TEAM_HOME/$dir" ]; then
+            echo -e "  ${GREEN}✓${NC} $dir"
+        else
+            echo -e "  ${RED}✗${NC} $dir (missing)"
+        fi
+    done
+
+    # Offer to install missing tools
+    if [ ${#missing_tools[@]} -gt 0 ]; then
+        echo ""
+        echo -e "${YELLOW}Missing tools: ${missing_tools[*]}${NC}"
+        read -p "Run setup to install missing tools? (y/n) [y]: " install_now
+        install_now=${install_now:-y}
+        if [[ "$install_now" =~ ^[Yy] ]]; then
+            bash "$PURPLE_TEAM_HOME/setup.sh"
+        fi
+    fi
+}
+
+show_config() {
+    echo -e "${GREEN}Current Configuration:${NC}"
+    if [ -f "$PURPLE_TEAM_HOME/config/active/config.yaml" ]; then
+        cat "$PURPLE_TEAM_HOME/config/active/config.yaml"
+    else
+        echo "No configuration file found. Run setup first."
+    fi
+}
+
+# Main
+if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
+    echo "Usage: purple-team [command]"
+    echo ""
+    echo "Commands:"
+    echo "  quick       Run quick assessment"
+    echo "  standard    Run standard assessment"
+    echo "  deep        Run deep assessment"
+    echo "  schedule    Set up scheduled scans"
+    echo "  check       System check (with install prompt)"
+    echo "  setup       Run setup/install prerequisites"
+    echo "  (none)      Interactive menu"
+    exit 0
+fi
+
+# Handle direct commands
+case "$1" in
+    quick)
+        check_prerequisites
+        run_assessment "quick"
+        exit 0
+        ;;
+    standard)
+        check_prerequisites
+        run_assessment "standard"
+        exit 0
+        ;;
+    deep)
+        check_prerequisites
+        run_assessment "deep"
+        exit 0
+        ;;
+    schedule)
+        schedule_scans
+        exit 0
+        ;;
+    check)
+        system_check
+        exit 0
+        ;;
+    setup)
+        bash "$PURPLE_TEAM_HOME/setup.sh"
+        exit 0
+        ;;
+esac
+
+# Interactive menu
+show_banner
+
+# Check prerequisites before showing menu
+check_prerequisites
+
+while true; do
+    show_menu
+    read -p "Select option: " choice
+
+    case $choice in
+        1) run_assessment "quick" ;;
+        2) run_assessment "standard" ;;
+        3) run_assessment "deep" ;;
+        4) run_scanner "network" ;;
+        5) run_scanner "vulnerability" ;;
+        6) run_scanner "web" ;;
+        7) run_scanner "ssl" ;;
+        8) run_scanner "compliance" ;;
+        9) run_reports ;;
+        10) run_export ;;
+        11) view_results ;;
+        12) schedule_scans ;;
+        13) view_schedule ;;
+        14) system_check ;;
+        15) show_config ;;
+        0) echo "Goodbye!"; exit 0 ;;
+        *) echo -e "${RED}Invalid option${NC}" ;;
+    esac
+
+    echo ""
+    read -p "Press Enter to continue..."
+done
