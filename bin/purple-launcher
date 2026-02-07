@@ -1,12 +1,10 @@
 #!/usr/bin/env python3
 """
-Purple Team Platform v6.0 - Main Launcher
+Purple Team Platform v7.0 - Main Launcher
 Systems Thinking Security Assessment Platform
 
-A polished, easy-to-use interface for comprehensive security assessments.
-Integrates Red Team, Blue Team, and Purple Team capabilities.
-v6.0: OpenVAS parity - threat intel, asset mgmt, credentialed scanning,
-      QoD scoring, false positive overrides, delta reports, Windows support.
+v7.0: FAIR risk quantification, AI analysis, container/cloud/ASM scanning,
+      SBOM generation, executive dashboard, CI/CD integration, SARIF export.
 """
 
 import os
@@ -51,11 +49,31 @@ try:
 except ImportError:
     get_threat_intel = None
 
+try:
+    from risk_quantification import get_risk_quantifier
+except ImportError:
+    get_risk_quantifier = None
+
+try:
+    from ai_analyzer import AIAnalyzer
+except ImportError:
+    AIAnalyzer = None
+
+try:
+    from sbom_generator import get_sbom_generator
+except ImportError:
+    get_sbom_generator = None
+
+try:
+    from cicd_integration import get_cicd_integrator
+except ImportError:
+    get_cicd_integrator = None
+
 
 class PurpleLauncher:
     """Main launcher for Purple Team Platform."""
 
-    VERSION = "6.0"
+    VERSION = "7.0"
 
     def __init__(self):
         self.behavior = HumanBehavior('normal')
@@ -163,6 +181,8 @@ class PurpleLauncher:
             ('8', 'Schedule Scans', 'Configure automated monthly assessments'),
             ('9', 'Tool Status', 'View available security tools'),
             ('---', '', ''),
+            ('d', f'{C.BRIGHT_GREEN}Dashboard{C.RESET}', 'Executive security dashboard'),
+            ('---', '', ''),
             ('s', 'Settings', 'Configure platform settings'),
             ('h', 'Help', 'View documentation and guides'),
             ('q', 'Quit', 'Exit the platform'),
@@ -242,6 +262,8 @@ class PurpleLauncher:
             ('8', 'View Past Reports', 'Browse generated reports'),
             ('9', f'{C.BRIGHT_CYAN}Delta Report{C.RESET}', 'Compare two scan sessions side-by-side'),
             ('t', f'{C.BRIGHT_CYAN}Trend Analysis{C.RESET}', 'View security trends over time'),
+            ('r', f'{C.BRIGHT_YELLOW}Risk Quantification{C.RESET}', 'FAIR risk analysis in dollar terms'),
+            ('a', f'{C.BRIGHT_YELLOW}AI Analysis{C.RESET}', 'AI-powered finding analysis'),
             ('---', '', ''),
             ('b', 'Back', 'Return to main menu'),
         ]
@@ -274,6 +296,7 @@ class PurpleLauncher:
             ('---', '', ''),
             ('8', f'{C.BRIGHT_YELLOW}Manage Overrides{C.RESET}', 'False positive & severity override rules'),
             ('9', f'{C.BRIGHT_YELLOW}Manage Credentials{C.RESET}', 'SSH/WinRM/SNMP credentials for auth scanning'),
+            ('c', f'{C.BRIGHT_GREEN}CI/CD Integration{C.RESET}', 'Generate pipeline configs and SARIF'),
             ('---', '', ''),
             ('b', 'Back', 'Return to main menu'),
         ]
@@ -509,15 +532,17 @@ Systems Thinking Security Assessment
   {C.BLUE}Blue Team{C.RESET}  - Defensive testing, detect threats
   {C.MAGENTA}Purple Team{C.RESET} - Integrated testing, close gaps
 
-{C.YELLOW}v6.0 New Features:{C.RESET}
-  Threat Intel    - CISA KEV + EPSS enrichment on all findings
-  Asset Inventory - Persistent asset tracking across scans
-  Delta Reports   - Compare scans, track remediation trends
-  QoD Scoring     - OpenVAS-compatible quality of detection
-  Auth Scanning   - SSH/WinRM credentialed checks
-  Overrides       - False positive & severity management
-  OpenVAS         - GVM integration (scan, import, sync)
-  Cross-Platform  - Windows 11 + WSL support
+{C.YELLOW}v7.0 New Features:{C.RESET}
+  FAIR Risk Quant  - Dollar-quantified risk (replaces RiskLens)
+  AI Analysis      - Multi-backend AI finding analysis
+  Container Scan   - Docker/Podman security assessment
+  Cloud Scan       - AWS/Azure/GCP configuration audit
+  SBOM Generation  - CycloneDX/SPDX bill of materials
+  ASM Scanner      - Attack surface management
+  Exec Dashboard   - Terminal and HTML dashboards
+  CI/CD + SARIF    - Pipeline configs and security gates
+  Jira/ServiceNow  - Ticket creation integrations
+  Slack/Teams      - Webhook notifications
 
 {C.YELLOW}Files:{C.RESET}
   Results:  {paths.results}
@@ -527,6 +552,7 @@ Systems Thinking Security Assessment
 
 {C.YELLOW}Documentation:{C.RESET}
   CHANGELOG-v6.md        - v6.0 release notes
+  CHANGELOG-v7.md        - v7.0 release notes
   README.txt             - Quick start guide
   AUDITOR_GUIDE.md       - Guide for auditors
   DESIGN_PHILOSOPHY.md   - Systems thinking approach
@@ -714,6 +740,10 @@ Systems Thinking Security Assessment
                 self.run_delta_report()
             elif choice == 't' or choice == 'T':
                 self.run_trend_analysis()
+            elif choice == 'r' or choice == 'R':
+                self.run_risk_quantification()
+            elif choice == 'a' or choice == 'A':
+                self.run_ai_analysis()
             else:
                 tui.warning("Feature coming soon...")
                 input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
@@ -733,6 +763,8 @@ Systems Thinking Security Assessment
                 self.manage_overrides()
             elif choice == '9':
                 self.manage_credentials()
+            elif choice == 'c' or choice == 'C':
+                self.manage_cicd()
             else:
                 tui.warning("Feature coming soon...")
                 input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
@@ -1019,6 +1051,191 @@ Systems Thinking Security Assessment
 
         tui.section_end(C.YELLOW)
 
+    def show_dashboard(self):
+        """Show executive security dashboard."""
+        self.show_banner()
+        try:
+            from executive_dashboard import ExecutiveDashboard
+            dashboard = ExecutiveDashboard()
+            dashboard.display_terminal_dashboard()
+
+            print()
+            if tui.confirm("Export as HTML?", default=False):
+                output = dashboard.export_html_dashboard()
+                if output:
+                    tui.success(f"Dashboard exported: {output}")
+        except ImportError:
+            tui.error("Dashboard module not available")
+        except Exception as e:
+            tui.error(f"Dashboard failed: {e}")
+
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_risk_quantification(self):
+        """Run FAIR risk quantification."""
+        self.show_banner()
+        tui.section("FAIR Risk Quantification", C.YELLOW)
+        print()
+
+        if get_risk_quantifier is None:
+            tui.error("Risk quantification module not available")
+            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        rq = get_risk_quantifier()
+
+        # Set business context
+        tui.info("Business Context (press Enter for defaults):")
+        industry = tui.input("Industry", default="default")
+        rq.set_business_context(industry=industry)
+
+        tui.info("Analyzing open findings...")
+        print()
+
+        try:
+            org_risk = rq.quantify_organization()
+
+            tui.info("Organization Risk Summary:")
+            print(f"  Total ALE (10th): ${org_risk.get('total_ale_10th', 0):,.0f}")
+            print(f"  {C.BOLD}Total ALE (50th): ${org_risk.get('total_ale_50th', 0):,.0f}{C.RESET}")
+            print(f"  Total ALE (90th): ${org_risk.get('total_ale_90th', 0):,.0f}")
+            print(f"  Data Quality: {org_risk.get('avg_data_quality', 0):.0f}%")
+
+            if org_risk.get('avg_data_quality', 0) < 50:
+                tui.warning("ESTIMATE ONLY - configure asset business context for accuracy")
+
+            print()
+            top = rq.get_top_risks(5)
+            if top:
+                tui.info("Top 5 Risks:")
+                for i, r in enumerate(top, 1):
+                    f = r.get('finding', {})
+                    print(f"  {i}. [{f.get('severity', '?')}] {f.get('title', '?')[:50]} "
+                          f"- ALE: ${r.get('ale_50th', 0):,.0f}")
+
+            print()
+            if tui.confirm("Generate risk report (HTML)?", default=True):
+                from reporter import ReportGenerator
+                reporter = ReportGenerator()
+                output = reporter.generate_risk_report()
+                tui.success(f"Risk report saved: {output}")
+        except Exception as e:
+            tui.error(f"Risk quantification failed: {e}")
+
+        tui.section_end(C.YELLOW)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_ai_analysis(self):
+        """Run AI-powered analysis."""
+        self.show_banner()
+        tui.section("AI-Powered Analysis", C.CYAN)
+        print()
+
+        if AIAnalyzer is None:
+            tui.error("AI analyzer module not available")
+            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        # Check deployment mode
+        provider = 'template'
+        if self.platform and self.platform.is_portable:
+            tui.info("Portable mode: using template backend (no external API calls)")
+        else:
+            options = [
+                ('1', 'Template (Default)', 'Rule-based analysis, no LLM needed'),
+                ('2', 'Ollama (Local)', 'Local LLM, full data access'),
+                ('3', 'OpenAI-compatible', 'External API (data sanitized)'),
+            ]
+            choice = tui.menu("AI Backend", options, C.CYAN)
+            if choice == '2':
+                provider = 'ollama'
+            elif choice == '3':
+                provider = 'openai'
+
+        ai = AIAnalyzer(provider=provider)
+
+        # Get latest session
+        if get_evidence_manager:
+            em = get_evidence_manager()
+            sessions = em.get_all_sessions() if hasattr(em, 'get_all_sessions') else []
+            if sessions:
+                latest = sessions[0]
+                session_id = latest.get('session_id', '')
+                findings = em.get_findings_for_session(session_id) if hasattr(em, 'get_findings_for_session') else []
+
+                if findings:
+                    print()
+                    tui.info(f"Analyzing {len(findings)} findings from {session_id[:20]}...")
+                    print()
+
+                    summary = ai.generate_executive_summary({
+                        'session_id': session_id,
+                        'summary': {'total_findings': len(findings)},
+                    })
+                    print(summary)
+
+                    print()
+                    if tui.confirm("Generate full AI report (HTML)?", default=True):
+                        from reporter import ReportGenerator
+                        reporter = ReportGenerator()
+                        output = reporter.generate_ai_enhanced_report(session_id)
+                        tui.success(f"AI report saved: {output}")
+                else:
+                    tui.info("No findings to analyze. Run a scan first.")
+            else:
+                tui.info("No sessions found. Run a scan first.")
+
+        tui.section_end(C.CYAN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def manage_cicd(self):
+        """CI/CD integration management."""
+        self.show_banner()
+        tui.section("CI/CD Integration", C.GREEN)
+
+        if get_cicd_integrator is None:
+            tui.error("CI/CD integration module not available")
+            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        ci = get_cicd_integrator()
+
+        options = [
+            ('1', 'Generate GitHub Actions', 'Create security scan workflow'),
+            ('2', 'Generate GitLab CI', 'Create .gitlab-ci.yml'),
+            ('3', 'Generate Jenkins Pipeline', 'Create Jenkinsfile'),
+            ('4', 'Export SARIF', 'Export findings in SARIF format'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to settings'),
+        ]
+
+        choice = tui.menu("CI/CD Integration", options, C.GREEN)
+
+        if choice == '1':
+            config_yaml = ci.generate_github_actions()
+            print(config_yaml)
+            if tui.confirm("Save to .github/workflows/security-scan.yml?", default=True):
+                output = ci.save_pipeline_config('github')
+                tui.success(f"Saved: {output}")
+        elif choice == '2':
+            config_yaml = ci.generate_gitlab_ci()
+            print(config_yaml)
+        elif choice == '3':
+            config_yaml = ci.generate_jenkins_pipeline()
+            print(config_yaml)
+        elif choice == '4':
+            if get_evidence_manager:
+                em = get_evidence_manager()
+                findings = em.get_findings_by_severity(status='open')
+                if findings:
+                    output = ci.export_sarif(findings)
+                    tui.success(f"SARIF exported: {output}")
+                else:
+                    tui.info("No findings to export")
+
+        tui.section_end(C.GREEN)
+        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
     def run_scanner(self, scanner_name: str):
         """Run a specific scanner."""
         self.show_banner()
@@ -1075,6 +1292,8 @@ Systems Thinking Security Assessment
                 input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             elif choice == '9':
                 self.show_tool_status()
+            elif choice == 'd' or choice == 'D':
+                self.show_dashboard()
             elif choice == 's' or choice == 'S':
                 self.handle_settings()
             elif choice == 'h' or choice == 'H':
@@ -1118,6 +1337,8 @@ Commands:
   deep       Run deep assessment
   tools      Show tool status
   delta      Compare two scan sessions
+  dashboard  Show executive dashboard
+  risk       Run FAIR risk quantification
   help       Show this help
 
 Examples:
@@ -1151,6 +1372,16 @@ Examples:
         elif cmd == 'delta':
             launcher.show_banner()
             launcher.run_delta_report()
+            return
+
+        elif cmd == 'dashboard':
+            launcher.show_banner()
+            launcher.show_dashboard()
+            return
+
+        elif cmd == 'risk':
+            launcher.show_banner()
+            launcher.run_risk_quantification()
             return
 
     # Interactive mode

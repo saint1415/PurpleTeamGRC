@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Purple Team Platform v6.0 - Asset Inventory Manager
-Matches OpenVAS asset management with SQLite-backed asset tracking.
-Tracks hosts, ports, services, scan history, and risk profiles.
+Purple Team Platform v7.0 - Asset Inventory Manager
+SQLite-backed asset tracking with business context for FAIR risk quantification.
+Tracks hosts, ports, services, scan history, risk profiles, and business impact.
 """
 
 import json
@@ -82,6 +82,22 @@ class AssetManager:
                 CREATE INDEX IF NOT EXISTS idx_asset_ports_asset ON asset_ports(asset_id);
                 CREATE INDEX IF NOT EXISTS idx_asset_ports_port ON asset_ports(port);
             ''')
+
+            # v7.0 migration: add business context columns
+            biz_columns = [
+                ('assets', 'asset_value', 'REAL'),
+                ('assets', 'data_sensitivity', 'TEXT'),
+                ('assets', 'record_count', 'INTEGER'),
+                ('assets', 'business_criticality', 'TEXT'),
+                ('assets', 'regulatory_frameworks', 'TEXT'),
+                ('assets', 'industry', 'TEXT'),
+                ('assets', 'revenue_impact', 'REAL'),
+            ]
+            for table, column, col_type in biz_columns:
+                try:
+                    conn.execute(f'ALTER TABLE {table} ADD COLUMN {column} {col_type}')
+                except Exception:
+                    pass
 
     def _generate_asset_id(self, ip: str) -> str:
         """Generate deterministic asset ID from IP."""
@@ -303,6 +319,68 @@ class AssetManager:
                 ),
             }
 
+    def set_asset_business_context(self, ip: str, asset_value: float = None,
+                                     data_sensitivity: str = None,
+                                     record_count: int = None,
+                                     business_criticality: str = None,
+                                     regulatory_frameworks: List[str] = None,
+                                     industry: str = None,
+                                     revenue_impact: float = None):
+        """Set business context for FAIR risk quantification."""
+        asset_id = self._generate_asset_id(ip)
+
+        updates = []
+        params = []
+        field_map = {
+            'asset_value': asset_value,
+            'data_sensitivity': data_sensitivity,
+            'record_count': record_count,
+            'business_criticality': business_criticality,
+            'regulatory_frameworks': json.dumps(regulatory_frameworks) if regulatory_frameworks else None,
+            'industry': industry,
+            'revenue_impact': revenue_impact,
+        }
+        for field, value in field_map.items():
+            if value is not None:
+                updates.append(f"{field} = ?")
+                params.append(value)
+
+        if not updates:
+            return
+
+        params.append(asset_id)
+        with sqlite3.connect(self.db_path) as conn:
+            conn.execute(
+                f"UPDATE assets SET {', '.join(updates)} WHERE asset_id = ?",
+                params
+            )
+        logger.info(f"Set business context for {ip}")
+
+    def get_asset_business_context(self, ip: str) -> Optional[Dict]:
+        """Get business context for an asset."""
+        asset_id = self._generate_asset_id(ip)
+
+        with sqlite3.connect(self.db_path) as conn:
+            conn.row_factory = sqlite3.Row
+            row = conn.execute('''
+                SELECT asset_value, data_sensitivity, record_count,
+                       business_criticality, regulatory_frameworks,
+                       industry, revenue_impact
+                FROM assets WHERE asset_id = ?
+            ''', (asset_id,)).fetchone()
+
+            if not row:
+                return None
+
+            ctx = dict(row)
+            # Parse JSON fields
+            if ctx.get('regulatory_frameworks'):
+                try:
+                    ctx['regulatory_frameworks'] = json.loads(ctx['regulatory_frameworks'])
+                except (json.JSONDecodeError, TypeError):
+                    ctx['regulatory_frameworks'] = []
+            return ctx
+
     def search_assets(self, query: str) -> List[Dict]:
         """Search assets by IP, hostname, OS, or tag."""
         with sqlite3.connect(self.db_path) as conn:
@@ -423,6 +501,24 @@ if __name__ == '__main__':
     # Test tagging
     am.tag_asset('192.168.1.100', ['production', 'web-server'])
     print("Tagged asset")
+
+    # Test business context (v7.0)
+    am.set_asset_business_context(
+        '192.168.1.100',
+        asset_value=500000,
+        data_sensitivity='high',
+        record_count=50000,
+        business_criticality='critical',
+        industry='technology',
+        revenue_impact=100000
+    )
+    print("Set business context")
+
+    biz = am.get_asset_business_context('192.168.1.100')
+    if biz:
+        print(f"Business context: value=${biz.get('asset_value', 0):,.0f}, "
+              f"sensitivity={biz.get('data_sensitivity')}, "
+              f"records={biz.get('record_count')}")
 
     # Test summary
     summary = am.get_inventory_summary()
