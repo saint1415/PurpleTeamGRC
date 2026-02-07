@@ -1,11 +1,11 @@
-# Purple Team Portable Configuration
+# Purple Team Platform v7.0 Configuration
 # 365-day retention for compliance
 
-version: '4.0.0'
+version: '7.0.0'
 
 platform:
-  name: Purple Team Portable
-  mode: portable
+  name: Purple Team Platform
+  mode: auto  # auto-detect: portable, installed, cicd
   auto_detect_networks: true
 
 scanning:
@@ -60,6 +60,7 @@ reporting:
     - html
     - csv
     - pdf
+    - sarif
   executive_summary: true
   technical_details: true
   include_evidence_refs: true
@@ -69,6 +70,7 @@ export:
   scap: false
   csv_grc: true
   json_api: true
+  sarif: true
 
 network:
   auto_detect: true
@@ -92,6 +94,59 @@ tools:
     enabled: true
     extra_args: ''
 
+# v7.0: AI Analysis
+ai:
+  provider: template  # template (default), ollama, openai
+  model: ''
+  api_url: ''
+  sanitize_external: true  # Strip IPs/hostnames before sending to external LLMs
+
+# v7.0: Risk Quantification (FAIR)
+risk:
+  industry: default
+  benchmark_year: 2025
+  monte_carlo_iterations: 10000
+  custom_benchmarks: {}
+
+# v7.0: Container Security
+container:
+  enabled: true
+  runtime: auto  # auto, docker, podman
+  trivy_enabled: true
+
+# v7.0: Cloud Security
+cloud:
+  enabled: true  # Disabled automatically in portable mode
+  aws:
+    enabled: true
+    read_only: true
+  azure:
+    enabled: true
+    read_only: true
+  gcp:
+    enabled: true
+    read_only: true
+
+# v7.0: Attack Surface Management
+asm:
+  active_enumeration: false  # Passive-first, active requires opt-in
+  ct_logs: true
+  dns_brute: false
+
+# v7.0: SBOM
+sbom:
+  enabled: true
+  formats:
+    - cyclonedx
+    - spdx
+
+# v7.0: CI/CD
+cicd:
+  security_gate:
+    fail_on_critical: true
+    max_high: 5
+    max_medium: 20
+
 notifications:
   enabled: false
   email:
@@ -100,6 +155,12 @@ notifications:
     smtp_port: 587
     use_tls: true
     recipients: []
+  slack:
+    enabled: false
+    webhook_url: ''
+  teams:
+    enabled: false
+    webhook_url: ''
   on_critical: true
   on_complete: true
 
@@ -116,3 +177,15 @@ integrations:
     enabled: false
     type: ''
     endpoint: ''
+  jira:
+    enabled: false
+    url: ''
+    project_key: ''
+    email: ''
+  servicenow:
+    enabled: false
+    instance_url: ''
+  shodan:
+    enabled: false
+  censys:
+    enabled: false

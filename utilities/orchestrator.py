@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Purple Team Portable - Assessment Orchestrator
+Purple Team Portable v7.0 - Assessment Orchestrator
 Coordinates full security assessments with human-paced execution.
+Includes container, cloud, and risk quantification phases.
 """
 
 import sys
@@ -40,6 +41,26 @@ try:
     from openvas_scanner import OpenVASScanner
 except ImportError:
     OpenVASScanner = None
+
+try:
+    from container_scanner import ContainerScanner
+except ImportError:
+    ContainerScanner = None
+
+try:
+    from cloud_scanner import CloudScanner
+except ImportError:
+    CloudScanner = None
+
+try:
+    from risk_quantification import get_risk_quantifier
+except ImportError:
+    get_risk_quantifier = None
+
+try:
+    from ai_analyzer import AIAnalyzer
+except ImportError:
+    AIAnalyzer = None
 
 
 class AssessmentOrchestrator:
@@ -221,6 +242,53 @@ class AssessmentOrchestrator:
                 frameworks=frameworks
             )
             results['phases']['compliance']['summary'] = compliance_scanner.get_summary()
+
+            # Phase 6: Container Security (optional)
+            if ContainerScanner is not None:
+                try:
+                    self.logger.info("=" * 50)
+                    self.logger.info("PHASE 6: Container Security")
+                    self.logger.info("=" * 50)
+
+                    container_scanner = ContainerScanner(self.session_id)
+                    results['phases']['container'] = container_scanner.scan(
+                        targets=discovered_hosts,
+                        scan_type=assessment_type
+                    )
+                    results['phases']['container']['summary'] = container_scanner.get_summary()
+                except Exception as e:
+                    self.logger.warning(f"Container scanning skipped: {e}")
+
+            # Phase 7: Cloud Security (optional, disabled in portable mode)
+            if CloudScanner is not None:
+                try:
+                    cloud_scanner = CloudScanner(self.session_id)
+                    if any([cloud_scanner.aws_available, cloud_scanner.azure_available,
+                            cloud_scanner.gcp_available]):
+                        self.logger.info("=" * 50)
+                        self.logger.info("PHASE 7: Cloud Security")
+                        self.logger.info("=" * 50)
+
+                        results['phases']['cloud'] = cloud_scanner.scan(
+                            scan_type=assessment_type
+                        )
+                        results['phases']['cloud']['summary'] = cloud_scanner.get_summary()
+                except Exception as e:
+                    self.logger.warning(f"Cloud scanning skipped: {e}")
+
+            # Phase 8: Risk Quantification (optional)
+            if get_risk_quantifier is not None:
+                try:
+                    self.logger.info("=" * 50)
+                    self.logger.info("PHASE 8: Risk Quantification (FAIR)")
+                    self.logger.info("=" * 50)
+
+                    rq = get_risk_quantifier()
+                    org_risk = rq.quantify_organization(self.session_id)
+                    results['risk_quantification'] = org_risk
+                    self.logger.info(f"Total ALE (50th): ${org_risk.get('total_ale_50th', 0):,.0f}")
+                except Exception as e:
+                    self.logger.warning(f"Risk quantification skipped: {e}")
 
             # Generate overall summary
             results['end_time'] = datetime.utcnow().isoformat()

@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Purple Team Platform v6.0 - Platform Detection
+Purple Team Platform v7.0 - Platform Detection
 Cross-platform support for Windows 11, Linux, and macOS.
-OpenVAS is Linux-only - this gives us a major advantage.
+Deployment mode detection: portable (USB), installed, cicd.
 """
 
 import os
@@ -201,6 +201,62 @@ class PlatformInfo:
 
         return usb_paths
 
+    @property
+    def deployment_mode(self) -> str:
+        """Detect deployment mode: portable, installed, or cicd.
+
+        - portable: Running from USB drive (no cloud creds, no external AI)
+        - cicd: Running in CI/CD pipeline (headless, SARIF output)
+        - installed: Fixed system installation (full features)
+        """
+        # CI/CD detection: check common CI environment variables
+        ci_vars = ['CI', 'GITHUB_ACTIONS', 'GITLAB_CI', 'JENKINS_URL',
+                    'CIRCLECI', 'TRAVIS', 'BITBUCKET_PIPELINE', 'TF_BUILD',
+                    'CODEBUILD_BUILD_ID', 'BUILDKITE']
+        for var in ci_vars:
+            if os.environ.get(var):
+                return 'cicd'
+
+        # USB/portable detection: check if running from removable media
+        try:
+            script_path = Path(__file__).resolve()
+            script_str = str(script_path).lower()
+            # Common USB mount patterns
+            usb_indicators = ['/run/media/', '/media/', '/mnt/usb',
+                              '/volumes/']
+            for indicator in usb_indicators:
+                if indicator in script_str:
+                    return 'portable'
+            # Windows removable drive detection
+            if self.is_windows:
+                drive_letter = str(script_path)[:3]
+                try:
+                    import ctypes
+                    drive_type = ctypes.windll.kernel32.GetDriveTypeW(drive_letter)
+                    if drive_type == 2:  # DRIVE_REMOVABLE
+                        return 'portable'
+                except (AttributeError, OSError):
+                    pass
+        except Exception:
+            pass
+
+        return 'installed'
+
+    @property
+    def is_portable(self) -> bool:
+        """Check if running in portable (USB) mode."""
+        return self.deployment_mode == 'portable'
+
+    @property
+    def is_installed(self) -> bool:
+        """Check if running in installed (fixed system) mode."""
+        return self.deployment_mode == 'installed'
+
+    @property
+    def is_cicd(self) -> bool:
+        """Check if running in CI/CD pipeline mode."""
+        return self.deployment_mode == 'cicd'
+
     def get_summary(self) -> dict:
         """Get platform summary."""
         return {
@@ -211,6 +267,7 @@ class PlatformInfo:
             'admin': self.is_admin,
             'package_manager': self.get_available_package_manager(),
             'usb_paths': [str(p) for p in self.get_usb_paths()],
+            'deployment_mode': self.deployment_mode,
         }
 
 
@@ -234,6 +291,11 @@ if __name__ == '__main__':
     summary = pi.get_summary()
     for k, v in summary.items():
         print(f"  {k}: {v}")
+
+    print(f"\nDeployment mode: {pi.deployment_mode}")
+    print(f"  is_portable:  {pi.is_portable}")
+    print(f"  is_installed: {pi.is_installed}")
+    print(f"  is_cicd:      {pi.is_cicd}")
 
     print(f"\nPlatform tool paths:")
     for p in pi.get_platform_tool_paths():
