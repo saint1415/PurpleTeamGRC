@@ -1,46 +1,38 @@
-# Secrets & Credentials
-.env
-.env.*
-*.pem
-*.key
-secrets/
-credentials/
-config.local.yaml
-*-local.yaml
-
 # Python
 __pycache__/
 *.py[cod]
-*$py.class
-*.so
-.Python
-venv/
-env/
-.venv/
-ENV/
+*.pyo
 *.egg-info/
+*.egg
 dist/
 build/
+
+# Virtual environment
+venv/
+.venv/
+
+# Data (runtime generated)
+data/evidence/
+data/results/
+data/logs/
+data/reports/
+data/archives/
+data/threat_intel/
+
+# Credentials (sensitive)
+config/credentials.yaml
+config/credentials.json
+config/active/credentials.yaml
+config/active/.cred_key
+*.key
+*.pem
+
+# OS
+.DS_Store
+Thumbs.db
 
 # IDE
 .vscode/
 .idea/
 *.swp
-
-# OS Files
-.DS_Store
-Thumbs.db
-
-# Logs & Output
-*.log
-logs/
-output/
-reports/
-
-# Assessment data (may contain sensitive info)
-assessments/
-findings/
-evidence/
-*.xlsx
-*.csv
-!templates/*.csv
+*.swo
