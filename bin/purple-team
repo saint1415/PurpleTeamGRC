@@ -43,8 +43,8 @@ NC='\033[0m' # No Color
 show_banner() {
     echo -e "${PURPLE}"
     echo "╔═══════════════════════════════════════════════════════════╗"
-    echo "║          PURPLE TEAM PORTABLE v4.0                        ║"
-    echo "║          GRC & Security Assessment Platform               ║"
+    echo "║          PURPLE TEAM PLATFORM v7.0                         ║"
+    echo "║          Security Assessment & GRC Platform               ║"
     echo "╠═══════════════════════════════════════════════════════════╣"
     echo "║  Installation: $PURPLE_TEAM_HOME"
     echo "╚═══════════════════════════════════════════════════════════╝"
@@ -200,7 +200,7 @@ check_prerequisites() {
             1)
                 echo ""
                 echo "Running setup..."
-                bash "$PURPLE_TEAM_HOME/setup.sh"
+                bash "$PURPLE_TEAM_HOME/bin/setup.sh"
                 return $?
                 ;;
             2)
@@ -213,7 +213,7 @@ check_prerequisites() {
                 exit 0
                 ;;
             *)
-                bash "$PURPLE_TEAM_HOME/setup.sh"
+                bash "$PURPLE_TEAM_HOME/bin/setup.sh"
                 return $?
                 ;;
         esac
@@ -260,7 +260,7 @@ system_check() {
         read -p "Run setup to install missing tools? (y/n) [y]: " install_now
         install_now=${install_now:-y}
         if [[ "$install_now" =~ ^[Yy] ]]; then
-            bash "$PURPLE_TEAM_HOME/setup.sh"
+            bash "$PURPLE_TEAM_HOME/bin/setup.sh"
         fi
     fi
 }
@@ -315,7 +315,7 @@ case "$1" in
         exit 0
         ;;
     setup)
-        bash "$PURPLE_TEAM_HOME/setup.sh"
+        bash "$PURPLE_TEAM_HOME/bin/setup.sh"
         exit 0
         ;;
 esac
