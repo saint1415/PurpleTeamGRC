@@ -11,13 +11,16 @@ build/
 venv/
 .venv/
 
-# Data (runtime generated)
+# Data (runtime generated - user-specific)
 data/evidence/
 data/results/
 data/logs/
 data/reports/
 data/archives/
-data/threat_intel/
+
+# Intel data IS tracked (for airgapped/offline operation)
+# data/threat_intel/ - KEV catalog, EPSS scores
+# data/vuln_db/      - NVD CVE cache
 
 # Credentials (sensitive)
 config/credentials.yaml

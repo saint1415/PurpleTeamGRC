@@ -57,28 +57,63 @@ class ThreatIntelManager:
         self._load_caches()
 
     def _load_caches(self):
-        """Load cached data from disk."""
-        # Load KEV cache
+        """Load cached data from disk. Always loads even if stale (for airgapped use)."""
+        # Load KEV cache - always load, refresh later if needed
         if self.kev_cache_path.exists():
             try:
                 with open(self.kev_cache_path, 'r') as f:
                     cached = json.load(f)
-                if time.time() - cached.get('_cached_at', 0) < CACHE_TTL_SECONDS:
-                    self._kev_data = cached
-                    logger.debug(f"Loaded KEV cache: {len(cached.get('vulnerabilities', []))} entries")
+                self._kev_data = cached
+                age_hours = (time.time() - cached.get('_cached_at', 0)) / 3600
+                entry_count = len(cached.get('vulnerabilities', []))
+                if age_hours > CACHE_TTL_SECONDS / 3600:
+                    logger.debug(f"Loaded KEV cache (stale, {age_hours:.0f}h old): {entry_count} entries")
+                else:
+                    logger.debug(f"Loaded KEV cache: {entry_count} entries")
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"Error loading KEV cache: {e}")
 
-        # Load EPSS cache
+        # Load EPSS cache - always load, refresh later if needed
         if self.epss_cache_path.exists():
             try:
                 with open(self.epss_cache_path, 'r') as f:
                     cached = json.load(f)
-                if time.time() - cached.get('_cached_at', 0) < CACHE_TTL_SECONDS:
-                    self._epss_cache = cached.get('scores', {})
+                self._epss_cache = cached.get('scores', {})
+                age_hours = (time.time() - cached.get('_cached_at', 0)) / 3600
+                if age_hours > CACHE_TTL_SECONDS / 3600:
+                    logger.debug(f"Loaded EPSS cache (stale, {age_hours:.0f}h old): {len(self._epss_cache)} entries")
+                else:
                     logger.debug(f"Loaded EPSS cache: {len(self._epss_cache)} entries")
             except (json.JSONDecodeError, OSError) as e:
                 logger.warning(f"Error loading EPSS cache: {e}")
+
+    def is_cache_stale(self) -> Dict[str, bool]:
+        """Check if caches are stale (past TTL). Stale caches still work but should be refreshed."""
+        now = time.time()
+        kev_age = now - (self._kev_data.get('_cached_at', 0) if self._kev_data else 0)
+        epss_stale = True
+        if self.epss_cache_path.exists():
+            try:
+                with open(self.epss_cache_path, 'r') as f:
+                    cached = json.load(f)
+                epss_age = now - cached.get('_cached_at', 0)
+                epss_stale = epss_age > CACHE_TTL_SECONDS
+            except (json.JSONDecodeError, OSError):
+                pass
+        return {
+            'kev_stale': kev_age > CACHE_TTL_SECONDS,
+            'epss_stale': epss_stale,
+            'kev_loaded': self._kev_data is not None,
+            'epss_loaded': len(self._epss_cache) > 0,
+        }
+
+    def refresh_if_stale(self) -> Dict[str, bool]:
+        """Attempt to refresh stale caches. Returns what was refreshed. Safe to call offline."""
+        status = self.is_cache_stale()
+        refreshed = {'kev': False, 'epss': False}
+        if status['kev_stale']:
+            refreshed['kev'] = self.update_kev_catalog()
+        return refreshed
 
     def _save_kev_cache(self):
         """Save KEV data to disk cache."""
@@ -181,6 +216,10 @@ class ThreatIntelManager:
     def is_in_kev(self, cve_id: str) -> Optional[Dict]:
         """Check if a CVE is in the CISA KEV catalog."""
         if not self._kev_data:
+            # Try to load from disk first (might have been added after init)
+            self._load_caches()
+        if not self._kev_data:
+            # Only hit network as last resort
             self.update_kev_catalog()
 
         if not self._kev_data:
@@ -286,6 +325,8 @@ class ThreatIntelManager:
 
     def get_kev_stats(self) -> Dict:
         """Get KEV catalog statistics."""
+        if not self._kev_data:
+            self._load_caches()
         if not self._kev_data:
             self.update_kev_catalog()
 
