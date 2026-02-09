@@ -8,6 +8,7 @@ Encrypted storage with Fernet if cryptography package available.
 
 import json
 import os
+import sys
 import base64
 from ipaddress import ip_address, ip_network
 from pathlib import Path
@@ -80,7 +81,8 @@ class CredentialManager:
             try:
                 key = Fernet.generate_key()
                 self.key_file.write_bytes(key)
-                os.chmod(str(self.key_file), 0o600)
+                if sys.platform != 'win32':
+                    os.chmod(str(self.key_file), 0o600)
                 self._fernet = Fernet(key)
                 logger.info("Generated new encryption key")
             except Exception as e:
@@ -131,7 +133,8 @@ class CredentialManager:
                 content = json.dumps(data, indent=2)
 
             self.cred_file.write_text(content)
-            os.chmod(str(self.cred_file), 0o600)
+            if sys.platform != 'win32':
+                os.chmod(str(self.cred_file), 0o600)
         except Exception as e:
             logger.error(f"Error saving credentials: {e}")
 

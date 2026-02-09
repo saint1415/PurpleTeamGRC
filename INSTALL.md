@@ -1,569 +1,284 @@
-# Purple Team GRC Platform v3.0 - Installation Quick Reference
-
-**For comprehensive deployment instructions, see:** `Purple_Team_Deployment_Guide_v3.html`
-
-This document provides quick installation commands only. For detailed walkthrough with troubleshooting, use the HTML guide.
-
----
+# Purple Team GRC Platform v7.0 - Installation Guide
 
 ## Prerequisites
 
-### Required
+- **Python 3.10+** (3.11+ recommended)
+- **pip** (Python package manager)
+- **Git** (optional, for cloning)
 
-1. **Kali Purple 2024.4+** (NOT standard Kali Linux)
-   - Download: https://www.kali.org/get-kali/
-   - Select: "Kali Purple" variant
-   - Install following official Kali documentation
+### Optional Security Tools
 
-2. **Hardware Requirements**
-   - RAM: 16GB minimum (32GB recommended)
-   - Storage: 50GB+ free space
-   - Network: Gigabit Ethernet (WiFi supported)
+These tools enhance scanning capabilities but are not required. The platform gracefully degrades when tools are unavailable.
 
-3. **Internet Connection** (for initial setup)
-   - Required for package updates
-   - Required for security tool downloads
+| Tool | Purpose | Install |
+|------|---------|---------|
+| nmap | Network scanning | `apt install nmap` / `brew install nmap` / [nmap.org](https://nmap.org/download) |
+| nikto | Web scanning | `apt install nikto` |
+| nuclei | Vuln scanning | `go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@latest` |
+| testssl.sh | SSL assessment | `apt install testssl.sh` (Linux/macOS only) |
+| trivy | Container vulns | [aquasecurity/trivy](https://github.com/aquasecurity/trivy) |
+| amass | DNS enumeration | `apt install amass` |
+| docker | Container scanning | [docker.com](https://docker.com) |
 
-### Verification
+---
+
+## Linux Installation
+
+### From GitHub
 
 ```bash
-# Verify Kali Purple
-grep "Kali" /etc/os-release
-dpkg -l | grep "kali-linux-purple"
+git clone https://github.com/saint1415/PurpleTeamGRC.git
+cd PurpleTeamGRC
 
-# Check Python version (3.10+ required)
-python3 --version
+# Create virtual environment
+python3 -m venv venv
+source venv/bin/activate
 
-# Check disk space (50GB+ recommended)
-df -h /
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Launch
+python3 bin/purple-launcher
+```
+
+### From USB Drive
+
+```bash
+# Navigate to USB mount
+cd /run/media/$USER/PURPLETEAMG/purple-final
+
+# Option A: Run directly (no venv needed if deps installed system-wide)
+python3 bin/purple-launcher
+
+# Option B: Create local venv
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+python3 bin/purple-launcher
+```
+
+### Install Security Tools (Debian/Ubuntu/Kali)
+
+```bash
+sudo apt update
+sudo apt install -y nmap nikto testssl.sh amass
 ```
 
 ---
 
-## Quick Installation
+## Windows 11 Installation
 
-### Step 1: Transfer Package
+### Step 1: Install Python
 
-```bash
-# Option A: USB Drive
-cp -r /media/usb/purple-team-package ~/
+Download Python 3.11+ from [python.org](https://www.python.org/downloads/).
 
-# Option B: Git Clone (if available)
-cd ~
-git clone <repository-url> purple-team-package
+During installation:
+- Check "Add Python to PATH"
+- Check "Install pip"
 
-# Option C: Network Copy
-scp -r user@host:/path/to/purple-team-package ~/
+Verify:
+```cmd
+python --version
+pip --version
 ```
 
-### Step 2: Run Master Setup
+### Step 2: Get the Platform
 
-```bash
-# Navigate to package
-cd ~/purple-team-package
-
-# Make executable
-chmod +x master_setup.sh
-
-# Run installation (10-20 minutes)
-sudo ./master_setup.sh
+```cmd
+git clone https://github.com/saint1415/PurpleTeamGRC.git
+cd PurpleTeamGRC
 ```
 
-**What happens during setup:**
-1. Pre-flight checks (OS, network, disk, Python)
-2. System package updates
-3. Security tool installation
-4. Directory structure creation (dual installation)
-5. Python environment setup (system + user)
-6. Configuration file creation
-7. Script installation
-8. Launcher installation
-9. Sync manager setup
-10. Optional systemd services
+Or copy from USB drive to a local folder.
 
-### Step 3: Configure for Client
+### Step 3: Setup
 
-```bash
-# Edit per-user configuration
-vim ~/.purple-team/config.yaml
-
-# Required changes:
-# - client.name: "Your Client Name"
-# - client.industry: healthcare|finance|retail|technology|government
-# - network.ranges: Add client-specific ranges
-# - network.exclusions: Add critical systems to exclude
+```cmd
+bin\setup-windows.bat
 ```
 
-### Step 4: Launch Platform
+This creates a virtual environment and installs dependencies.
+
+### Step 4: Launch
+
+```cmd
+bin\purple-launcher.bat
+```
+
+Or with PowerShell:
+```powershell
+.\bin\purple-launcher.ps1
+```
+
+### Install nmap for Windows (Optional)
+
+Download from [nmap.org/download](https://nmap.org/download). Install to `C:\Program Files\Nmap`. The platform auto-detects it.
+
+---
+
+## macOS Installation
 
 ```bash
-# Terminal menu (recommended)
-purple-team-launcher
+# Install Python (if not present)
+brew install python@3.11
 
-# Or desktop GUI
-purple-team-gui
+# Clone
+git clone https://github.com/saint1415/PurpleTeamGRC.git
+cd PurpleTeamGRC
+
+# Setup
+python3 -m venv venv
+source venv/bin/activate
+pip install -r requirements.txt
+
+# Install tools
+brew install nmap
+
+# Launch
+python3 bin/purple-launcher
 ```
 
 ---
 
-## Installation Locations
+## USB Portable Deployment
 
-### System-Wide Installation
-```
-/opt/purple-team/
-├── config/              # Configuration templates
-├── scanners/            # Scanner Python scripts
-├── utils/               # Utility scripts
-├── results/             # Shared results (if any)
-├── logs/                # System logs
-├── tools/               # Downloaded tools (testssl.sh, etc.)
-└── venv/                # System Python virtual environment
-```
+The platform is designed to run directly from a USB drive with zero installation.
 
-### Per-User Installation
-```
-~/.purple-team/
-├── config.yaml          # YOUR client-specific configuration
-├── results/             # YOUR scan results
-├── logs/                # YOUR scan logs
-├── evidence/            # YOUR audit evidence
-├── reports/             # YOUR generated reports
-├── venv/                # YOUR Python virtual environment
-└── README.txt           # User guide
+### Prepare USB Drive
+
+1. Format USB drive (FAT32 for cross-platform, or exFAT for files >4GB)
+2. Copy the `purple-final/` directory to the drive
+3. (Optional) Create a venv on the drive:
+
+```bash
+cd /path/to/usb/purple-final
+python3 -m venv venv
+source venv/bin/activate  # or venv\Scripts\activate on Windows
+pip install -r requirements.txt
 ```
 
-### System Logs (Centralized)
-```
-/var/log/purple-team/
-└── <username>/          # Your logs synced here for audit trail
+### Run from USB
+
+The platform auto-detects USB deployment (portable mode):
+- Cloud scanning is disabled (no credentials on removable media)
+- AI defaults to template backend (no external API calls)
+- All other features work normally
+
+```bash
+# Linux
+python3 /media/USB/purple-final/bin/purple-launcher
+
+# macOS
+python3 /Volumes/USB/purple-final/bin/purple-launcher
+
+# Windows
+E:\purple-final\bin\purple-launcher.bat
 ```
 
 ---
 
-## Quick Commands
+## CI/CD Pipeline Installation
 
-### Launch Platform
-```bash
-purple-team-launcher     # Terminal menu interface
-purple-team-gui          # Desktop GUI interface
-```
-
-### Sync Installations
-```bash
-purple-team-sync         # Sync /opt with ~/.purple-team
-purple-team-sync --check # Check sync status only
-```
-
-### Manual Script Execution
-```bash
-# Activate environment
-source ~/.purple-team/venv/bin/activate
-
-# Run scanner
-cd ~/.purple-team/scanners
-python3 network_scanner.py
-
-# Deactivate when done
-deactivate
-```
-
-### Pre-Flight Validation
-```bash
-# Run comprehensive validation
-/opt/purple-team/utils/pre-flight-checker.py
-
-# Check network detection
-/opt/purple-team/utils/network-detector.py
-```
-
-### Update Management
-```bash
-# Check for updates
-/opt/purple-team/utils/update-manager.py
-
-# Updates checked automatically on every launcher start
-```
-
----
-
-## Systemd Services (Optional)
-
-### Enable Auto-Start Services
-
-```bash
-# Enable scheduler (for automated scans)
-sudo systemctl enable purple-team-scheduler.service
-sudo systemctl start purple-team-scheduler.service
-
-# Enable dashboard (for web interface)
-sudo systemctl enable purple-team-dashboard.service
-sudo systemctl start purple-team-dashboard.service
-
-# Check status
-sudo systemctl status purple-team-scheduler.service
-sudo systemctl status purple-team-dashboard.service
-```
-
-### Service Management
-
-```bash
-# Start services
-sudo systemctl start purple-team-scheduler.service
-sudo systemctl start purple-team-dashboard.service
-
-# Stop services
-sudo systemctl stop purple-team-scheduler.service
-sudo systemctl stop purple-team-dashboard.service
-
-# Restart services
-sudo systemctl restart purple-team-scheduler.service
-sudo systemctl restart purple-team-dashboard.service
-
-# View logs
-sudo journalctl -u purple-team-scheduler.service -f
-sudo journalctl -u purple-team-dashboard.service -f
-```
-
----
-
-## Configuration Templates
-
-### Quick Start: Use Industry Template
-
-```bash
-# Copy template to your config
-cd ~/.purple-team
-
-# Healthcare
-cp /opt/purple-team/config/config-healthcare.yaml config.yaml
-
-# Finance
-cp /opt/purple-team/config/config-finance.yaml config.yaml
-
-# Retail
-cp /opt/purple-team/config/config-retail.yaml config.yaml
-
-# Government
-cp /opt/purple-team/config/config-government.yaml config.yaml
-
-# Then customize as needed
-vim config.yaml
-```
-
-### Minimal Configuration
+### GitHub Actions
 
 ```yaml
-client:
-  name: "ACME Corporation"
-  industry: "technology"
+name: Security Scan
+on: [push, pull_request]
+jobs:
+  security:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install Purple Team
+        run: |
+          pip install -r requirements.txt
+      - name: Run Security Scan
+        run: |
+          python3 bin/purple-launcher quick
+```
 
-network:
-  auto_detect: true
-  exclusions:
-    - "10.0.0.1"  # Add critical systems
+The platform auto-detects CI environment variables and runs in headless mode.
 
-compliance:
-  frameworks:
-    - "SOC2"
-    - "NIST"
+### Generate Pipeline Configs
 
-scanning:
-  stealth_level: 3
-  max_rate: 100
+```bash
+python3 -c "
+from lib.cicd_integration import get_cicd_integrator
+ci = get_cicd_integrator()
+ci.save_pipeline_config('github', '.')
+"
 ```
 
 ---
 
-## Network Auto-Detection
+## Configuration
 
-### How It Works
+After installation, edit `config/active/config.yaml`:
 
-1. Platform detects all active network interfaces
-2. Identifies wired (eth0, ens*) and wireless (wlan0, wlp*) interfaces
-3. Auto-detects RFC1918 private IP ranges:
-   - 10.0.0.0/8
-   - 172.16.0.0/12
-   - 192.168.0.0/16
-4. Presents detected ranges for confirmation
-5. Scans approved ranges
+```yaml
+# Set your industry for risk benchmarks
+risk:
+  industry: 'healthcare'  # healthcare, financial, technology, government, etc.
 
-### Manual Configuration
+# Set compliance frameworks
+compliance:
+  frameworks:
+    - 'HIPAA'
+    - 'SOC2-Type2'
+    - 'NIST-800-53'
 
-If auto-detection doesn't work:
-
-```bash
-# Edit config
-vim ~/.purple-team/config.yaml
-
-# Disable auto-detect
+# Network targets (or use auto-detection)
 network:
-  auto_detect: false
-  ranges:
-    - "10.50.0.0/16"      # Your specific range
-    - "192.168.1.0/24"    # Your specific range
-  exclusions:
-    - "10.50.0.1"         # Gateway
-    - "10.50.0.10"        # DC
+  auto_detect: true
 ```
+
+See [docs/CONFIGURATION.md](docs/CONFIGURATION.md) for the complete reference.
 
 ---
 
 ## Verification
 
-### Verify Installation
+After installation, verify everything works:
 
 ```bash
-# Check system installation
-ls -la /opt/purple-team/
-ls -la /opt/purple-team/scanners/
-ls -la /opt/purple-team/utils/
+# Check platform detection
+python3 lib/platform_detect.py
 
-# Check user installation
-ls -la ~/.purple-team/
-cat ~/.purple-team/README.txt
+# Check tool availability
+python3 bin/purple-launcher tools
 
-# Check launchers installed
-which purple-team-launcher
-which purple-team-gui
-which purple-team-sync
-
-# Check Python environment
-source ~/.purple-team/venv/bin/activate
-python3 --version
-pip list | grep -i purple
-deactivate
-```
-
-### Run Test Scan (Safe)
-
-```bash
-# Launch platform
-purple-team-launcher
-
-# From menu:
-# 1. Run Pre-Flight Check
-# 2. Verify all green checks
-# 3. Select "Network Discovery"
-# 4. Use auto-detect
-# 5. Review detected ranges
-# 6. Approve to scan
-
-# Or manual test:
-source ~/.purple-team/venv/bin/activate
-cd ~/.purple-team/scanners
-python3 network_scanner.py --help
+# Run a quick scan
+python3 bin/purple-launcher quick
 ```
 
 ---
 
 ## Troubleshooting
 
-### Installation Issues
+### "Module not found" errors
 
-**"Must be run as root":**
+Ensure you're in the virtual environment:
 ```bash
-sudo ./master_setup.sh
+source venv/bin/activate   # Linux/macOS
+venv\Scripts\activate      # Windows
 ```
 
-**"Python version too old":**
-```bash
-# Update Python
-sudo apt update
-sudo apt install python3.11 python3.11-venv python3.11-dev
+### Python not found (Windows)
 
-# Re-run setup
-sudo ./master_setup.sh
+Ensure Python is in your PATH. Reinstall from python.org with "Add to PATH" checked.
+
+### Permission denied (Linux)
+
+Some scanners need root for raw sockets:
+```bash
+sudo python3 bin/purple-launcher
 ```
 
-**"No internet connectivity":**
-```bash
-# Check network
-ping 8.8.8.8
+### nmap not found
 
-# Check DNS
-nslookup google.com
+Install nmap for your platform (see Prerequisites above). The platform works without it but network scanning will be limited.
 
-# If behind proxy, configure:
-export http_proxy="http://proxy:port"
-export https_proxy="http://proxy:port"
-```
-
-**"Package installation failed":**
-```bash
-# Update package lists
-sudo apt update
-
-# Fix broken dependencies
-sudo apt --fix-broken install
-
-# Re-run setup
-sudo ./master_setup.sh
-```
-
-### Runtime Issues
-
-**"Module not found":**
-```bash
-# Ensure venv activated
-source ~/.purple-team/venv/bin/activate
-
-# Or use launcher (handles automatically)
-purple-team-launcher
-```
-
-**"Permission denied":**
-```bash
-# Fix permissions
-sudo chown -R $(whoami):$(whoami) ~/.purple-team/
-
-# Or use sudo for system operations
-sudo purple-team-sync
-```
-
-**"Network auto-detection failed":**
-```bash
-# Manual network detection
-ip addr show
-ip route show
-
-# Edit config manually
-vim ~/.purple-team/config.yaml
-# Set auto_detect: false
-# Add ranges manually
-```
-
-**"Scan results missing":**
-```bash
-# Check output directory
-ls -la ~/.purple-team/results/
-
-# Check logs
-tail -f ~/.purple-team/logs/network_scanner.log
-
-# Check permissions
-ls -la ~/.purple-team/
-```
-
-### Getting Help
-
-1. **Check Logs:**
-   ```bash
-   # User logs
-   tail -f ~/.purple-team/logs/*.log
-   
-   # System logs
-   tail -f /var/log/purple-team/*.log
-   
-   # Installation log
-   tail -f /var/log/purple-team/setup.log
-   ```
-
-2. **Run Diagnostics:**
-   ```bash
-   # Pre-flight check
-   /opt/purple-team/utils/pre-flight-checker.py
-   
-   # Network detection test
-   /opt/purple-team/utils/network-detector.py
-   
-   # Sync check
-   purple-team-sync --check
-   ```
-
-3. **Review Documentation:**
-   ```bash
-   # User guide
-   cat ~/.purple-team/README.txt
-   
-   # Deployment guide
-   firefox /opt/purple-team/docs/Purple_Team_Deployment_Guide_v3.html
-   ```
-
----
-
-## Uninstallation
-
-### Remove Platform (if needed)
-
-```bash
-# Stop services
-sudo systemctl stop purple-team-scheduler.service
-sudo systemctl stop purple-team-dashboard.service
-sudo systemctl disable purple-team-scheduler.service
-sudo systemctl disable purple-team-dashboard.service
-
-# Remove system installation
-sudo rm -rf /opt/purple-team
-
-# Remove user installation
-rm -rf ~/.purple-team
-
-# Remove launchers
-sudo rm /usr/local/bin/purple-team-launcher
-sudo rm /usr/local/bin/purple-team-gui
-sudo rm /usr/local/bin/purple-team-sync
-
-# Remove desktop entry
-sudo rm /usr/share/applications/purple-team-grc.desktop
-
-# Remove systemd services
-sudo rm /etc/systemd/system/purple-team-*.service
-sudo systemctl daemon-reload
-
-# Remove logs
-sudo rm -rf /var/log/purple-team
-```
-
----
-
-## Next Steps After Installation
-
-1. **Configure:** Edit `~/.purple-team/config.yaml` with client details
-2. **Validate:** Run pre-flight check to verify installation
-3. **Test:** Launch platform and run network discovery
-4. **Review:** Check logs and results directories
-5. **Document:** Record client-specific settings
-6. **Deploy:** Begin security assessment
-
----
-
-## Additional Resources
-
-### Documentation
-- **Comprehensive Guide:** `Purple_Team_Deployment_Guide_v3.html`
-- **Operations Guide:** `02_Operations_Playbook.md`
-- **Quick Reference:** `03_Quick_Reference_Guide.md`
-- **README:** `README.md`
-
-### Support Files
-- **Configuration Templates:** `/opt/purple-team/config/config-*.yaml`
-- **Example Configs:** See industry-specific templates
-- **Utility Scripts:** `/opt/purple-team/utils/`
-- **Scanner Scripts:** `/opt/purple-team/scanners/`
-
-### Commands Reference
-- `purple-team-launcher` - Main terminal interface
-- `purple-team-gui` - Desktop GUI interface
-- `purple-team-sync` - Sync system and user installations
-- `/opt/purple-team/utils/pre-flight-checker.py` - System validation
-- `/opt/purple-team/utils/network-detector.py` - Network discovery test
-- `/opt/purple-team/utils/update-manager.py` - Update management
-
----
-
-**Installation Complete!**
-
-For detailed deployment guide with screenshots and troubleshooting:  
-**See:** `Purple_Team_Deployment_Guide_v3.html`
-
-For daily operations and workflow:  
-**See:** `02_Operations_Playbook.md`
-
-For quick command reference:  
-**See:** `03_Quick_Reference_Guide.md`
-
----
-
-**Purple Team GRC Platform v3.0**  
-*Production-Ready Security Assessment & Compliance Platform*  
-*© 2026 - Professional Security Consulting Use*
+See [docs/TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) for more solutions.

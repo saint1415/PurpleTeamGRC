@@ -241,13 +241,13 @@ class ComplianceExporter:
     def export_evidence_package(self, framework: str,
                                  output_path: Path = None) -> Path:
         """Create a complete evidence package for auditors."""
-        import tarfile
         import tempfile
         import shutil
 
         if not output_path:
             timestamp = datetime.utcnow().strftime('%Y%m%d_%H%M%S')
-            output_path = self.paths.archives / f"evidence_package_{framework}_{timestamp}.tar.gz"
+            ext = '.zip' if sys.platform == 'win32' else '.tar.gz'
+            output_path = self.paths.archives / f"evidence_package_{framework}_{timestamp}{ext}"
 
         # Create temp directory
         with tempfile.TemporaryDirectory() as tmpdir:
@@ -281,10 +281,18 @@ class ComplianceExporter:
             with open(pkg_dir / 'MANIFEST.json', 'w') as f:
                 json.dump(manifest, f, indent=2)
 
-            # Create tarball
+            # Create archive (zip on Windows, tar.gz elsewhere)
             output_path.parent.mkdir(parents=True, exist_ok=True)
-            with tarfile.open(output_path, 'w:gz') as tar:
-                tar.add(pkg_dir, arcname=pkg_dir.name)
+            if str(output_path).endswith('.zip'):
+                import zipfile
+                with zipfile.ZipFile(output_path, 'w', zipfile.ZIP_DEFLATED) as zf:
+                    for file in pkg_dir.rglob('*'):
+                        if file.is_file():
+                            zf.write(file, file.relative_to(pkg_dir.parent))
+            else:
+                import tarfile
+                with tarfile.open(output_path, 'w:gz') as tar:
+                    tar.add(pkg_dir, arcname=pkg_dir.name)
 
         self.logger.info(f"Evidence package saved to {output_path}")
         return output_path

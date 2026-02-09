@@ -45,6 +45,12 @@ class ScanScheduler:
             day_of_month: Day of month to run (1-28)
             assessment_type: 'quick', 'standard', or 'deep'
         """
+        if sys.platform == 'win32':
+            logger.error("Cron scheduling not available on Windows. Use Task Scheduler instead.")
+            print("Windows: Use Task Scheduler to schedule:")
+            print(f"  {sys.executable} {self.home / 'bin' / 'purple-launcher'} {assessment_type}")
+            return False
+
         # Validate day
         if day_of_month < 1 or day_of_month > 28:
             logger.error("Day must be between 1 and 28")
@@ -262,7 +268,8 @@ echo "========================================"
     with open(script_path, 'w') as f:
         f.write(script_content)
 
-    os.chmod(script_path, 0o755)
+    if sys.platform != 'win32':
+        os.chmod(script_path, 0o755)
     logger.info(f"Created portable scan script: {script_path}")
 
 

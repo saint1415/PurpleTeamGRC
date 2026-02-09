@@ -38,10 +38,18 @@ class ContainerScanner(BaseScanner):
     SCANNER_NAME = "container"
     SCANNER_DESCRIPTION = "Container security assessment (Docker/Podman)"
 
-    # Sensitive host paths that should not be mounted into containers
+    # Sensitive host paths that should not be mounted into containers (Linux/macOS)
     SENSITIVE_MOUNT_PATHS = [
         '/etc/shadow', '/etc/passwd', '/var/run/docker.sock',
         '/root', '/home'
+    ]
+
+    # Windows-equivalent sensitive paths
+    SENSITIVE_MOUNT_PATHS_WIN = [
+        'C:\\Windows\\System32\\config\\SAM',
+        'C:\\Windows\\System32\\config',
+        'C:\\Users',
+        '//./pipe/docker_engine'
     ]
 
     # Environment variable names that may contain secrets
@@ -60,6 +68,20 @@ class ContainerScanner(BaseScanner):
         self.runtime = None
         self.runtime_path = None
         self.trivy_path = None
+
+        # Detect platform for cross-platform path handling
+        self._platform = get_platform_info() if get_platform_info else None
+        if self._platform and self._platform.is_windows():
+            self.sensitive_paths = self.SENSITIVE_MOUNT_PATHS_WIN + self.SENSITIVE_MOUNT_PATHS
+        else:
+            self.sensitive_paths = list(self.SENSITIVE_MOUNT_PATHS)
+
+    @staticmethod
+    def _get_docker_socket_path() -> str:
+        """Return the platform-appropriate Docker socket path."""
+        if os.name == 'nt':
+            return '//./pipe/docker_engine'
+        return '/var/run/docker.sock'
 
     def _detect_runtime(self) -> Optional[str]:
         """Detect available container runtime (Docker or Podman)."""
@@ -147,7 +169,8 @@ class ContainerScanner(BaseScanner):
             self.add_finding(
                 severity='INFO',
                 title='Container Scan Requires Confirmation',
-                description=f'Access to the {runtime} socket is required for container inspection. '
+                description=f'Access to the {runtime} socket ({self._get_docker_socket_path()}) '
+                            f'is required for container inspection. '
                             f'Re-run with user_confirmed=True to proceed.',
                 affected_asset='localhost',
                 finding_type='container_runtime',
@@ -365,7 +388,7 @@ class ContainerScanner(BaseScanner):
         # Check: Sensitive mount paths
         for mount in config.get('Mounts', []):
             source = mount.get('Source', '')
-            for sensitive in self.SENSITIVE_MOUNT_PATHS:
+            for sensitive in self.sensitive_paths:
                 if source.startswith(sensitive):
                     self.add_finding(
                         severity='HIGH',

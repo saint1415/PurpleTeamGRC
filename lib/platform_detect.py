@@ -63,7 +63,11 @@ class PlatformInfo:
             except (AttributeError, OSError):
                 return False
         else:
-            return os.geteuid() == 0
+            try:
+                return os.geteuid() == 0
+            except AttributeError:
+                # os.geteuid() not available on this platform
+                return False
 
     @property
     def is_windows(self) -> bool:

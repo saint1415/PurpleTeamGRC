@@ -153,9 +153,10 @@ class PortablePaths:
         return self.reports / f"{name}.{ext}"
 
     def archive_file(self, name: str) -> Path:
-        """Get path for an archive file."""
+        """Get path for an archive file (.zip on Windows, .tar.gz elsewhere)."""
         self.archives.mkdir(parents=True, exist_ok=True)
-        return self.archives / f"{name}.tar.gz"
+        ext = '.zip' if sys.platform == 'win32' else '.tar.gz'
+        return self.archives / f"{name}{ext}"
 
     def ensure_directories(self):
         """Create all required directories if they don't exist."""

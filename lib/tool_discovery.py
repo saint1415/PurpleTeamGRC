@@ -616,7 +616,7 @@ class ToolDiscovery:
         tui.warning(f"Automatic installation failed for {tool.name}")
         if tool.install_url:
             tui.info(f"Manual installation: {tool.install_url}")
-        if tool.install_apt:
+        if tool.install_apt and _sys.platform != 'win32':
             tui.info(f"Try: sudo apt install {tool.install_apt}")
 
         return False

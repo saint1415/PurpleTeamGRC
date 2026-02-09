@@ -152,38 +152,135 @@ class CredentialScanner(BaseScanner):
             except Exception:
                 return ''
 
+    def _detect_remote_os(self, client, target: str, cred: Dict) -> str:
+        """Detect the remote host OS. Returns 'linux', 'windows', or 'unknown'."""
+        # Try uname first (Linux/macOS)
+        output = self._ssh_exec(client, 'uname -s 2>/dev/null', target, cred).strip().lower()
+        if 'linux' in output:
+            return 'linux'
+        if 'darwin' in output:
+            return 'macos'
+        # Try Windows detection (PowerShell over SSH)
+        output = self._ssh_exec(
+            client, 'echo %OS% 2>nul || echo unknown', target, cred
+        ).strip().lower()
+        if 'windows' in output:
+            return 'windows'
+        return 'linux'  # default assumption for SSH targets
+
     def _scan_host(self, target: str, cred: Dict, scan_type: str) -> List[Dict]:
         """Run authenticated checks on a single host."""
         checks = []
         client = self._get_ssh_client(target, cred)
 
         try:
-            # Package version audit
-            checks.extend(self._check_packages(client, target, cred))
+            remote_os = self._detect_remote_os(client, target, cred)
 
-            # Running services audit
-            checks.extend(self._check_services(client, target, cred))
+            if remote_os == 'windows':
+                checks.extend(self._check_windows_host(client, target, cred, scan_type))
+            else:
+                # Linux/macOS checks
+                # Package version audit
+                checks.extend(self._check_packages(client, target, cred))
 
-            # SSH configuration
-            checks.extend(self._check_ssh_config(client, target, cred))
+                # Running services audit
+                checks.extend(self._check_services(client, target, cred))
 
-            # User account audit
-            checks.extend(self._check_users(client, target, cred))
+                # SSH configuration
+                checks.extend(self._check_ssh_config(client, target, cred))
 
-            if scan_type in ('standard', 'deep'):
-                # PAM configuration
-                checks.extend(self._check_pam_config(client, target, cred))
+                # User account audit
+                checks.extend(self._check_users(client, target, cred))
 
-                # File permissions
-                checks.extend(self._check_file_permissions(client, target, cred))
+                if scan_type in ('standard', 'deep'):
+                    # PAM configuration
+                    checks.extend(self._check_pam_config(client, target, cred))
 
-            if scan_type == 'deep':
-                # Patch level
-                checks.extend(self._check_patch_level(client, target, cred))
+                    # File permissions
+                    checks.extend(self._check_file_permissions(client, target, cred))
+
+                if scan_type == 'deep':
+                    # Patch level
+                    checks.extend(self._check_patch_level(client, target, cred))
 
         finally:
             if client and hasattr(client, 'close'):
                 client.close()
+
+        return checks
+
+    def _check_windows_host(self, client, target: str, cred: Dict,
+                             scan_type: str) -> List[Dict]:
+        """Run authenticated checks on a Windows host via SSH/PowerShell."""
+        checks = []
+
+        # Installed software audit (Windows equivalent of package check)
+        output = self._ssh_exec(
+            client,
+            'powershell -Command "Get-WmiObject -Class Win32_Product | '
+            'Select-Object Name,Version | Format-Table -AutoSize" 2>nul',
+            target, cred
+        )
+        if output.strip():
+            lines = [l for l in output.strip().split('\n') if l.strip()]
+            checks.append({
+                'host': target, 'check': 'package_audit',
+                'result': f'{len(lines)} software entries found',
+                'status': 'info'
+            })
+
+        # Running services audit
+        output = self._ssh_exec(
+            client,
+            'powershell -Command "Get-Service | Where-Object {$_.Status -eq '
+            '\'Running\'} | Select-Object Name,DisplayName | Format-Table -AutoSize" 2>nul',
+            target, cred
+        )
+        if output.strip():
+            risky_services = ['telnet', 'ftp', 'tftp', 'RemoteRegistry']
+            for service in risky_services:
+                if service.lower() in output.lower():
+                    self.add_finding(
+                        severity='HIGH',
+                        title=f"[Auth] Insecure service running: {service} on {target}",
+                        description=f"The insecure service '{service}' is running on {target}",
+                        affected_asset=target,
+                        finding_type='insecure_service',
+                        remediation=f'Disable {service} via services.msc or Stop-Service',
+                        detection_method='service_audit'
+                    )
+                    checks.append({
+                        'host': target, 'check': 'insecure_service',
+                        'result': f'{service} running', 'status': 'HIGH'
+                    })
+
+        # User account audit
+        output = self._ssh_exec(
+            client,
+            'powershell -Command "Get-LocalUser | Select-Object Name,Enabled,'
+            'LastLogon | Format-Table -AutoSize" 2>nul || net user 2>nul',
+            target, cred
+        )
+        if output.strip():
+            checks.append({
+                'host': target, 'check': 'user_audit',
+                'result': 'User enumeration complete',
+                'status': 'info'
+            })
+
+        if scan_type == 'deep':
+            # Windows patch level
+            output = self._ssh_exec(
+                client,
+                'powershell -Command "(Get-HotFix | Measure-Object).Count" 2>nul',
+                target, cred
+            ).strip()
+            if output:
+                checks.append({
+                    'host': target, 'check': 'patch_level',
+                    'result': f'{output} hotfixes installed',
+                    'status': 'info'
+                })
 
         return checks
 
