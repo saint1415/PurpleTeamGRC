@@ -69,6 +69,11 @@ try:
 except ImportError:
     get_cicd_integrator = None
 
+try:
+    from vuln_database import get_vuln_database
+except ImportError:
+    get_vuln_database = None
+
 
 class PurpleLauncher:
     """Main launcher for Purple Team Platform."""
@@ -264,6 +269,7 @@ class PurpleLauncher:
             ('t', f'{C.BRIGHT_CYAN}Trend Analysis{C.RESET}', 'View security trends over time'),
             ('r', f'{C.BRIGHT_YELLOW}Risk Quantification{C.RESET}', 'FAIR risk analysis in dollar terms'),
             ('a', f'{C.BRIGHT_YELLOW}AI Analysis{C.RESET}', 'AI-powered finding analysis'),
+            ('v', f'{C.BRIGHT_GREEN}Vuln Intelligence{C.RESET}', 'NVD/OWASP/CWE/ATT&CK database'),
             ('---', '', ''),
             ('b', 'Back', 'Return to main menu'),
         ]
@@ -533,6 +539,7 @@ Systems Thinking Security Assessment
   {C.MAGENTA}Purple Team{C.RESET} - Integrated testing, close gaps
 
 {C.YELLOW}v7.0 New Features:{C.RESET}
+  Vuln Intel DB    - NVD/OWASP/CWE/CAPEC/ATT&CK intelligence
   FAIR Risk Quant  - Dollar-quantified risk (replaces RiskLens)
   AI Analysis      - Multi-backend AI finding analysis
   Container Scan   - Docker/Podman security assessment
@@ -744,6 +751,8 @@ Systems Thinking Security Assessment
                 self.run_risk_quantification()
             elif choice == 'a' or choice == 'A':
                 self.run_ai_analysis()
+            elif choice == 'v' or choice == 'V':
+                self.run_vuln_intelligence()
             else:
                 tui.warning("Feature coming soon...")
                 input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
@@ -1188,6 +1197,172 @@ Systems Thinking Security Assessment
         tui.section_end(C.CYAN)
         input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
+    def run_vuln_intelligence(self):
+        """Vulnerability intelligence database interface."""
+        self.show_banner()
+        tui.section("Vulnerability Intelligence Database", C.GREEN)
+        print()
+
+        if get_vuln_database is None:
+            tui.error("Vulnerability database module not available")
+            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        vdb = get_vuln_database()
+
+        while True:
+            # Show stats
+            stats = vdb.get_statistics()
+            tui.info(f"Cached CVEs: {stats.get('cached_cves', 0)} | "
+                     f"KEV: {stats.get('kev_entries', 0)} | "
+                     f"OWASP: {stats.get('owasp_top_10_categories', 0)} | "
+                     f"CWE Top 25: {stats.get('cwe_top_25_entries', 0)} | "
+                     f"CAPEC: {stats.get('capec_patterns', 0)} | "
+                     f"ATT&CK: {stats.get('attack_techniques', 0)}")
+            print()
+
+            options = [
+                ('1', 'Lookup CVE', 'Query NVD for CVE details with full enrichment'),
+                ('2', 'Lookup CWE', 'Get CWE details with OWASP/CAPEC/ATT&CK cross-refs'),
+                ('3', 'Search All Sources', 'Search across NVD, OWASP, CWE, CAPEC, ATT&CK'),
+                ('4', 'OWASP Top 10 2021', 'View OWASP Top 10 web security risks'),
+                ('5', 'CWE Top 25 2024', 'View most dangerous software weaknesses'),
+                ('---', '', ''),
+                ('6', 'Update Database', 'Download recent CVEs from NVD + refresh KEV'),
+                ('7', 'Data Sources', 'View all intelligence sources and their status'),
+                ('8', 'Database Stats', 'Full database statistics'),
+                ('---', '', ''),
+                ('b', 'Back', 'Return to compliance menu'),
+            ]
+            choice = tui.menu("Vulnerability Intelligence", options, C.GREEN)
+
+            if choice == 'b' or choice == '':
+                break
+            elif choice == '1':
+                cve_id = tui.input("CVE ID (e.g. CVE-2021-44228)")
+                if cve_id:
+                    tui.info(f"Looking up {cve_id}...")
+                    cve = vdb.lookup_cve(cve_id)
+                    if cve:
+                        print(f"\n  {C.BOLD}{cve['cve_id']}{C.RESET}")
+                        print(f"  CVSS v3.1: {cve.get('cvss_v31_score', 'N/A')} ({cve.get('cvss_v31_severity', 'N/A')})")
+                        print(f"  Published: {cve.get('published', 'N/A')}")
+                        print(f"  CWEs: {', '.join(cve.get('cwe_ids', []))}")
+                        print(f"  OWASP: {', '.join(cve.get('owasp_categories', []))}")
+                        top25 = cve.get('cwe_top25', [])
+                        if top25:
+                            top25_str = ', '.join('#{} {}'.format(c['rank'], c['cwe_id']) for c in top25)
+                            print(f"  CWE Top 25: {top25_str}")
+                        capec = cve.get('capec_patterns', [])
+                        if capec:
+                            capec_str = ', '.join(p['name'] for p in capec)
+                            print(f"  CAPEC Attacks: {capec_str}")
+                        attack = cve.get('attack_techniques', [])
+                        if attack:
+                            attack_str = ', '.join('{} {}'.format(t['id'], t['name']) for t in attack)
+                            print(f"  ATT&CK: {attack_str}")
+                        print(f"  KEV Status: {'IN KEV' if cve.get('kev_status') else 'Not in KEV'}")
+                        print(f"  EPSS Score: {cve.get('epss_score', 0):.4f}")
+                        print(f"  Priority: {cve.get('effective_priority', 0):.2f}/10")
+                        desc = cve.get('description', '')
+                        if desc:
+                            print(f"\n  {desc[:300]}{'...' if len(desc) > 300 else ''}")
+                        if cve.get('_stale_cache'):
+                            print(f"\n  {C.YELLOW}(cached data - NVD API unreachable){C.RESET}")
+                    else:
+                        tui.warning(f"CVE not found (NVD API may be unreachable)")
+            elif choice == '2':
+                cwe_id = tui.input("CWE ID (e.g. CWE-79 or 79)")
+                if cwe_id:
+                    cwe = vdb.lookup_cwe(cwe_id)
+                    if cwe:
+                        print(f"\n  {C.BOLD}{cwe['cwe_id']}{C.RESET}: {cwe.get('name', 'N/A')}")
+                        print(f"  Top 25: {'#' + str(cwe['top_25_rank']) if cwe.get('in_top_25') else 'Not ranked'}")
+                        print(f"  OWASP: {', '.join(cwe.get('owasp_categories', [])) or 'None'}")
+                        capec = cwe.get('capec_patterns', [])
+                        if capec:
+                            print(f"  CAPEC Attacks:")
+                            for p in capec:
+                                print(f"    - {p['id']}: {p['name']} [{p['severity']}]")
+                        attack = cwe.get('attack_techniques', [])
+                        if attack:
+                            print(f"  ATT&CK Techniques:")
+                            for t in attack:
+                                print(f"    - {t['id']}: {t['name']} [{t['tactic']}]")
+            elif choice == '3':
+                query = tui.input("Search query")
+                if query:
+                    results = vdb.search(query)
+                    total = sum(len(v) for v in results.values())
+                    print(f"\n  Found {total} results:")
+                    if results['cwes']:
+                        print(f"\n  {C.BOLD}CWE Matches:{C.RESET}")
+                        for c in results['cwes'][:5]:
+                            print(f"    #{c['rank']} {c['cwe_id']}: {c['name']}")
+                    if results['owasp']:
+                        print(f"\n  {C.BOLD}OWASP Matches:{C.RESET}")
+                        for o in results['owasp'][:5]:
+                            print(f"    {o['id']}: {o['name']}")
+                    if results['capec']:
+                        print(f"\n  {C.BOLD}CAPEC Matches:{C.RESET}")
+                        for p in results['capec'][:5]:
+                            print(f"    {p['id']}: {p['name']}")
+                    if results['attack']:
+                        print(f"\n  {C.BOLD}ATT&CK Matches:{C.RESET}")
+                        for t in results['attack'][:5]:
+                            print(f"    {t['id']}: {t['name']} [{t['tactic']}]")
+                    if results['cves']:
+                        print(f"\n  {C.BOLD}CVE Matches (cached):{C.RESET}")
+                        for c in results['cves'][:5]:
+                            print(f"    {c['cve_id']}: CVSS {c.get('cvss_v31_score', '?')} - {c.get('description', '')[:60]}...")
+            elif choice == '4':
+                print()
+                for oid, owasp in vdb.get_owasp_top_10().items():
+                    print(f"  {C.BOLD}{oid}{C.RESET}: {owasp['name']}")
+                    print(f"    Risk: {owasp['risk_level']} | CWEs: {len(owasp['cwes'])}")
+                    print(f"    {owasp['description'][:80]}...")
+                    print()
+            elif choice == '5':
+                print()
+                for entry in vdb.get_cwe_top_25():
+                    owasp = entry['owasp'] or 'N/A'
+                    print(f"  #{entry['rank']:2d} {entry['cwe_id']}: {entry['name'][:55]}")
+                    print(f"      Score: {entry['score']} | KEV: {entry['kev_count']} | OWASP: {owasp}")
+                print()
+            elif choice == '6':
+                days = tui.input("Download CVEs from last N days", default="7")
+                try:
+                    days = int(days)
+                except ValueError:
+                    days = 7
+                tui.info(f"Updating vulnerability intelligence (last {days} days)...")
+                results = vdb.update_all(days=days)
+                kev = results.get('kev', {})
+                nvd = results.get('nvd', {})
+                tui.success(f"KEV: {kev.get('entries', 0)} entries | "
+                           f"NVD: {nvd.get('cached', 0)} CVEs cached from {nvd.get('total_results', 0)} results")
+            elif choice == '7':
+                print()
+                for src in vdb.get_data_sources():
+                    status_color = C.GREEN if src['status'] in ('loaded', 'available', 'online') else C.YELLOW
+                    print(f"  {status_color}{tui.CHECK}{C.RESET} {src['name']}: {src['status']} ({src['type']})")
+                    print(f"    {src['description']}")
+                    if 'entries' in src:
+                        print(f"    Entries: {src['entries']}")
+                    print()
+            elif choice == '8':
+                print()
+                for k, v in vdb.get_statistics().items():
+                    print(f"  {k}: {v}")
+
+            print()
+            input(f"{C.DIM}Press Enter to continue...{C.RESET}")
+            self.show_banner()
+            tui.section("Vulnerability Intelligence Database", C.GREEN)
+            print()
+
+        tui.section_end(C.GREEN)
+
     def manage_cicd(self):
         """CI/CD integration management."""
         self.show_banner()
@@ -1339,6 +1514,7 @@ Commands:
   delta      Compare two scan sessions
   dashboard  Show executive dashboard
   risk       Run FAIR risk quantification
+  vulndb     Vulnerability intelligence database
   help       Show this help
 
 Examples:
@@ -1382,6 +1558,11 @@ Examples:
         elif cmd == 'risk':
             launcher.show_banner()
             launcher.run_risk_quantification()
+            return
+
+        elif cmd == 'vulndb':
+            launcher.show_banner()
+            launcher.run_vuln_intelligence()
             return
 
     # Interactive mode

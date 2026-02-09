@@ -62,6 +62,11 @@ try:
 except ImportError:
     AIAnalyzer = None
 
+try:
+    from vuln_database import get_vuln_database
+except ImportError:
+    get_vuln_database = None
+
 
 class AssessmentOrchestrator:
     """Orchestrates complete security assessments."""
@@ -289,6 +294,31 @@ class AssessmentOrchestrator:
                     self.logger.info(f"Total ALE (50th): ${org_risk.get('total_ale_50th', 0):,.0f}")
                 except Exception as e:
                     self.logger.warning(f"Risk quantification skipped: {e}")
+
+            # Phase 9: Vulnerability Intelligence Enrichment (optional)
+            if get_vuln_database is not None:
+                try:
+                    self.logger.info("=" * 50)
+                    self.logger.info("PHASE 9: Vulnerability Intelligence Enrichment")
+                    self.logger.info("=" * 50)
+
+                    vdb = get_vuln_database()
+                    findings = self.evidence.get_findings_for_session(self.session_id)
+                    if findings:
+                        enriched = vdb.enrich_findings_batch(findings)
+                        enriched_count = sum(
+                            1 for f in enriched if f.get('vuln_intel')
+                        )
+                        results['vuln_enrichment'] = {
+                            'total_findings': len(findings),
+                            'enriched': enriched_count,
+                        }
+                        self.logger.info(
+                            f"Enriched {enriched_count}/{len(findings)} findings "
+                            f"with NVD/OWASP/CWE/CAPEC/ATT&CK intelligence"
+                        )
+                except Exception as e:
+                    self.logger.warning(f"Vulnerability enrichment skipped: {e}")
 
             # Generate overall summary
             results['end_time'] = datetime.utcnow().isoformat()
