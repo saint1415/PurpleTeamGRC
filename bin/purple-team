@@ -31,6 +31,26 @@ fi
 # Add lib to Python path
 export PYTHONPATH="$PURPLE_TEAM_HOME/lib:$PYTHONPATH"
 
+# Check critical Python dependencies
+if ! $PYTHON_BIN -c "import yaml" 2>/dev/null; then
+    echo ""
+    echo "  ============================================================"
+    echo "   Purple Team Platform v7.0 - Setup Required"
+    echo "  ============================================================"
+    echo ""
+    echo "  Missing Python packages (pyyaml, requests, etc.)"
+    echo ""
+    echo "  Run setup first:"
+    echo "    bash $PURPLE_TEAM_HOME/bin/setup.sh"
+    echo ""
+    echo "  Or install manually:"
+    echo "    pip install -r $PURPLE_TEAM_HOME/requirements.txt"
+    echo ""
+    echo "  ============================================================"
+    echo ""
+    exit 1
+fi
+
 # Colors
 RED='\033[0;31m'
 GREEN='\033[0;32m'

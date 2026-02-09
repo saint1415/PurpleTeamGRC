@@ -21,6 +21,42 @@ sys.path.insert(0, str(PURPLE_HOME / 'lib'))
 sys.path.insert(0, str(PURPLE_HOME / 'utilities'))
 sys.path.insert(0, str(PURPLE_HOME / 'scanners'))
 
+# --- Pre-flight dependency check ---
+# Catch missing pip packages BEFORE they cause a cryptic traceback.
+_REQUIRED_PACKAGES = {
+    'yaml': 'pyyaml',
+    'requests': 'requests',
+    'dateutil': 'python-dateutil',
+}
+_missing = []
+for _mod, _pkg in _REQUIRED_PACKAGES.items():
+    try:
+        __import__(_mod)
+    except ImportError:
+        _missing.append(_pkg)
+
+if _missing:
+    print()
+    print("  ============================================================")
+    print("   Purple Team Platform v7.0 - Setup Required")
+    print("  ============================================================")
+    print()
+    print(f"  Missing Python packages: {', '.join(_missing)}")
+    print()
+    print("  Run setup first:")
+    if sys.platform == 'win32':
+        print(f"    {PURPLE_HOME}\\bin\\setup-windows.bat")
+    else:
+        print(f"    bash {PURPLE_HOME}/bin/setup.sh")
+    print()
+    print("  Or install manually:")
+    print(f"    pip install -r {PURPLE_HOME}/requirements.txt")
+    print()
+    print("  ============================================================")
+    print()
+    sys.exit(1)
+# --- End pre-flight check ---
+
 from tui import tui, C
 from tool_discovery import tool_discovery, ToolInfo
 from human_behavior import HumanBehavior
