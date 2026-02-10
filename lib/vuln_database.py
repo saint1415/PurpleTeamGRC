@@ -38,6 +38,10 @@ logger = get_logger('vuln_database')
 # NVD API 2.0 base URL (no API key required, but rate-limited to 5 req/30s)
 NVD_API_BASE = "https://services.nvd.nist.gov/rest/json/cves/2.0"
 
+# Rate limit: 5 req/30s without key (6s delay), 50 req/30s with key (0.6s delay)
+def _nvd_rate_delay():
+    return 0.7 if os.environ.get('NVD_API_KEY') else 6.0
+
 # Cache TTL: 7 days for NVD data (it changes less frequently than KEV/EPSS)
 NVD_CACHE_TTL = 7 * 86400
 
@@ -711,7 +715,7 @@ class VulnDatabase:
         # so we query individually with rate limiting
         for i, cve_id in enumerate(uncached):
             if i > 0 and i % 5 == 0:
-                time.sleep(6)  # Rate limit: 5 requests per 30 seconds (no API key)
+                time.sleep(_nvd_rate_delay())
 
             response = self._nvd_api_request({'cveId': cve_id})
             if response and response.get('vulnerabilities'):
@@ -1148,9 +1152,9 @@ class VulnDatabase:
         start_date = end_date - timedelta(days=days)
 
         params = {
-            'pubStartDate': start_date.strftime('%Y-%m-%dT00:00:00.000'),
-            'pubEndDate': end_date.strftime('%Y-%m-%dT23:59:59.999'),
-            'resultsPerPage': '200',
+            'pubStartDate': start_date.strftime('%Y-%m-%dT00:00:00.000+00:00'),
+            'pubEndDate': end_date.strftime('%Y-%m-%dT23:59:59.999+00:00'),
+            'resultsPerPage': '2000',
         }
 
         total_cached = 0
@@ -1181,7 +1185,7 @@ class VulnDatabase:
                 break
 
             # Rate limit
-            time.sleep(6)
+            time.sleep(_nvd_rate_delay())
 
         # Log the update
         self._log_update('NVD', 'recent_cves', total_cached,

@@ -19,6 +19,9 @@ import time
 import argparse
 from pathlib import Path
 
+def _nvd_rate_delay():
+    return 0.7 if os.environ.get('NVD_API_KEY') else 6.0
+
 # Resolve project root
 SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
@@ -58,21 +61,28 @@ def update_nvd():
 
     vdb = get_vuln_database()
 
-    print("[2/4] Downloading recent NVD CVEs (14 days)...")
+    has_api_key = bool(os.environ.get('NVD_API_KEY'))
+    if has_api_key:
+        print("  NVD API key: ACTIVE (50 req/30s)")
+    else:
+        print("  NVD API key: none (5 req/30s - set NVD_API_KEY for 10x speed)")
+
+    # With API key: pull 90 days (NVD max ~90 days per query). Without: 14 days.
+    days = 90 if has_api_key else 14
+    print("[2/4] Downloading NVD CVEs (last {} days)...".format(days))
     try:
-        recent = vdb.update_nvd_recent(days=14)
+        recent = vdb.update_nvd_recent(days=days)
         print("  NVD recent: {} CVEs cached from {} total".format(
             recent.get('cached', 0), recent.get('total', 0)))
     except Exception as e:
         print("  NVD recent: FAILED ({})".format(e))
 
-    print("[3/4] Caching high-profile CVEs...")
+    print("[3/4] Caching high-profile CVEs + keyword searches...")
     famous_cves = [
         'CVE-2021-44228', 'CVE-2021-45046',  # Log4Shell
         'CVE-2017-0144',  # EternalBlue
         'CVE-2014-0160',  # Heartbleed
         'CVE-2021-26855', 'CVE-2021-34473',  # ProxyLogon/ProxyShell
-        'CVE-2023-44228',  # Recent critical
         'CVE-2024-3400',  # Palo Alto PAN-OS
         'CVE-2023-4966',  # Citrix Bleed
         'CVE-2023-22515',  # Confluence
@@ -85,6 +95,8 @@ def update_nvd():
         'CVE-2023-20198',  # Cisco IOS XE
         'CVE-2023-42793',  # JetBrains TeamCity
         'CVE-2024-0012',  # Palo Alto PAN-OS
+        'CVE-2025-0282',  # Ivanti Connect Secure 2025
+        'CVE-2024-55591',  # FortiOS 2025
     ]
     cached = 0
     for cve_id in famous_cves:
@@ -96,8 +108,32 @@ def update_nvd():
             pass
     print("  Famous CVEs: {}/{} cached".format(cached, len(famous_cves)))
 
+    # Keyword searches for common enterprise products
+    keywords = [
+        'Microsoft Exchange', 'Log4j', 'VMware', 'Cisco IOS',
+        'WordPress', 'OpenSSL', 'Linux kernel', 'Active Directory',
+        'Apache HTTP', 'nginx', 'Fortinet', 'Palo Alto',
+        'Citrix', 'SolarWinds', 'Ivanti', 'Atlassian',
+        'Docker', 'Kubernetes', 'Jenkins', 'GitLab',
+        'Zoom', 'Chrome', 'Firefox', 'Windows SMB',
+        'Oracle Java', 'Adobe Reader', 'Grafana', 'Redis',
+        'PostgreSQL', 'MySQL', 'MongoDB', 'Elasticsearch',
+    ]
+    kw_total = 0
+    for kw in keywords:
+        try:
+            result = vdb.update_nvd_by_keyword(kw, max_results=200)
+            count = result.get('cached', 0)
+            kw_total += count
+            if count > 0:
+                print("    {}: {} CVEs".format(kw, count))
+            time.sleep(_nvd_rate_delay())
+        except Exception:
+            pass
+    print("  Keyword searches: {} CVEs from {} terms".format(kw_total, len(keywords)))
+
     stats = vdb.get_statistics()
-    print("  NVD total: {} CVEs in cache".format(stats.get('nvd_cves_cached', '?')))
+    print("  NVD total: {} CVEs in cache".format(stats.get('cached_cves', '?')))
     return True
 
 
@@ -197,10 +233,16 @@ def main():
                        help='Only update EPSS scores')
     parser.add_argument('--status', action='store_true',
                        help='Show current cache status')
+    parser.add_argument('--api-key', type=str,
+                       help='NVD API key (or set NVD_API_KEY env var)')
     parser.add_argument('--quiet', '-q', action='store_true',
                        help='Minimal output')
 
     args = parser.parse_args()
+
+    # Set API key from arg if provided
+    if args.api_key:
+        os.environ['NVD_API_KEY'] = args.api_key
 
     if not args.quiet:
         banner()
