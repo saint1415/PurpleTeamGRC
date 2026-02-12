@@ -18,9 +18,11 @@ data/logs/
 data/reports/
 data/archives/
 
-# Intel data IS tracked (for airgapped/offline operation)
-# data/threat_intel/ - KEV catalog, EPSS scores
-# data/vuln_db/      - NVD CVE cache
+# Intel data: small files tracked, large DB excluded
+# data/threat_intel/ - KEV + EPSS JSON (~2.5MB) - TRACKED for basic offline use
+# data/vuln_db/      - Full NVD/EPSS/exploit DB (~700MB+) - EXCLUDED, regenerate with:
+#                      bin/update-intel.py [--api-key KEY]
+data/vuln_db/
 
 # Credentials (sensitive)
 config/credentials.yaml

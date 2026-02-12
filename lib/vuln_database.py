@@ -540,6 +540,37 @@ class VulnDatabase:
                 CREATE INDEX IF NOT EXISTS idx_nvd_cwe ON nvd_cves(cwe_ids);
                 CREATE INDEX IF NOT EXISTS idx_nvd_severity ON nvd_cves(cvss_v31_severity);
                 CREATE INDEX IF NOT EXISTS idx_nvd_cached ON nvd_cves(cached_at);
+
+                CREATE TABLE IF NOT EXISTS epss_scores (
+                    cve_id TEXT PRIMARY KEY,
+                    epss REAL NOT NULL,
+                    percentile REAL NOT NULL,
+                    model_version TEXT,
+                    score_date TEXT,
+                    cached_at REAL
+                );
+
+                CREATE TABLE IF NOT EXISTS exploit_refs (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    cve_id TEXT NOT NULL,
+                    source TEXT NOT NULL,
+                    ref_id TEXT,
+                    title TEXT,
+                    url TEXT,
+                    cached_at REAL,
+                    UNIQUE(cve_id, source, ref_id)
+                );
+                CREATE INDEX IF NOT EXISTS idx_exploit_refs_cve ON exploit_refs(cve_id);
+                CREATE INDEX IF NOT EXISTS idx_exploit_refs_source ON exploit_refs(source);
+
+                CREATE TABLE IF NOT EXISTS vulnrichment (
+                    cve_id TEXT PRIMARY KEY,
+                    exploitation TEXT,
+                    automatable TEXT,
+                    technical_impact TEXT,
+                    provider TEXT,
+                    cached_at REAL
+                );
             ''')
 
     # ============================================================
@@ -1055,6 +1086,164 @@ class VulnDatabase:
         return results
 
     # ============================================================
+    # EPSS Bulk Scores
+    # ============================================================
+
+    def bulk_import_epss(self, scores: List[Dict]):
+        """Bulk import EPSS scores into the epss_scores table."""
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                now = time.time()
+                conn.executemany(
+                    '''INSERT OR REPLACE INTO epss_scores
+                       (cve_id, epss, percentile, model_version, score_date, cached_at)
+                       VALUES (?, ?, ?, ?, ?, ?)''',
+                    [
+                        (
+                            s['cve_id'],
+                            s['epss'],
+                            s['percentile'],
+                            s.get('model_version', ''),
+                            s.get('score_date', ''),
+                            now,
+                        )
+                        for s in scores
+                    ]
+                )
+                logger.info(f"Bulk imported {len(scores)} EPSS scores")
+        except sqlite3.Error as e:
+            logger.warning(f"EPSS bulk import error: {e}")
+
+    def get_epss_score(self, cve_id: str) -> Optional[Dict]:
+        """Look up EPSS score from the epss_scores table."""
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                conn.row_factory = sqlite3.Row
+                row = conn.execute(
+                    'SELECT * FROM epss_scores WHERE cve_id = ?', (cve_id,)
+                ).fetchone()
+                if row:
+                    return {
+                        'epss': row['epss'],
+                        'percentile': row['percentile'],
+                        'model_version': row['model_version'] or '',
+                        'score_date': row['score_date'] or '',
+                    }
+        except sqlite3.Error as e:
+            logger.warning(f"EPSS lookup error for {cve_id}: {e}")
+        return None
+
+    # ============================================================
+    # Exploit References
+    # ============================================================
+
+    def bulk_import_exploit_refs(self, refs: List[Dict]):
+        """Bulk import exploit references into the exploit_refs table."""
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                now = time.time()
+                conn.executemany(
+                    '''INSERT OR IGNORE INTO exploit_refs
+                       (cve_id, source, ref_id, title, url, cached_at)
+                       VALUES (?, ?, ?, ?, ?, ?)''',
+                    [
+                        (
+                            r['cve_id'],
+                            r['source'],
+                            r.get('ref_id', ''),
+                            r.get('title', ''),
+                            r.get('url', ''),
+                            now,
+                        )
+                        for r in refs
+                    ]
+                )
+                logger.info(f"Bulk imported {len(refs)} exploit references")
+        except sqlite3.Error as e:
+            logger.warning(f"Exploit refs bulk import error: {e}")
+
+    def get_exploit_refs(self, cve_id: str) -> List[Dict]:
+        """Look up all exploit references for a CVE."""
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                conn.row_factory = sqlite3.Row
+                rows = conn.execute(
+                    'SELECT * FROM exploit_refs WHERE cve_id = ?', (cve_id,)
+                ).fetchall()
+                return [
+                    {
+                        'source': row['source'],
+                        'ref_id': row['ref_id'] or '',
+                        'title': row['title'] or '',
+                        'url': row['url'] or '',
+                    }
+                    for row in rows
+                ]
+        except sqlite3.Error as e:
+            logger.warning(f"Exploit refs lookup error for {cve_id}: {e}")
+        return []
+
+    def has_public_exploit(self, cve_id: str) -> Dict:
+        """Check if a CVE has any known public exploits."""
+        refs = self.get_exploit_refs(cve_id)
+        sources = list({r['source'] for r in refs})
+        return {
+            'has_exploit': len(refs) > 0,
+            'exploit_count': len(refs),
+            'sources': sources,
+            'has_metasploit': 'metasploit' in sources,
+            'has_nuclei_template': 'nuclei' in sources,
+        }
+
+    # ============================================================
+    # CISA Vulnrichment (SSVC)
+    # ============================================================
+
+    def bulk_import_vulnrichment(self, entries: List[Dict]):
+        """Bulk import CISA Vulnrichment SSVC data."""
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                now = time.time()
+                conn.executemany(
+                    '''INSERT OR REPLACE INTO vulnrichment
+                       (cve_id, exploitation, automatable, technical_impact, provider, cached_at)
+                       VALUES (?, ?, ?, ?, ?, ?)''',
+                    [
+                        (
+                            e['cve_id'],
+                            e.get('exploitation', ''),
+                            e.get('automatable', ''),
+                            e.get('technical_impact', ''),
+                            e.get('provider', ''),
+                            now,
+                        )
+                        for e in entries
+                    ]
+                )
+                logger.info(f"Bulk imported {len(entries)} vulnrichment entries")
+        except sqlite3.Error as e:
+            logger.warning(f"Vulnrichment bulk import error: {e}")
+
+    def get_vulnrichment(self, cve_id: str) -> Optional[Dict]:
+        """Look up SSVC data for a CVE from the vulnrichment table."""
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                conn.row_factory = sqlite3.Row
+                row = conn.execute(
+                    'SELECT * FROM vulnrichment WHERE cve_id = ?', (cve_id,)
+                ).fetchone()
+                if row:
+                    return {
+                        'exploitation': row['exploitation'] or '',
+                        'automatable': row['automatable'] or '',
+                        'technical_impact': row['technical_impact'] or '',
+                        'provider': row['provider'] or '',
+                    }
+        except sqlite3.Error as e:
+            logger.warning(f"Vulnrichment lookup error for {cve_id}: {e}")
+        return None
+
+    # ============================================================
     # Finding Enrichment (integrates with scan pipeline)
     # ============================================================
 
@@ -1109,6 +1298,30 @@ class VulnDatabase:
                         'nvd_description': cve_data.get('description', ''),
                         'published': cve_data.get('published', ''),
                     }
+
+        # Add exploit intelligence
+        if enriched.get('vuln_intel') and enriched['vuln_intel'].get('primary_cve'):
+            primary_cve = enriched['vuln_intel']['primary_cve']
+
+            exploit_info = self.has_public_exploit(primary_cve)
+            enriched['vuln_intel']['has_public_exploit'] = exploit_info.get('has_exploit', False)
+            enriched['vuln_intel']['exploit_sources'] = exploit_info.get('sources', [])
+            enriched['vuln_intel']['has_metasploit'] = exploit_info.get('has_metasploit', False)
+            enriched['vuln_intel']['has_nuclei_template'] = exploit_info.get('has_nuclei_template', False)
+
+            # Add SSVC triage
+            ssvc = self.get_vulnrichment(primary_cve)
+            if ssvc:
+                enriched['vuln_intel']['ssvc_exploitation'] = ssvc.get('exploitation', '')
+                enriched['vuln_intel']['ssvc_automatable'] = ssvc.get('automatable', '')
+                enriched['vuln_intel']['ssvc_action'] = 'Act' if ssvc.get('exploitation') == 'active' else (
+                    'Attend' if ssvc.get('automatable') == 'yes' else 'Track')
+
+            # Prefer EPSS from bulk table if available
+            epss_bulk = self.get_epss_score(primary_cve)
+            if epss_bulk:
+                enriched['vuln_intel']['epss_score'] = epss_bulk.get('epss', 0.0)
+                enriched['vuln_intel']['epss_percentile'] = epss_bulk.get('percentile', 0.0)
 
         return enriched
 
@@ -1302,6 +1515,26 @@ class VulnDatabase:
                 if row:
                     stats['last_nvd_update'] = row[0]
 
+                # Exploit refs
+                try:
+                    stats['exploit_db_refs'] = conn.execute(
+                        "SELECT COUNT(*) FROM exploit_refs WHERE source='exploit-db'"
+                    ).fetchone()[0]
+                    stats['metasploit_refs'] = conn.execute(
+                        "SELECT COUNT(*) FROM exploit_refs WHERE source='metasploit'"
+                    ).fetchone()[0]
+                    stats['nuclei_refs'] = conn.execute(
+                        "SELECT COUNT(*) FROM exploit_refs WHERE source='nuclei'"
+                    ).fetchone()[0]
+                    stats['vulnrichment_entries'] = conn.execute(
+                        "SELECT COUNT(*) FROM vulnrichment"
+                    ).fetchone()[0]
+                    stats['epss_bulk_scores'] = conn.execute(
+                        "SELECT COUNT(*) FROM epss_scores"
+                    ).fetchone()[0]
+                except sqlite3.Error:
+                    pass
+
         except sqlite3.Error:
             pass
 
@@ -1372,8 +1605,38 @@ class VulnDatabase:
                 'status': 'loaded',
                 'entries': len(ATTACK_TECHNIQUES),
             },
+            {
+                'name': 'EPSS Bulk Scores',
+                'description': 'Exploit Prediction Scoring System - bulk imported scores',
+                'url': 'https://www.first.org/epss/',
+                'type': 'database',
+                'status': self._count_table('epss_scores'),
+            },
+            {
+                'name': 'Exploit References',
+                'description': 'Public exploit references from Exploit-DB, Metasploit, Nuclei',
+                'url': '',
+                'type': 'database',
+                'status': self._count_table('exploit_refs'),
+            },
+            {
+                'name': 'CISA Vulnrichment (SSVC)',
+                'description': 'Stakeholder-Specific Vulnerability Categorization decisions',
+                'url': 'https://github.com/cisagov/vulnrichment',
+                'type': 'database',
+                'status': self._count_table('vulnrichment'),
+            },
         ]
         return sources
+
+    def _count_table(self, table: str) -> str:
+        """Return a status string with the row count for a table."""
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                count = conn.execute(f'SELECT COUNT(*) FROM {table}').fetchone()[0]
+                return f'{count} entries' if count else 'empty'
+        except sqlite3.Error:
+            return 'unavailable'
 
     def _check_nvd_available(self) -> bool:
         """Quick check if NVD API is reachable."""
