@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
 Purple Team Portable - Scheduler
-Configures cron-based scheduled scans with human-paced execution.
+Configures scheduled scans with human-paced execution.
+Linux: cron-based. Windows: schtasks-based.
 Runs between 6-8pm with randomized start times.
 Fully portable - works from any installation location including USB.
 """
@@ -23,8 +24,11 @@ sys.path.insert(0, str(PURPLE_TEAM_HOME / 'lib'))
 from paths import paths
 from config import config
 from logger import get_logger
+from tui import safe_input
 
 logger = get_logger('scheduler')
+
+TASK_NAME = "PurpleTeam-Monthly"
 
 
 class ScanScheduler:
@@ -36,26 +40,50 @@ class ScanScheduler:
         self.home = PURPLE_TEAM_HOME
         self.config = config
 
+    # --- Public methods (branch by platform) ---
+
     def setup_monthly_scan(self, day_of_month: int = 1,
                             assessment_type: str = 'standard') -> bool:
-        """
-        Set up monthly scheduled scans.
-
-        Args:
-            day_of_month: Day of month to run (1-28)
-            assessment_type: 'quick', 'standard', or 'deep'
-        """
-        if sys.platform == 'win32':
-            logger.error("Cron scheduling not available on Windows. Use Task Scheduler instead.")
-            print("Windows: Use Task Scheduler to schedule:")
-            print(f"  {sys.executable} {self.home / 'bin' / 'purple-launcher'} {assessment_type}")
-            return False
-
-        # Validate day
+        """Set up monthly scheduled scans."""
         if day_of_month < 1 or day_of_month > 28:
             logger.error("Day must be between 1 and 28")
             return False
 
+        if sys.platform == 'win32':
+            return self._setup_windows_schedule(day_of_month, assessment_type)
+        else:
+            return self._setup_linux_schedule(day_of_month, assessment_type)
+
+    def get_status(self) -> dict:
+        """Get current schedule status."""
+        if sys.platform == 'win32':
+            return self._get_windows_status()
+        else:
+            return self._get_linux_status()
+
+    def remove_schedule(self) -> bool:
+        """Remove scheduled scans."""
+        if sys.platform == 'win32':
+            return self._remove_windows_schedule()
+        else:
+            return self._remove_linux_schedule()
+
+    def run_now(self, assessment_type: str = 'standard'):
+        """Run a scan immediately."""
+        logger.info(f"Running {assessment_type} scan now")
+
+        if sys.platform == 'win32':
+            launcher = self.home / 'bin' / 'purple-launcher'
+            subprocess.run([sys.executable, str(launcher), '--non-interactive', assessment_type])
+        else:
+            scan_script = self.home / 'bin' / 'run-scheduled-scan.sh'
+            subprocess.run([str(scan_script), assessment_type])
+
+    # --- Linux (cron) methods ---
+
+    def _setup_linux_schedule(self, day_of_month: int,
+                               assessment_type: str) -> bool:
+        """Set up monthly scan via crontab."""
         # Get random minute within 6-8pm window (18:00-20:00)
         hour = random.randint(18, 19)
         minute = random.randint(0, 59)
@@ -67,27 +95,26 @@ class ScanScheduler:
         # Ensure the scan script exists and is portable
         create_scan_script()
 
-        cron_line = f"{minute} {hour} {day_of_month} * * {scan_script} {assessment_type} >> {log_file} 2>&1 {self.CRON_MARKER}"
+        cron_line = (f"{minute} {hour} {day_of_month} * * "
+                     f"{scan_script} {assessment_type} >> {log_file} 2>&1 "
+                     f"{self.CRON_MARKER}")
 
         # Remove existing Purple Team cron entries
         self._remove_existing_cron()
 
         # Add new cron entry
         try:
-            # Get current crontab
             result = subprocess.run(['crontab', '-l'], capture_output=True, text=True)
             current_cron = result.stdout if result.returncode == 0 else ""
 
-            # Add new entry
             new_cron = current_cron.rstrip() + "\n" + cron_line + "\n"
 
-            # Install new crontab
             process = subprocess.Popen(['crontab', '-'], stdin=subprocess.PIPE, text=True)
             process.communicate(new_cron)
 
             if process.returncode == 0:
                 logger.info(f"Scheduled {assessment_type} scan for day {day_of_month} at {hour}:{minute:02d}")
-                print(f"\n✓ Scheduled monthly {assessment_type} scan")
+                print(f"\n[OK] Scheduled monthly {assessment_type} scan")
                 print(f"  Day: {day_of_month} of each month")
                 print(f"  Time: {hour}:{minute:02d} (randomized within 6-8pm window)")
                 print(f"  Log: {log_file}")
@@ -119,8 +146,15 @@ class ScanScheduler:
         except Exception as e:
             logger.warning(f"Could not clean existing cron: {e}")
 
-    def get_status(self) -> dict:
-        """Get current schedule status."""
+    def _remove_linux_schedule(self) -> bool:
+        """Remove Linux cron schedule."""
+        self._remove_existing_cron()
+        logger.info("Removed scheduled scans")
+        print("[OK] Scheduled scans removed")
+        return True
+
+    def _get_linux_status(self) -> dict:
+        """Get Linux cron schedule status."""
         status = {
             'scheduled': False,
             'schedule': None,
@@ -134,13 +168,11 @@ class ScanScheduler:
                 for line in result.stdout.split('\n'):
                     if self.CRON_MARKER in line:
                         status['scheduled'] = True
-                        # Parse schedule
                         parts = line.split()
                         if len(parts) >= 5:
                             minute, hour, day = parts[0], parts[1], parts[2]
                             status['schedule'] = f"Day {day} at {hour}:{minute}"
 
-                            # Calculate next run
                             now = datetime.now()
                             next_day = int(day)
                             next_hour = int(hour)
@@ -149,7 +181,6 @@ class ScanScheduler:
                             next_run = now.replace(day=next_day, hour=next_hour,
                                                    minute=next_minute, second=0)
                             if next_run < now:
-                                # Next month
                                 if now.month == 12:
                                     next_run = next_run.replace(year=now.year + 1, month=1)
                                 else:
@@ -169,19 +200,133 @@ class ScanScheduler:
 
         return status
 
-    def remove_schedule(self) -> bool:
-        """Remove scheduled scans."""
-        self._remove_existing_cron()
-        logger.info("Removed scheduled scans")
-        print("✓ Scheduled scans removed")
-        return True
+    # --- Windows (schtasks) methods ---
 
-    def run_now(self, assessment_type: str = 'standard'):
-        """Run a scan immediately."""
-        logger.info(f"Running {assessment_type} scan now")
+    def _setup_windows_schedule(self, day_of_month: int,
+                                 assessment_type: str) -> bool:
+        """Set up monthly scan via Windows Task Scheduler (schtasks)."""
+        hour = random.randint(18, 19)
+        minute = random.randint(0, 59)
+        start_time = f"{hour:02d}:{minute:02d}"
 
-        scan_script = self.home / 'bin' / 'run-scheduled-scan.sh'
-        subprocess.run([str(scan_script), assessment_type])
+        launcher = self.home / 'bin' / 'purple-launcher'
+        python_exe = sys.executable
+
+        # Build the command that schtasks will run
+        task_cmd = f'"{python_exe}" "{launcher}" --non-interactive {assessment_type}'
+
+        try:
+            # Remove existing task first (ignore errors if not found)
+            subprocess.run(
+                ['schtasks', '/delete', '/tn', TASK_NAME, '/f'],
+                capture_output=True, text=True
+            )
+
+            # Create new scheduled task
+            result = subprocess.run(
+                [
+                    'schtasks', '/create',
+                    '/tn', TASK_NAME,
+                    '/tr', task_cmd,
+                    '/sc', 'monthly',
+                    '/d', str(day_of_month),
+                    '/st', start_time,
+                    '/f',
+                ],
+                capture_output=True, text=True
+            )
+
+            if result.returncode == 0:
+                logger.info(f"Windows scheduled task created: {TASK_NAME}")
+                print(f"\n[OK] Scheduled monthly {assessment_type} scan (Windows Task Scheduler)")
+                print(f"  Task Name: {TASK_NAME}")
+                print(f"  Day: {day_of_month} of each month")
+                print(f"  Time: {start_time} (randomized within 6-8pm window)")
+                print(f"  Command: {task_cmd}")
+                return True
+            else:
+                logger.error(f"schtasks failed: {result.stderr}")
+                print(f"Failed to create scheduled task: {result.stderr}")
+                return False
+
+        except FileNotFoundError:
+            logger.error("schtasks.exe not found")
+            print("Error: schtasks.exe not found. Run as administrator or use Task Scheduler GUI.")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to set up Windows schedule: {e}")
+            return False
+
+    def _remove_windows_schedule(self) -> bool:
+        """Remove Windows scheduled task."""
+        try:
+            result = subprocess.run(
+                ['schtasks', '/delete', '/tn', TASK_NAME, '/f'],
+                capture_output=True, text=True
+            )
+
+            if result.returncode == 0:
+                logger.info(f"Windows scheduled task removed: {TASK_NAME}")
+                print("[OK] Scheduled scans removed")
+                return True
+            else:
+                if 'cannot find' in result.stderr.lower() or 'does not exist' in result.stderr.lower():
+                    print("[OK] No scheduled task found to remove")
+                    return True
+                logger.error(f"schtasks delete failed: {result.stderr}")
+                print(f"Failed to remove scheduled task: {result.stderr}")
+                return False
+
+        except FileNotFoundError:
+            logger.error("schtasks.exe not found")
+            return False
+        except Exception as e:
+            logger.error(f"Failed to remove Windows schedule: {e}")
+            return False
+
+    def _get_windows_status(self) -> dict:
+        """Get Windows Task Scheduler status."""
+        status = {
+            'scheduled': False,
+            'schedule': None,
+            'last_run': None,
+            'next_run': None
+        }
+
+        try:
+            result = subprocess.run(
+                ['schtasks', '/query', '/tn', TASK_NAME, '/fo', 'LIST', '/v'],
+                capture_output=True, text=True
+            )
+
+            if result.returncode == 0:
+                status['scheduled'] = True
+                for line in result.stdout.split('\n'):
+                    line = line.strip()
+                    if line.startswith('Next Run Time:'):
+                        value = line.split(':', 1)[1].strip()
+                        if value and value.lower() != 'n/a':
+                            status['next_run'] = value
+                    elif line.startswith('Last Run Time:'):
+                        value = line.split(':', 1)[1].strip()
+                        if value and value.lower() != 'n/a':
+                            status['last_run'] = value
+                    elif line.startswith('Schedule Type:'):
+                        sched_type = line.split(':', 1)[1].strip()
+                        status['schedule'] = sched_type
+
+            # Also check log file
+            log_file = paths.logs / 'scheduled_scan.log'
+            if log_file.exists() and not status['last_run']:
+                stat = log_file.stat()
+                status['last_run'] = datetime.fromtimestamp(stat.st_mtime).isoformat()
+
+        except FileNotFoundError:
+            pass
+        except Exception as e:
+            logger.warning(f"Could not get Windows schedule status: {e}")
+
+        return status
 
 
 def create_scan_script():
@@ -265,7 +410,7 @@ echo "========================================"
 '''
 
     script_path.parent.mkdir(parents=True, exist_ok=True)
-    with open(script_path, 'w') as f:
+    with open(script_path, 'w', encoding='utf-8') as f:
         f.write(script_content)
 
     if sys.platform != 'win32':
@@ -286,7 +431,7 @@ def interactive_setup():
     if status['scheduled']:
         print(f"\nCurrent schedule: {status['schedule']}")
         print(f"Next run: {status['next_run']}")
-        response = input("\nModify schedule? (y/n): ").lower()
+        response = safe_input("\nModify schedule? (y/n): ").lower()
         if response != 'y':
             return
 
@@ -296,11 +441,11 @@ def interactive_setup():
     print("  2) Standard (1-2 hours)")
     print("  3) Deep (2-4 hours)")
 
-    type_choice = input("\nSelect type [2]: ").strip() or "2"
+    type_choice = safe_input("\nSelect type [2]: ", default="2").strip() or "2"
     assessment_types = {'1': 'quick', '2': 'standard', '3': 'deep'}
     assessment_type = assessment_types.get(type_choice, 'standard')
 
-    day_input = input("Day of month (1-28) [1]: ").strip() or "1"
+    day_input = safe_input("Day of month (1-28) [1]: ", default="1").strip() or "1"
     try:
         day_of_month = int(day_input)
     except ValueError:
@@ -309,7 +454,6 @@ def interactive_setup():
     print(f"\nSetting up {assessment_type} scan on day {day_of_month}...")
     print("(Start time will be randomized between 6-8pm)")
 
-    # Set up cron
     scheduler.setup_monthly_scan(day_of_month, assessment_type)
 
 

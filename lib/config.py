@@ -138,7 +138,7 @@ class Config:
 
         if config_file.exists():
             try:
-                with open(config_file, 'r') as f:
+                with open(config_file, 'r', encoding='utf-8') as f:
                     self._config = yaml.safe_load(f) or {}
                 # Merge with defaults for any missing keys
                 self._config = self._deep_merge(self.DEFAULTS.copy(), self._config)
@@ -164,7 +164,7 @@ class Config:
         config_file = paths.config_active
         config_file.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(config_file, 'w') as f:
+        with open(config_file, 'w', encoding='utf-8') as f:
             yaml.dump(self._config, f, default_flow_style=False, sort_keys=False)
 
     def get(self, key: str, default: Any = None) -> Any:

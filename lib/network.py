@@ -133,19 +133,21 @@ class NetworkDiscovery:
             )
 
             current_iface = None
+            ip = None
+            netmask = '255.255.255.0'
             for line in result.stdout.split('\n'):
                 line = line.rstrip()
                 # Adapter header
                 if line and not line.startswith(' ') and ':' in line:
                     current_iface = line.split(':')[0].strip()
+                    ip = None
+                    netmask = '255.255.255.0'
                 # IPv4 Address
                 elif 'IPv4 Address' in line and current_iface:
                     match = re.search(r':\s*(\d+\.\d+\.\d+\.\d+)', line)
                     if match:
                         ip = match.group(1)
-                        # Look for subnet mask in next lines
-                        netmask = '255.255.255.0'  # default
-                elif 'Subnet Mask' in line and current_iface:
+                elif 'Subnet Mask' in line and current_iface and ip:
                     match = re.search(r':\s*(\d+\.\d+\.\d+\.\d+)', line)
                     if match:
                         netmask = match.group(1)

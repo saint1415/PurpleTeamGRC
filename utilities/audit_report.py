@@ -182,12 +182,12 @@ class AuditReportGenerator:
         html = self._build_audit_html(report_data)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
 
         # Also generate JSON for raw data
         json_path = output_path.with_suffix('.json')
-        with open(json_path, 'w') as f:
+        with open(json_path, 'w', encoding='utf-8') as f:
             json.dump(report_data, f, indent=2, default=str)
 
         # Generate CSV
@@ -445,7 +445,7 @@ class AuditReportGenerator:
         """Write audit data to CSV format."""
         import csv
 
-        with open(output_path, 'w', newline='') as f:
+        with open(output_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow([
                 'Framework', 'Control ID', 'Control Name', 'Family',

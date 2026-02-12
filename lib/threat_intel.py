@@ -61,7 +61,7 @@ class ThreatIntelManager:
         # Load KEV cache - always load, refresh later if needed
         if self.kev_cache_path.exists():
             try:
-                with open(self.kev_cache_path, 'r') as f:
+                with open(self.kev_cache_path, 'r', encoding='utf-8') as f:
                     cached = json.load(f)
                 self._kev_data = cached
                 age_hours = (time.time() - cached.get('_cached_at', 0)) / 3600
@@ -76,7 +76,7 @@ class ThreatIntelManager:
         # Load EPSS cache - always load, refresh later if needed
         if self.epss_cache_path.exists():
             try:
-                with open(self.epss_cache_path, 'r') as f:
+                with open(self.epss_cache_path, 'r', encoding='utf-8') as f:
                     cached = json.load(f)
                 self._epss_cache = cached.get('scores', {})
                 age_hours = (time.time() - cached.get('_cached_at', 0)) / 3600
@@ -94,7 +94,7 @@ class ThreatIntelManager:
         epss_stale = True
         if self.epss_cache_path.exists():
             try:
-                with open(self.epss_cache_path, 'r') as f:
+                with open(self.epss_cache_path, 'r', encoding='utf-8') as f:
                     cached = json.load(f)
                 epss_age = now - cached.get('_cached_at', 0)
                 epss_stale = epss_age > CACHE_TTL_SECONDS
@@ -120,7 +120,7 @@ class ThreatIntelManager:
         if self._kev_data:
             try:
                 self._kev_data['_cached_at'] = time.time()
-                with open(self.kev_cache_path, 'w') as f:
+                with open(self.kev_cache_path, 'w', encoding='utf-8') as f:
                     json.dump(self._kev_data, f)
             except OSError as e:
                 logger.warning(f"Error saving KEV cache: {e}")
@@ -132,7 +132,7 @@ class ThreatIntelManager:
                 '_cached_at': time.time(),
                 'scores': self._epss_cache
             }
-            with open(self.epss_cache_path, 'w') as f:
+            with open(self.epss_cache_path, 'w', encoding='utf-8') as f:
                 json.dump(cache_data, f)
         except OSError as e:
             logger.warning(f"Error saving EPSS cache: {e}")

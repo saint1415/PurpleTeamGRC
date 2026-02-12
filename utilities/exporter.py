@@ -109,7 +109,7 @@ class ComplianceExporter:
                 oscal_doc["assessment-results"]["results"][0]["observations"].append(observation)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(oscal_doc, f, indent=2)
 
         self.logger.info(f"OSCAL export saved to {output_path}")
@@ -127,7 +127,7 @@ class ComplianceExporter:
         summary = self.compliance.generate_compliance_summary(self.evidence, framework)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w', newline='') as f:
+        with open(output_path, 'w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
 
             # Header row
@@ -187,7 +187,7 @@ class ComplianceExporter:
             })
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(drata_export, f, indent=2)
 
         self.logger.info(f"Drata export saved to {output_path}")
@@ -220,7 +220,7 @@ class ComplianceExporter:
             })
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(vanta_export, f, indent=2)
 
         self.logger.info(f"Vanta export saved to {output_path}")
@@ -278,7 +278,7 @@ class ComplianceExporter:
                     'oscal_results.json - OSCAL format for federal compliance'
                 ]
             }
-            with open(pkg_dir / 'MANIFEST.json', 'w') as f:
+            with open(pkg_dir / 'MANIFEST.json', 'w', encoding='utf-8') as f:
                 json.dump(manifest, f, indent=2)
 
             # Create archive (zip on Windows, tar.gz elsewhere)
@@ -379,7 +379,7 @@ class ComplianceExporter:
         }
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(sarif_doc, f, indent=2)
 
         self.logger.info(f"SARIF export saved to {output_path}")

@@ -152,6 +152,31 @@ class CredentialScanner(BaseScanner):
             except Exception:
                 return ''
 
+    def _winrm_exec(self, target: str, cred: Dict, command: str) -> str:
+        """Execute a PowerShell command via WinRM (Windows-to-Windows only)."""
+        if sys.platform != 'win32':
+            return ''
+        params = cred.get('params', {})
+        username = params.get('username', 'Administrator')
+        password = params.get('password', '')
+        if not password:
+            return ''
+        try:
+            import subprocess
+            ps_script = (
+                f"$pw = ConvertTo-SecureString '{password}' -AsPlainText -Force; "
+                f"$cred = New-Object System.Management.Automation.PSCredential('{username}', $pw); "
+                f"Invoke-Command -ComputerName '{target}' -Credential $cred "
+                f"-ScriptBlock {{ {command} }}"
+            )
+            result = subprocess.run(
+                ['powershell', '-NoProfile', '-Command', ps_script],
+                capture_output=True, text=True, timeout=30
+            )
+            return result.stdout
+        except Exception:
+            return ''
+
     def _detect_remote_os(self, client, target: str, cred: Dict) -> str:
         """Detect the remote host OS. Returns 'linux', 'windows', or 'unknown'."""
         # Try uname first (Linux/macOS)
@@ -160,11 +185,19 @@ class CredentialScanner(BaseScanner):
             return 'linux'
         if 'darwin' in output:
             return 'macos'
-        # Try Windows detection (PowerShell over SSH)
+        # Try Windows detection via cmd.exe environment variable
         output = self._ssh_exec(
             client, 'echo %OS% 2>nul || echo unknown', target, cred
         ).strip().lower()
         if 'windows' in output:
+            return 'windows'
+        # PowerShell fallback for Windows SSH servers that don't support cmd.exe
+        output = self._ssh_exec(
+            client,
+            'powershell -NoProfile -Command "[Environment]::OSVersion.Platform" 2>$null',
+            target, cred
+        ).strip().lower()
+        if 'win32nt' in output:
             return 'windows'
         return 'linux'  # default assumption for SSH targets
 
@@ -172,6 +205,13 @@ class CredentialScanner(BaseScanner):
         """Run authenticated checks on a single host."""
         checks = []
         client = self._get_ssh_client(target, cred)
+
+        # If SSH failed and we're on Windows, try WinRM for Windows targets
+        if client is None and sys.platform == 'win32' and cred.get('type') == 'ssh_password':
+            winrm_test = self._winrm_exec(target, cred, 'echo ok')
+            if 'ok' in winrm_test:
+                self.scan_logger.info(f"Using WinRM for Windows-to-Windows scan on {target}")
+                return self._check_windows_host_winrm(target, cred, scan_type)
 
         try:
             remote_os = self._detect_remote_os(client, target, cred)
@@ -268,6 +308,76 @@ class CredentialScanner(BaseScanner):
                 'status': 'info'
             })
 
+        # Firewall status check
+        output = self._ssh_exec(
+            client,
+            'powershell -Command "Get-NetFirewallProfile | Select-Object Name,Enabled | '
+            'Format-Table -AutoSize" 2>nul',
+            target, cred
+        )
+        if output.strip():
+            for line in output.strip().split('\n'):
+                if 'False' in line:
+                    profile = line.split()[0] if line.split() else 'Unknown'
+                    self.add_finding(
+                        severity='HIGH',
+                        title=f"[Auth] Windows Firewall disabled ({profile}) on {target}",
+                        description=f"Windows Firewall profile '{profile}' is disabled",
+                        affected_asset=target,
+                        finding_type='insecure_configuration',
+                        remediation=f'Enable Windows Firewall for the {profile} profile',
+                        detection_method='config_check'
+                    )
+                    checks.append({
+                        'host': target, 'check': 'firewall_status',
+                        'result': f'{profile} firewall disabled', 'status': 'HIGH'
+                    })
+
+        # SMB signing check
+        output = self._ssh_exec(
+            client,
+            'powershell -Command "(Get-SmbServerConfiguration).RequireSecuritySignature" 2>nul',
+            target, cred
+        ).strip()
+        if output.lower() == 'false':
+            self.add_finding(
+                severity='MEDIUM',
+                title=f"[Auth] SMB signing not required on {target}",
+                description='SMB server does not require message signing',
+                affected_asset=target,
+                finding_type='insecure_configuration',
+                remediation='Enable RequireSecuritySignature via Set-SmbServerConfiguration',
+                detection_method='config_check'
+            )
+            checks.append({
+                'host': target, 'check': 'smb_signing',
+                'result': 'SMB signing not required', 'status': 'MEDIUM'
+            })
+
+        # Password policy check
+        output = self._ssh_exec(
+            client,
+            'net accounts 2>nul',
+            target, cred
+        )
+        if output.strip():
+            for line in output.strip().split('\n'):
+                if 'Minimum password length' in line:
+                    try:
+                        min_len = int(line.split(':')[-1].strip())
+                        if min_len < 8:
+                            self.add_finding(
+                                severity='MEDIUM',
+                                title=f"[Auth] Weak minimum password length ({min_len}) on {target}",
+                                description=f"Minimum password length is {min_len} (should be >= 8)",
+                                affected_asset=target,
+                                finding_type='insecure_configuration',
+                                remediation='Set minimum password length to at least 8 via Group Policy',
+                                detection_method='config_check'
+                            )
+                    except (ValueError, IndexError):
+                        pass
+
         if scan_type == 'deep':
             # Windows patch level
             output = self._ssh_exec(
@@ -279,6 +389,84 @@ class CredentialScanner(BaseScanner):
                 checks.append({
                     'host': target, 'check': 'patch_level',
                     'result': f'{output} hotfixes installed',
+                    'status': 'info'
+                })
+
+        return checks
+
+    def _check_windows_host_winrm(self, target: str, cred: Dict,
+                                    scan_type: str) -> List[Dict]:
+        """Run authenticated checks on a Windows host via WinRM (Windows-to-Windows)."""
+        checks = []
+
+        # Running services audit
+        output = self._winrm_exec(target, cred,
+            "Get-Service | Where-Object {$_.Status -eq 'Running'} | "
+            "Select-Object -ExpandProperty Name")
+        if output.strip():
+            risky_services = ['telnet', 'ftp', 'tftp', 'RemoteRegistry']
+            for service in risky_services:
+                if service.lower() in output.lower():
+                    self.add_finding(
+                        severity='HIGH',
+                        title=f"[Auth/WinRM] Insecure service running: {service} on {target}",
+                        description=f"The insecure service '{service}' is running on {target}",
+                        affected_asset=target,
+                        finding_type='insecure_service',
+                        remediation=f'Disable {service} via services.msc or Stop-Service',
+                        detection_method='service_audit'
+                    )
+                    checks.append({
+                        'host': target, 'check': 'insecure_service',
+                        'result': f'{service} running', 'status': 'HIGH'
+                    })
+
+        # Firewall status
+        output = self._winrm_exec(target, cred,
+            "Get-NetFirewallProfile | Select-Object Name,Enabled | Format-Table -AutoSize")
+        if output.strip():
+            for line in output.strip().split('\n'):
+                if 'False' in line:
+                    profile = line.split()[0] if line.split() else 'Unknown'
+                    self.add_finding(
+                        severity='HIGH',
+                        title=f"[Auth/WinRM] Windows Firewall disabled ({profile}) on {target}",
+                        description=f"Windows Firewall profile '{profile}' is disabled",
+                        affected_asset=target,
+                        finding_type='insecure_configuration',
+                        remediation=f'Enable Windows Firewall for the {profile} profile',
+                        detection_method='config_check'
+                    )
+                    checks.append({
+                        'host': target, 'check': 'firewall_status',
+                        'result': f'{profile} firewall disabled', 'status': 'HIGH'
+                    })
+
+        # SMB signing
+        output = self._winrm_exec(target, cred,
+            "(Get-SmbServerConfiguration).RequireSecuritySignature")
+        if output.strip().lower() == 'false':
+            self.add_finding(
+                severity='MEDIUM',
+                title=f"[Auth/WinRM] SMB signing not required on {target}",
+                description='SMB server does not require message signing',
+                affected_asset=target,
+                finding_type='insecure_configuration',
+                remediation='Enable RequireSecuritySignature via Set-SmbServerConfiguration',
+                detection_method='config_check'
+            )
+            checks.append({
+                'host': target, 'check': 'smb_signing',
+                'result': 'SMB signing not required', 'status': 'MEDIUM'
+            })
+
+        if scan_type == 'deep':
+            output = self._winrm_exec(target, cred,
+                "(Get-HotFix | Measure-Object).Count")
+            if output.strip():
+                checks.append({
+                    'host': target, 'check': 'patch_level',
+                    'result': f'{output.strip()} hotfixes installed',
                     'status': 'info'
                 })
 

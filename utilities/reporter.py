@@ -44,7 +44,7 @@ class ReportGenerator:
         html_content = self._build_executive_html(session_summary)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
         self.logger.info(f"Executive summary saved to {output_path}")
@@ -154,7 +154,7 @@ class ReportGenerator:
         html_content = self._build_compliance_html(summary)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
         self.logger.info(f"Compliance report saved to {output_path}")
@@ -272,7 +272,7 @@ class ReportGenerator:
 
         # Write CSV
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             # Header
             f.write("Finding ID,Session ID,Timestamp,Severity,Title,Description,")
             f.write("Affected Asset,CVSS Score,CVE IDs,Status,Remediation\n")
@@ -329,7 +329,7 @@ class ReportGenerator:
             )
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             json.dump(export_data, f, indent=2, default=str)
 
         self.logger.info(f"JSON export saved to {output_path}")
@@ -468,7 +468,7 @@ class ReportGenerator:
 </html>"""
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
 
         self.logger.info(f"Risk report saved to {output_path}")
@@ -552,7 +552,7 @@ class ReportGenerator:
 </html>"""
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html)
 
         self.logger.info(f"AI-enhanced report saved to {output_path}")
@@ -577,7 +577,7 @@ class ReportGenerator:
         html_content = delta.generate_delta_html(comparison)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
         self.logger.info(f"Delta report saved to {output_path}")
@@ -603,7 +603,7 @@ class ReportGenerator:
         html_content = self._build_trend_html(trends)
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(output_path, 'w') as f:
+        with open(output_path, 'w', encoding='utf-8') as f:
             f.write(html_content)
 
         self.logger.info(f"Trend report saved to {output_path}")

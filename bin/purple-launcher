@@ -57,7 +57,7 @@ if _missing:
     sys.exit(1)
 # --- End pre-flight check ---
 
-from tui import tui, C
+from tui import tui, C, safe_input, set_non_interactive
 from tool_discovery import tool_discovery, ToolInfo
 from human_behavior import HumanBehavior
 from paths import paths
@@ -120,9 +120,13 @@ class PurpleLauncher:
         self.behavior = HumanBehavior('normal')
         self.tools_checked = False
         self.platform = platform_info
+        self._banner_shown = False
 
-    def show_banner(self):
-        """Display the main banner."""
+    def show_banner(self, force=False):
+        """Display the main banner. Skips if already shown unless force=True."""
+        if self._banner_shown and not force:
+            return
+        self._banner_shown = True
         tui.clear()
         subtitle = "Systems Thinking Security Assessment"
         if self.platform:
@@ -205,7 +209,7 @@ class PurpleLauncher:
         print()
         tui.info(f"Total: {len(available)} available, {len(missing)} missing")
 
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def show_main_menu(self):
         """Display the main menu."""
@@ -366,7 +370,7 @@ class PurpleLauncher:
             tui.error(f"Scan failed: {e}")
 
         tui.section_end(C.GREEN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_standard_assessment(self):
         """Run a standard assessment."""
@@ -391,7 +395,7 @@ class PurpleLauncher:
             tui.error(f"Assessment failed: {e}")
 
         tui.section_end(C.CYAN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_deep_assessment(self):
         """Run a deep assessment."""
@@ -417,7 +421,7 @@ class PurpleLauncher:
             tui.error(f"Audit failed: {e}")
 
         tui.section_end(C.MAGENTA)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def generate_audit_report(self):
         """Generate a full audit report."""
@@ -450,7 +454,7 @@ class PurpleLauncher:
             tui.error(f"Report generation failed: {e}")
 
         tui.section_end(C.GREEN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_delta_report(self):
         """Compare two scan sessions."""
@@ -509,7 +513,7 @@ class PurpleLauncher:
             tui.error(f"Delta report failed: {e}")
 
         tui.section_end(C.CYAN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_trend_analysis(self):
         """Show security trend analysis."""
@@ -553,7 +557,7 @@ class PurpleLauncher:
             tui.error(f"Trend analysis failed: {e}")
 
         tui.section_end(C.CYAN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def show_help(self):
         """Display help information."""
@@ -608,7 +612,7 @@ Systems Thinking Security Assessment
 """)
 
         tui.section_end(C.CYAN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def show_openvas_menu(self):
         """OpenVAS/GVM Integration submenu."""
@@ -639,7 +643,7 @@ Systems Thinking Security Assessment
             elif choice == '4':
                 tui.info("Configure GVM connection in config/active/config.yaml")
                 tui.info("Keys: openvas.host, openvas.port, openvas.username, openvas.password")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_openvas_scan(self):
         """Run an OpenVAS scan."""
@@ -651,7 +655,7 @@ Systems Thinking Security Assessment
             if not scanner.gvm_available:
                 tui.error("OpenVAS/GVM not detected on this system")
                 tui.info("Install GVM: https://greenbone.github.io/docs/latest/")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
                 return
 
             tui.info(f"GVM mode: {scanner.gvm_mode}")
@@ -675,7 +679,7 @@ Systems Thinking Security Assessment
             tui.error(f"OpenVAS scan failed: {e}")
 
         tui.section_end(C.GREEN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def import_openvas_report(self):
         """Import an OpenVAS XML report."""
@@ -697,7 +701,7 @@ Systems Thinking Security Assessment
             tui.error(f"Import failed: {e}")
 
         tui.section_end(C.GREEN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def sync_openvas_findings(self):
         """Sync findings between OpenVAS and local DB."""
@@ -718,7 +722,7 @@ Systems Thinking Security Assessment
             tui.error(f"Sync failed: {e}")
 
         tui.section_end(C.GREEN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def handle_red_team(self):
         """Handle Red Team menu."""
@@ -737,7 +741,7 @@ Systems Thinking Security Assessment
                 self.handle_openvas()
             else:
                 tui.warning("Feature coming soon...")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def handle_blue_team(self):
         """Handle Blue Team menu."""
@@ -753,7 +757,7 @@ Systems Thinking Security Assessment
                 # TODO: Integrate yara, clamav
             else:
                 tui.warning("Feature coming soon...")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def handle_purple_team(self):
         """Handle Purple Team menu."""
@@ -766,7 +770,7 @@ Systems Thinking Security Assessment
                 self.run_deep_assessment()
             else:
                 tui.warning("Feature coming soon...")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def handle_compliance(self):
         """Handle Compliance menu."""
@@ -791,7 +795,7 @@ Systems Thinking Security Assessment
                 self.run_vuln_intelligence()
             else:
                 tui.warning("Feature coming soon...")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def handle_settings(self):
         """Handle Settings menu."""
@@ -812,7 +816,7 @@ Systems Thinking Security Assessment
                 self.manage_cicd()
             else:
                 tui.warning("Feature coming soon...")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def set_behavior_profile(self):
         """Set the behavior profile."""
@@ -833,7 +837,7 @@ Systems Thinking Security Assessment
         else:
             tui.info("Profile unchanged")
 
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def view_config(self):
         """View current configuration."""
@@ -847,7 +851,7 @@ Systems Thinking Security Assessment
             tui.warning("No configuration file found")
 
         tui.section_end(C.CYAN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def view_reports(self):
         """View generated reports."""
@@ -869,7 +873,7 @@ Systems Thinking Security Assessment
                     print(f"  {C.DIM}{tui.BULLET}{C.RESET} {item.name} ({size:.1f} KB)")
 
         tui.section_end(C.GREEN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def manage_overrides(self):
         """Manage finding overrides (false positives, severity changes)."""
@@ -878,7 +882,7 @@ Systems Thinking Security Assessment
 
         if get_evidence_manager is None:
             tui.error("Evidence manager not available")
-            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             return
 
         em = get_evidence_manager()
@@ -1014,7 +1018,7 @@ Systems Thinking Security Assessment
         if get_credential_manager is None:
             tui.error("Credential manager not available")
             tui.info("Ensure lib/credential_manager.py is installed")
-            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             return
 
         cm = get_credential_manager()
@@ -1114,7 +1118,7 @@ Systems Thinking Security Assessment
         except Exception as e:
             tui.error(f"Dashboard failed: {e}")
 
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_risk_quantification(self):
         """Run FAIR risk quantification."""
@@ -1124,7 +1128,7 @@ Systems Thinking Security Assessment
 
         if get_risk_quantifier is None:
             tui.error("Risk quantification module not available")
-            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             return
 
         rq = get_risk_quantifier()
@@ -1168,7 +1172,7 @@ Systems Thinking Security Assessment
             tui.error(f"Risk quantification failed: {e}")
 
         tui.section_end(C.YELLOW)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_ai_analysis(self):
         """Run AI-powered analysis."""
@@ -1178,7 +1182,7 @@ Systems Thinking Security Assessment
 
         if AIAnalyzer is None:
             tui.error("AI analyzer module not available")
-            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             return
 
         # Check deployment mode
@@ -1231,7 +1235,7 @@ Systems Thinking Security Assessment
                 tui.info("No sessions found. Run a scan first.")
 
         tui.section_end(C.CYAN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_vuln_intelligence(self):
         """Vulnerability intelligence database interface."""
@@ -1241,7 +1245,7 @@ Systems Thinking Security Assessment
 
         if get_vuln_database is None:
             tui.error("Vulnerability database module not available")
-            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             return
 
         vdb = get_vuln_database()
@@ -1406,7 +1410,7 @@ Systems Thinking Security Assessment
 
         if get_cicd_integrator is None:
             tui.error("CI/CD integration module not available")
-            input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             return
 
         ci = get_cicd_integrator()
@@ -1445,7 +1449,7 @@ Systems Thinking Security Assessment
                     tui.info("No findings to export")
 
         tui.section_end(C.GREEN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run_scanner(self, scanner_name: str):
         """Run a specific scanner."""
@@ -1463,7 +1467,7 @@ Systems Thinking Security Assessment
             tui.error(f"Scanner failed: {e}")
 
         tui.section_end(C.CYAN)
-        input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
     def run(self):
         """Main run loop."""
@@ -1478,7 +1482,7 @@ Systems Thinking Security Assessment
 
         # Main loop
         while True:
-            self.show_banner()
+            self.show_banner(force=True)
             choice = self.show_main_menu()
 
             if choice == 'q' or choice == 'Q':
@@ -1500,7 +1504,7 @@ Systems Thinking Security Assessment
                 self.handle_compliance()
             elif choice == '8':
                 tui.info("Scheduling coming soon...")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             elif choice == '9':
                 self.show_tool_status()
             elif choice == 'd' or choice == 'D':
@@ -1511,7 +1515,7 @@ Systems Thinking Security Assessment
                 self.show_help()
             else:
                 tui.warning("Invalid option")
-                input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
 
 def main():
@@ -1529,6 +1533,11 @@ def main():
                 kernel32.SetConsoleMode(kernel32.GetStdHandle(-11), 7)
             except Exception:
                 pass
+
+    # Handle --non-interactive / --batch flag before anything else
+    if '--non-interactive' in sys.argv or '--batch' in sys.argv:
+        set_non_interactive(True)
+        sys.argv = [a for a in sys.argv if a not in ('--non-interactive', '--batch')]
 
     launcher = PurpleLauncher()
 
@@ -1553,51 +1562,48 @@ Commands:
   vulndb     Vulnerability intelligence database
   help       Show this help
 
+Options:
+  --non-interactive  Run without prompts (CI/headless mode)
+  --batch            Alias for --non-interactive
+
 Examples:
-  purple-launcher          # Interactive mode
-  purple-launcher quick    # Quick scan
-  purple-launcher tools    # Check available tools
-  purple-launcher delta    # Compare scan sessions
+  purple-launcher                        # Interactive mode
+  purple-launcher quick                  # Quick scan
+  purple-launcher --non-interactive tools # Headless tool check
+  purple-launcher tools                  # Check available tools
+  purple-launcher delta                  # Compare scan sessions
 """)
             return
 
         elif cmd == 'quick':
-            launcher.show_banner()
             launcher.run_quick_scan()
             return
 
         elif cmd == 'standard':
-            launcher.show_banner()
             launcher.run_standard_assessment()
             return
 
         elif cmd == 'deep':
-            launcher.show_banner()
             launcher.run_deep_assessment()
             return
 
         elif cmd == 'tools':
-            launcher.show_banner()
             launcher.show_tool_status()
             return
 
         elif cmd == 'delta':
-            launcher.show_banner()
             launcher.run_delta_report()
             return
 
         elif cmd == 'dashboard':
-            launcher.show_banner()
             launcher.show_dashboard()
             return
 
         elif cmd == 'risk':
-            launcher.show_banner()
             launcher.run_risk_quantification()
             return
 
         elif cmd == 'vulndb':
-            launcher.show_banner()
             launcher.run_vuln_intelligence()
             return
 

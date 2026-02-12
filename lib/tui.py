@@ -10,6 +10,32 @@ import shutil
 import time
 from datetime import datetime
 
+
+# --- Non-interactive mode support (FIX 2) ---
+_NON_INTERACTIVE = not sys.stdin.isatty()
+
+
+def set_non_interactive(value=True):
+    """Force non-interactive mode."""
+    global _NON_INTERACTIVE
+    _NON_INTERACTIVE = value
+
+
+def is_non_interactive():
+    """Check if running in non-interactive mode."""
+    return _NON_INTERACTIVE
+
+
+def safe_input(prompt='', default=''):
+    """Input that returns default in non-interactive mode or on EOFError."""
+    if _NON_INTERACTIVE:
+        return default
+    try:
+        return input(prompt)
+    except (EOFError, OSError):
+        return default
+
+
 # Colors
 class Colors:
     # Basic
@@ -111,6 +137,13 @@ class TUI:
     UNLOCK = '🔓'
     SHIELD = '🛡'
 
+    # Progress bar characters
+    BAR_FILLED = '█'
+    BAR_EMPTY = '░'
+
+    # Spinner frames
+    SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+
     def clear(self):
         """Clear the terminal."""
         os.system('clear' if os.name != 'nt' else 'cls')
@@ -125,7 +158,9 @@ class TUI:
 
         # Title line
         title_line = f"  {self.SHIELD}  {title}  {self.SHIELD}  "
-        padding = width - 2 - len(title_line) + 6  # +6 for emoji width
+        # Emoji chars (len <= 2) render wider than len() reports; ASCII substitutes don't
+        emoji_offset = (4 - len(self.SHIELD)) * 2 if len(self.SHIELD) < 3 else 0
+        padding = width - 2 - len(title_line) + emoji_offset
         print(self.BOX_V + title_line + ' ' * padding + self.BOX_V)
 
         # Version line
@@ -189,7 +224,7 @@ class TUI:
         print()
         self.section_end(color)
 
-        choice = input(f"\n{C.BRIGHT_WHITE}{self.TRIANGLE} Select option: {C.RESET}").strip()
+        choice = safe_input(f"\n{C.BRIGHT_WHITE}{self.TRIANGLE} Select option: {C.RESET}").strip()
         return choice
 
     def success(self, message: str):
@@ -228,7 +263,7 @@ class TUI:
             percent = int((current / total) * 100)
 
         filled = int(width * current / total) if total > 0 else width
-        bar = f"{C.GREEN}{'█' * filled}{C.DIM}{'░' * (width - filled)}{C.RESET}"
+        bar = f"{C.GREEN}{self.BAR_FILLED * filled}{C.DIM}{self.BAR_EMPTY * (width - filled)}{C.RESET}"
 
         if show_percent:
             percent_str = f" {percent:3d}%"
@@ -242,7 +277,7 @@ class TUI:
 
     def spinner(self, message: str, duration: float = 0.1):
         """Display a single spinner frame."""
-        frames = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏']
+        frames = self.SPINNER_FRAMES
         frame_idx = int(time.time() * 10) % len(frames)
         print(f"\r  {C.CYAN}{frames[frame_idx]}{C.RESET} {message}", end='', flush=True)
 
@@ -280,7 +315,7 @@ class TUI:
     def confirm(self, message: str, default: bool = False) -> bool:
         """Ask for confirmation."""
         suffix = "[Y/n]" if default else "[y/N]"
-        response = input(f"{C.YELLOW}{self.WARNING}{C.RESET} {message} {suffix}: ").strip().lower()
+        response = safe_input(f"{C.YELLOW}{self.WARNING}{C.RESET} {message} {suffix}: ").strip().lower()
 
         if not response:
             return default
@@ -293,7 +328,7 @@ class TUI:
         else:
             display = f"{prompt}: "
 
-        response = input(f"{C.BRIGHT_WHITE}{self.TRIANGLE}{C.RESET} {display}").strip()
+        response = safe_input(f"{C.BRIGHT_WHITE}{self.TRIANGLE}{C.RESET} {display}").strip()
         return response or default or ""
 
     def countdown(self, seconds: int, message: str = "Starting in"):
@@ -325,6 +360,67 @@ class TUI:
 
 # Singleton instance
 tui = TUI()
+
+
+# --- Unicode/ASCII fallback detection (FIX 1) ---
+def _can_encode_unicode():
+    """Check if stdout can encode Unicode box-drawing and symbol characters."""
+    try:
+        encoding = getattr(sys.stdout, 'encoding', '') or ''
+        if encoding.lower().replace('-', '') in ('utf8', 'utf16', 'utf32'):
+            return True
+        # Try encoding a representative sample of chars we use
+        test = '╔═║✓✗→🛡⠋█░'
+        test.encode(encoding)
+        return True
+    except (UnicodeEncodeError, LookupError):
+        return False
+
+
+if not _can_encode_unicode():
+    # Override heavy box-drawing with ASCII
+    TUI.BOX_TL = '+'
+    TUI.BOX_TR = '+'
+    TUI.BOX_BL = '+'
+    TUI.BOX_BR = '+'
+    TUI.BOX_H = '='
+    TUI.BOX_V = '|'
+    TUI.BOX_LT = '+'
+    TUI.BOX_RT = '+'
+    TUI.BOX_TT = '+'
+    TUI.BOX_BT = '+'
+    TUI.BOX_X = '+'
+
+    # Override light box-drawing with ASCII
+    TUI.LBOX_TL = '+'
+    TUI.LBOX_TR = '+'
+    TUI.LBOX_BL = '+'
+    TUI.LBOX_BR = '+'
+    TUI.LBOX_H = '-'
+    TUI.LBOX_V = '|'
+
+    # Override symbols with ASCII equivalents
+    TUI.CHECK = '[OK]'
+    TUI.CROSS = '[X]'
+    TUI.ARROW = '->'
+    TUI.BULLET = '*'
+    TUI.STAR = '*'
+    TUI.DIAMOND = '*'
+    TUI.CIRCLE = '(o)'
+    TUI.CIRCLE_EMPTY = '( )'
+    TUI.SQUARE = '[#]'
+    TUI.SQUARE_EMPTY = '[ ]'
+    TUI.TRIANGLE = '>'
+    TUI.WARNING = '[!]'
+    TUI.INFO = '[i]'
+    TUI.LOCK = '[L]'
+    TUI.UNLOCK = '[U]'
+    TUI.SHIELD = '[S]'
+
+    # Override progress bar and spinner
+    TUI.BAR_FILLED = '#'
+    TUI.BAR_EMPTY = '.'
+    TUI.SPINNER_FRAMES = ['|', '/', '-', '\\']
 
 
 if __name__ == "__main__":
