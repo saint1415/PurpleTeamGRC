@@ -226,7 +226,10 @@ class PurpleLauncher:
             ('8', 'Schedule Scans', 'Configure automated monthly assessments'),
             ('9', 'Tool Status', 'View available security tools'),
             ('---', '', ''),
+            ('w', f'{C.BRIGHT_CYAN}Windows Security{C.RESET}', 'Local Windows security assessment (air-gapped)'),
+            ('l', f'{C.BRIGHT_CYAN}Linux Security{C.RESET}', 'Local Linux security assessment (air-gapped)'),
             ('d', f'{C.BRIGHT_GREEN}Dashboard{C.RESET}', 'Executive security dashboard'),
+            ('x', f'{C.BRIGHT_YELLOW}Export Data{C.RESET}', 'Export findings to security platforms (CEF, STIX, SARIF, etc.)'),
             ('---', '', ''),
             ('s', 'Settings', 'Configure platform settings'),
             ('h', 'Help', 'View documentation and guides'),
@@ -1507,8 +1510,14 @@ Systems Thinking Security Assessment
                 safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
             elif choice == '9':
                 self.show_tool_status()
+            elif choice == 'w' or choice == 'W':
+                self.run_windows_scan()
+            elif choice == 'l' or choice == 'L':
+                self.run_linux_scan()
             elif choice == 'd' or choice == 'D':
                 self.show_dashboard()
+            elif choice == 'x' or choice == 'X':
+                self.export_data()
             elif choice == 's' or choice == 'S':
                 self.handle_settings()
             elif choice == 'h' or choice == 'H':
@@ -1516,6 +1525,295 @@ Systems Thinking Security Assessment
             else:
                 tui.warning("Invalid option")
                 safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_windows_scan(self):
+        """Run a local Windows security assessment."""
+        if sys.platform != 'win32':
+            tui.error("Windows scanner is only available on Windows systems.")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        try:
+            from windows_scanner import WindowsScanner
+        except ImportError:
+            tui.error("Windows scanner module not available.")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        self.show_banner()
+        tui.section("Windows Security Assessment", C.CYAN)
+
+        # Show offline data status
+        offline = WindowsScanner.verify_offline_data()
+        tui.info("Offline data: {}".format('READY' if offline['ready'] else 'INCOMPLETE'))
+        for k, v in offline.get('details', {}).items():
+            tui.info("  {}: {}".format(k, v))
+
+        options = [
+            ('1', 'Quick Scan', 'Core checks: Defender, BitLocker, Firewall, Network, Hardening (2-5 min)'),
+            ('2', 'Standard Scan', 'All 10 check categories (5-10 min)'),
+            ('3', 'Deep Scan', 'All checks with extended event log analysis (10-15 min)'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to main menu'),
+        ]
+
+        choice = tui.menu("Scan Type", options, C.CYAN)
+
+        scan_type_map = {'1': 'quick', '2': 'standard', '3': 'deep'}
+        scan_type = scan_type_map.get(choice)
+
+        if not scan_type:
+            return
+
+        # Start scan
+        session_id = self.evidence.start_session(
+            scan_type=f'windows_{scan_type}',
+            target_networks=['localhost'],
+            metadata={'scanner': 'windows', 'scan_type': scan_type}
+        )
+
+        tui.info("Starting {} Windows security scan...".format(scan_type))
+        tui.info("Session: {}".format(session_id))
+        print()
+
+        scanner = WindowsScanner(session_id)
+        results = scanner.scan(scan_type=scan_type)
+
+        # Display summary
+        print()
+        tui.section("Scan Results", C.CYAN)
+        summary = results.get('summary', {})
+        tui.keyvalue({
+            'Admin': str(results.get('is_admin', False)),
+            'Checks Completed': str(results.get('checks_completed', 0)),
+            'Checks Skipped': str(results.get('checks_skipped', 0)),
+            'Total Findings': str(summary.get('findings_count', 0)),
+        })
+
+        sev_counts = summary.get('findings_by_severity', {})
+        for sev in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
+            count = sev_counts.get(sev, 0)
+            if count > 0:
+                color = {'CRITICAL': C.BRIGHT_RED, 'HIGH': C.RED, 'MEDIUM': C.YELLOW,
+                         'LOW': C.BLUE, 'INFO': C.DIM}.get(sev, '')
+                tui.info(f"  {color}{sev}: {count}{C.RESET}")
+
+        tui.section_end(C.CYAN)
+        self.evidence.end_session(session_id, summary)
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def run_linux_scan(self):
+        """Run a local Linux security assessment."""
+        if sys.platform != 'linux':
+            tui.error("Linux scanner is only available on Linux systems.")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        try:
+            from linux_scanner import LinuxScanner
+        except ImportError:
+            tui.error("Linux scanner module not available.")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        self.show_banner()
+        tui.section("Linux Security Assessment", C.CYAN)
+
+        # Show offline data status
+        offline = LinuxScanner.verify_offline_data()
+        tui.info("Offline data: {}".format('READY' if offline['ready'] else 'INCOMPLETE'))
+        for k, v in offline.get('details', {}).items():
+            tui.info("  {}: {}".format(k, v))
+
+        options = [
+            ('1', 'Quick Scan', 'Core checks: AV, Encryption, Audit, Firewall, Network, Hardening (2-5 min)'),
+            ('2', 'Standard Scan', 'All 11 check categories (5-10 min)'),
+            ('3', 'Deep Scan', 'All checks with SUID/SGID, model files, world-writable scan (10-15 min)'),
+            ('---', '', ''),
+            ('b', 'Back', 'Return to main menu'),
+        ]
+
+        choice = tui.menu("Scan Type", options, C.CYAN)
+
+        scan_type_map = {'1': 'quick', '2': 'standard', '3': 'deep'}
+        scan_type = scan_type_map.get(choice)
+
+        if not scan_type:
+            return
+
+        # Start scan
+        session_id = self.evidence.start_session(
+            scan_type=f'linux_{scan_type}',
+            target_networks=['localhost'],
+            metadata={'scanner': 'linux', 'scan_type': scan_type}
+        )
+
+        tui.info("Starting {} Linux security scan...".format(scan_type))
+        tui.info("Session: {}".format(session_id))
+        print()
+
+        scanner = LinuxScanner(session_id)
+        results = scanner.scan(scan_type=scan_type)
+
+        # Display summary
+        print()
+        tui.section("Scan Results", C.CYAN)
+        summary = results.get('summary', {})
+        tui.keyvalue({
+            'Root': str(results.get('is_root', False)),
+            'Checks Completed': str(results.get('checks_completed', 0)),
+            'Checks Skipped': str(results.get('checks_skipped', 0)),
+            'Total Findings': str(summary.get('findings_count', 0)),
+        })
+
+        sev_counts = summary.get('findings_by_severity', {})
+        for sev in ['CRITICAL', 'HIGH', 'MEDIUM', 'LOW', 'INFO']:
+            count = sev_counts.get(sev, 0)
+            if count > 0:
+                color = {'CRITICAL': C.BRIGHT_RED, 'HIGH': C.RED, 'MEDIUM': C.YELLOW,
+                         'LOW': C.BLUE, 'INFO': C.DIM}.get(sev, '')
+                tui.info(f"  {color}{sev}: {count}{C.RESET}")
+
+        tui.section_end(C.CYAN)
+        self.evidence.end_session(session_id, summary)
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+
+    def export_data(self):
+        """Export findings to security platforms."""
+        self.show_banner()
+        tui.section("Export Data to Security Platforms", C.YELLOW)
+        print()
+
+        try:
+            from export import ExportManager
+        except ImportError:
+            tui.error("Export module not available")
+            tui.info("Ensure lib/export.py is installed")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        if get_evidence_manager is None:
+            tui.error("Evidence manager not available")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        em = get_evidence_manager()
+        exporter = ExportManager()
+
+        # List available sessions
+        sessions = em.get_all_sessions() if hasattr(em, 'get_all_sessions') else []
+        if not sessions:
+            tui.info("No scan sessions found. Run a scan first.")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        tui.info("Recent sessions:")
+        for i, s in enumerate(sessions[:10], 1):
+            sid = s.get('session_id', '?')
+            stype = s.get('scan_type', '?')
+            started = s.get('start_time', '?')[:19]  # Truncate timestamp
+            status = s.get('status', '?')
+            print(f"  {i}. {C.CYAN}{sid[:20]}{C.RESET} | {stype:15s} | {started} | {status}")
+
+        print()
+        session_input = tui.input("Session number or ID to export", default="1")
+
+        # Parse session selection
+        try:
+            idx = int(session_input) - 1
+            if 0 <= idx < len(sessions):
+                session_id = sessions[idx]['session_id']
+            else:
+                tui.error("Invalid session number")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                return
+        except ValueError:
+            # Assume it's a session ID
+            session_id = session_input
+
+        # Check if session has findings
+        findings = em.get_findings_for_session(session_id) if hasattr(em, 'get_findings_for_session') else []
+        if not findings:
+            tui.warning(f"No findings found for session {session_id}")
+            safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+            return
+
+        tui.info(f"Found {len(findings)} findings in session {session_id[:20]}")
+        print()
+
+        # Show available formats
+        tui.info("Available export formats:")
+        formats = exporter.get_supported_formats()
+        format_list = list(formats.keys())
+
+        for i, (fmt, desc) in enumerate(formats.items(), 1):
+            print(f"  {i:2d}. {C.CYAN}{fmt:20s}{C.RESET} - {desc}")
+
+        print()
+        print(f"  {C.BOLD}0.{C.RESET}  Export ALL formats")
+        print()
+
+        format_input = tui.input("Format number(s) to export (comma-separated, or 0 for all)", default="0")
+
+        # Parse format selection
+        selected_formats = []
+        if format_input.strip() == '0':
+            selected_formats = None  # Export all
+            tui.info("Exporting to ALL formats")
+        else:
+            try:
+                indices = [int(x.strip()) - 1 for x in format_input.split(',')]
+                for idx in indices:
+                    if 0 <= idx < len(format_list):
+                        selected_formats.append(format_list[idx])
+                    else:
+                        tui.warning(f"Skipping invalid format number: {idx + 1}")
+
+                if not selected_formats:
+                    tui.error("No valid formats selected")
+                    safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                    return
+
+                tui.info(f"Exporting to: {', '.join(selected_formats)}")
+            except ValueError:
+                tui.error("Invalid input. Use comma-separated numbers.")
+                safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
+                return
+
+        print()
+
+        # Perform export
+        try:
+            tui.info("Exporting findings...")
+            results = exporter.export_all(session_id, formats=selected_formats)
+
+            print()
+            tui.success(f"Export complete! Generated {len(results)} files:")
+            print()
+
+            for fmt, output_path in results.items():
+                file_size = output_path.stat().st_size / 1024  # KB
+                print(f"  {C.GREEN}{tui.CHECK}{C.RESET} {fmt:20s} -> {output_path.name} ({file_size:.1f} KB)")
+
+            print()
+            tui.info(f"Output directory: {output_path.parent}")
+
+            print()
+            tui.info(f"{C.BOLD}Next Steps:{C.RESET}")
+            print(f"  {C.CYAN}CEF/LEEF/Syslog:{C.RESET}  Send to SIEM via syslog or import")
+            print(f"  {C.CYAN}STIX:{C.RESET}            Import into threat intel platform")
+            print(f"  {C.CYAN}Splunk HEC:{C.RESET}      POST to HTTP Event Collector")
+            print(f"  {C.CYAN}Sentinel:{C.RESET}        Upload to Azure Log Analytics workspace")
+            print(f"  {C.CYAN}CSV:{C.RESET}             Import into ServiceNow/Jira")
+            print(f"  {C.CYAN}SARIF:{C.RESET}           Upload to GitHub Security tab")
+
+        except Exception as e:
+            tui.error(f"Export failed: {e}")
+            import traceback
+            traceback.print_exc()
+
+        tui.section_end(C.YELLOW)
+        safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")
 
 
 def main():
@@ -1560,6 +1858,8 @@ Commands:
   dashboard  Show executive dashboard
   risk       Run FAIR risk quantification
   vulndb     Vulnerability intelligence database
+  winscan    Windows security assessment (local, air-gapped)
+  linscan    Linux security assessment (local, air-gapped)
   help       Show this help
 
 Options:
@@ -1605,6 +1905,14 @@ Examples:
 
         elif cmd == 'vulndb':
             launcher.run_vuln_intelligence()
+            return
+
+        elif cmd == 'winscan':
+            launcher.run_windows_scan()
+            return
+
+        elif cmd == 'linscan':
+            launcher.run_linux_scan()
             return
 
     # Interactive mode

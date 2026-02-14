@@ -72,6 +72,18 @@ SCANNER_QOD_MAP = {
     ('openvas', 'authenticated'): 97,
     ('openvas', 'remote_analysis'): 80,
     ('openvas', ''): 80,
+    # Windows security scanner (local, authenticated by nature)
+    ('windows', 'powershell_cmdlet'): 97,
+    ('windows', 'registry_check'): 97,
+    ('windows', 'event_log_analysis'): 80,
+    ('windows', 'service_enumeration'): 97,
+    ('windows', ''): 97,
+    # Linux security scanner (local, authenticated by nature)
+    ('linux', 'system_command'): 97,
+    ('linux', 'config_file_check'): 97,
+    ('linux', 'log_analysis'): 80,
+    ('linux', 'service_enumeration'): 97,
+    ('linux', ''): 97,
 }
 
 

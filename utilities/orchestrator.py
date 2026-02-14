@@ -63,6 +63,16 @@ except ImportError:
     AIAnalyzer = None
 
 try:
+    from windows_scanner import WindowsScanner
+except ImportError:
+    WindowsScanner = None
+
+try:
+    from linux_scanner import LinuxScanner
+except ImportError:
+    LinuxScanner = None
+
+try:
     from vuln_database import get_vuln_database
 except ImportError:
     get_vuln_database = None
@@ -247,6 +257,36 @@ class AssessmentOrchestrator:
                 frameworks=frameworks
             )
             results['phases']['compliance']['summary'] = compliance_scanner.get_summary()
+
+            # Phase 5.5: Windows Security Assessment (if on Windows)
+            if WindowsScanner is not None and sys.platform == 'win32':
+                try:
+                    self.logger.info("=" * 50)
+                    self.logger.info("PHASE 5.5: Windows Security Assessment")
+                    self.logger.info("=" * 50)
+
+                    win_scanner = WindowsScanner(self.session_id)
+                    results['phases']['windows'] = win_scanner.scan(
+                        scan_type=assessment_type
+                    )
+                    results['phases']['windows']['summary'] = win_scanner.get_summary()
+                except Exception as e:
+                    self.logger.warning(f"Windows security assessment skipped: {e}")
+
+            # Phase 5.6: Linux Security Assessment (if on Linux)
+            if LinuxScanner is not None and sys.platform == 'linux':
+                try:
+                    self.logger.info("=" * 50)
+                    self.logger.info("PHASE 5.6: Linux Security Assessment")
+                    self.logger.info("=" * 50)
+
+                    linux_scanner = LinuxScanner(self.session_id)
+                    results['phases']['linux'] = linux_scanner.scan(
+                        scan_type=assessment_type
+                    )
+                    results['phases']['linux']['summary'] = linux_scanner.get_summary()
+                except Exception as e:
+                    self.logger.warning(f"Linux security assessment skipped: {e}")
 
             # Phase 6: Container Security (optional)
             if ContainerScanner is not None:

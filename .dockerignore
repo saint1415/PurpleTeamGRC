@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.Python
+*.so
+*.egg
+*.egg-info
+dist
+build
+.eggs
+.pytest_cache
+
+# Virtual environments
+venv/
+venv-*/
+ENV/
+env/
+
+# IDEs
+.vscode
+.idea
+*.swp
+*.swo
+*~
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Data directories (mounted as volumes)
+data/evidence/
+data/results/
+data/logs/
+data/reports/
+data/archives/
+data/*.db
+
+# Test files
+tests/
+test_runner.py
+run_test.ps1
+
+# Documentation
+docs/
+*.md
+DESIGN_PHILOSOPHY.md
+AUDITOR_GUIDE.md
+EXPORT_GUIDE.md
+INSTALL.md
+README.md
+
+# Windows-specific
+*.bat
+*.ps1
+Thumbs.db
+desktop.ini
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Docker files themselves
+Dockerfile
+docker-compose.yml
+.dockerignore

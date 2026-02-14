@@ -1,0 +1,79 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    container_name: purpleteam-postgres
+    environment:
+      POSTGRES_DB: purpleteam
+      POSTGRES_USER: purpleteam
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-changeme}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U purpleteam"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - purpleteam
+    restart: unless-stopped
+
+  # API Server
+  api:
+    build:
+      context: .
+      target: api
+    container_name: purpleteam-api
+    environment:
+      PURPLE_DB_BACKEND: postgres
+      PURPLE_DB_URL: postgresql://purpleteam:${POSTGRES_PASSWORD:-changeme}@postgres:5432/purpleteam
+      NVD_API_KEY: ${NVD_API_KEY:-}
+      PURPLE_API_KEYS: ${PURPLE_API_KEYS:-}
+      PURPLE_TEAM_HOME: /app
+    ports:
+      - "8443:8443"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./tools:/app/tools
+      - ./config:/app/config
+    networks:
+      - purpleteam
+    restart: unless-stopped
+
+  # Scheduler and Background Worker
+  scheduler:
+    build:
+      context: .
+      target: worker
+    container_name: purpleteam-scheduler
+    environment:
+      PURPLE_DB_BACKEND: postgres
+      PURPLE_DB_URL: postgresql://purpleteam:${POSTGRES_PASSWORD:-changeme}@postgres:5432/purpleteam
+      NVD_API_KEY: ${NVD_API_KEY:-}
+      PURPLE_TEAM_HOME: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./data:/app/data
+      - ./tools:/app/tools
+      - ./config:/app/config
+    networks:
+      - purpleteam
+    restart: unless-stopped
+
+volumes:
+  pgdata:
+    driver: local
+
+networks:
+  purpleteam:
+    driver: bridge

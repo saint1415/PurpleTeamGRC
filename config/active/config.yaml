@@ -73,8 +73,9 @@ export:
   sarif: true
 
 network:
-  auto_detect: true
-  scan_ranges: []
+  auto_detect: false
+  scan_ranges:
+    - 192.168.1.1  # Test target - UCG router
   exclude_ranges:
     - 127.0.0.0/8
   dns_resolution: true

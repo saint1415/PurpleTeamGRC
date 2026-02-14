@@ -36,7 +36,7 @@ except ImportError:
 logger = get_logger('vuln_database')
 
 # NVD API 2.0 base URL (no API key required, but rate-limited to 5 req/30s)
-NVD_API_BASE = "https://services.nvd.nist.gov/rest/json/cves/2.0"
+NVD_API_BASE = "https://services.nvd.nist.gov/rest/json/cves/2.0/"
 
 # Rate limit: 5 req/30s without key (6s delay), 50 req/30s with key (0.6s delay)
 def _nvd_rate_delay():
@@ -553,7 +553,7 @@ class VulnDatabase:
             import urllib.parse
             import ssl
 
-            query = urllib.parse.urlencode(params)
+            query = urllib.parse.urlencode(params, quote_via=urllib.parse.quote)
             url = f"{NVD_API_BASE}?{query}"
 
             ctx = ssl.create_default_context()
@@ -1141,6 +1141,303 @@ class VulnDatabase:
     # Bulk Update / Download
     # ============================================================
 
+    def update_nvd_full(self, start_year: int = 1999, callback=None) -> Dict:
+        """
+        Bulk download ALL CVEs from NVD API by paginating through 120-day chunks.
+        ~250K CVEs. Takes 2-4 hours without API key, ~30 min with key.
+
+        Args:
+            start_year: First year to download (default 1999)
+            callback: Optional callable(year, page, cached_total) for progress
+
+        Returns:
+            Dict with download statistics
+        """
+        from datetime import timedelta
+
+        current_year = datetime.utcnow().year
+        total_cached = 0
+        total_skipped = 0
+        years_processed = 0
+        rate_delay = _nvd_rate_delay()
+        start_time = time.time()
+
+        for year in range(start_year, current_year + 1):
+            # Check how many CVEs we already have for this year
+            try:
+                with sqlite3.connect(str(self.db_path)) as conn:
+                    existing = conn.execute(
+                        "SELECT COUNT(*) FROM nvd_cves WHERE published LIKE ?",
+                        (f"{year}%",)
+                    ).fetchone()[0]
+            except sqlite3.Error:
+                existing = 0
+
+            # Split year into 120-day chunks (NVD API max range is 120 days)
+            chunk_start = datetime(year, 1, 1)
+            year_boundary = datetime(year + 1, 1, 1) if year < current_year else datetime.utcnow()
+            year_cached = 0
+            year_total = 0
+            chunk_num = 0
+
+            while chunk_start < year_boundary:
+                chunk_end = min(chunk_start + timedelta(days=119), year_boundary)
+
+                start_str = chunk_start.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+                end_str = chunk_end.strftime('%Y-%m-%dT%H:%M:%S.999Z')
+
+                params = {
+                    'pubStartDate': start_str,
+                    'pubEndDate': end_str,
+                    'resultsPerPage': '2000',
+                    'startIndex': '0',
+                }
+
+                response = self._nvd_api_request(params, timeout=120)
+                if not response:
+                    logger.warning(f"NVD API failed for {start_str} to {end_str}, skipping chunk")
+                    chunk_start = chunk_end + timedelta(seconds=1)
+                    time.sleep(rate_delay)
+                    continue
+
+                chunk_total = response.get('totalResults', 0)
+                year_total += chunk_total
+
+                # Process first page of this chunk
+                for item in response.get('vulnerabilities', []):
+                    parsed = self._parse_nvd_cve(item)
+                    self._cache_cve(parsed)
+                    year_cached += 1
+
+                start_index = len(response.get('vulnerabilities', []))
+                chunk_num += 1
+                page = 1
+
+                logger.info(f"Year {year} chunk {chunk_num}: {chunk_total} CVEs "
+                            f"({start_str[:10]} to {end_str[:10]}), page 1")
+                if callback:
+                    callback(year, page, total_cached + year_cached + total_skipped)
+
+                # Page through remaining results in this chunk
+                while start_index < chunk_total:
+                    time.sleep(rate_delay)
+
+                    params['startIndex'] = str(start_index)
+                    response = self._nvd_api_request(params, timeout=120)
+
+                    if not response:
+                        logger.warning(f"Year {year} chunk {chunk_num} page {page + 1}: failed")
+                        break
+
+                    vulnerabilities = response.get('vulnerabilities', [])
+                    if not vulnerabilities:
+                        break
+
+                    for item in vulnerabilities:
+                        parsed = self._parse_nvd_cve(item)
+                        self._cache_cve(parsed)
+                        year_cached += 1
+
+                    start_index += len(vulnerabilities)
+                    page += 1
+
+                    logger.info(f"Year {year} chunk {chunk_num}: page {page} ({year_cached} cached)")
+                    if callback:
+                        callback(year, page, total_cached + year_cached + total_skipped)
+
+                # Move to next chunk
+                chunk_start = chunk_end + timedelta(seconds=1)
+                time.sleep(rate_delay)
+
+            total_cached += year_cached
+            years_processed += 1
+
+            self._log_update('NVD', f'full_year_{year}', year_cached,
+                             f'Year {year}: {year_cached}/{year_total} CVEs')
+
+            elapsed_so_far = time.time() - start_time
+            logger.info(f"Year {year} complete: {year_cached} CVEs cached "
+                        f"(total so far: {total_cached}, elapsed: {elapsed_so_far:.0f}s)")
+
+        elapsed = time.time() - start_time
+        self._log_update('NVD', 'full_download', total_cached,
+                         f'Full download: {total_cached} new + {total_skipped} existing, '
+                         f'{years_processed} years in {elapsed:.0f}s')
+
+        logger.info(f"NVD full download complete: {total_cached} new CVEs cached, "
+                    f"{total_skipped} already existed, {elapsed:.0f}s elapsed")
+
+        return {
+            'source': 'NVD',
+            'type': 'full_download',
+            'new_cached': total_cached,
+            'already_existed': total_skipped,
+            'total_in_db': total_cached + total_skipped,
+            'years_processed': years_processed,
+            'elapsed_seconds': round(elapsed, 1),
+        }
+
+    def update_nvd_incremental(self) -> Dict:
+        """
+        Incremental update: only fetch CVEs modified since last update.
+        Uses lastModStartDate/lastModEndDate parameters.
+        Much faster than full download - only grabs new/modified entries.
+        """
+        from datetime import timedelta
+
+        # Find last update timestamp from update_log
+        last_update = None
+        try:
+            with sqlite3.connect(str(self.db_path)) as conn:
+                row = conn.execute(
+                    "SELECT timestamp FROM update_log "
+                    "WHERE source='NVD' AND status='success' "
+                    "ORDER BY timestamp DESC LIMIT 1"
+                ).fetchone()
+                if row:
+                    last_update = row[0]
+        except sqlite3.Error:
+            pass
+
+        if last_update:
+            try:
+                # Parse the timestamp from update_log
+                last_dt = datetime.strptime(last_update, '%Y-%m-%d %H:%M:%S')
+            except (ValueError, TypeError):
+                # Fallback: 7 days ago
+                last_dt = datetime.utcnow() - timedelta(days=7)
+        else:
+            # No previous update - default to 120 days back
+            last_dt = datetime.utcnow() - timedelta(days=120)
+
+        # NVD API allows max 120-day range for lastModified queries
+        now = datetime.utcnow()
+        if (now - last_dt).days > 120:
+            last_dt = now - timedelta(days=120)
+
+        start_date = last_dt.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+        end_date = now.strftime('%Y-%m-%dT%H:%M:%S.999Z')
+
+        logger.info(f"NVD incremental update: {start_date} to {end_date}")
+
+        params = {
+            'lastModStartDate': start_date,
+            'lastModEndDate': end_date,
+            'resultsPerPage': '2000',
+        }
+
+        total_cached = 0
+        total_results = 0
+        start_index = 0
+        rate_delay = _nvd_rate_delay()
+
+        while True:
+            params['startIndex'] = str(start_index)
+            response = self._nvd_api_request(params, timeout=120)
+
+            if not response:
+                break
+
+            total_results = response.get('totalResults', 0)
+            vulnerabilities = response.get('vulnerabilities', [])
+
+            if not vulnerabilities:
+                break
+
+            for item in vulnerabilities:
+                parsed = self._parse_nvd_cve(item)
+                self._cache_cve(parsed)
+                total_cached += 1
+
+            start_index += len(vulnerabilities)
+
+            if start_index >= total_results:
+                break
+
+            time.sleep(rate_delay)
+
+        self._log_update('NVD', 'incremental', total_cached,
+                         f'Incremental: {total_cached}/{total_results} modified CVEs since {start_date}')
+
+        logger.info(f"NVD incremental: {total_cached}/{total_results} modified CVEs updated")
+        return {
+            'source': 'NVD',
+            'type': 'incremental',
+            'total_results': total_results,
+            'cached': total_cached,
+            'since': start_date,
+        }
+
+    def update_nvd_year(self, year: int) -> Dict:
+        """Download all CVEs for a specific year (splits into 120-day chunks)."""
+        from datetime import timedelta
+
+        total_cached = 0
+        total_results = 0
+        rate_delay = _nvd_rate_delay()
+
+        # Split year into 120-day chunks (NVD API max range)
+        chunk_start = datetime(year, 1, 1)
+        year_boundary = datetime(year + 1, 1, 1)
+        if year == datetime.utcnow().year:
+            year_boundary = datetime.utcnow()
+
+        chunk_num = 0
+        while chunk_start < year_boundary:
+            chunk_end = min(chunk_start + timedelta(days=119), year_boundary)
+
+            start_str = chunk_start.strftime('%Y-%m-%dT%H:%M:%S.000Z')
+            end_str = chunk_end.strftime('%Y-%m-%dT%H:%M:%S.999Z')
+
+            start_index = 0
+            chunk_num += 1
+
+            while True:
+                params = {
+                    'pubStartDate': start_str,
+                    'pubEndDate': end_str,
+                    'resultsPerPage': '2000',
+                    'startIndex': str(start_index),
+                }
+                response = self._nvd_api_request(params, timeout=120)
+
+                if not response:
+                    break
+
+                chunk_total = response.get('totalResults', 0)
+                total_results += chunk_total if start_index == 0 else 0
+                vulnerabilities = response.get('vulnerabilities', [])
+
+                if not vulnerabilities:
+                    break
+
+                for item in vulnerabilities:
+                    parsed = self._parse_nvd_cve(item)
+                    self._cache_cve(parsed)
+                    total_cached += 1
+
+                start_index += len(vulnerabilities)
+                logger.info(f"Year {year} chunk {chunk_num}: {total_cached} CVEs cached")
+
+                if start_index >= chunk_total:
+                    break
+
+                time.sleep(rate_delay)
+
+            chunk_start = chunk_end + timedelta(seconds=1)
+            time.sleep(rate_delay)
+
+        self._log_update('NVD', f'year_{year}', total_cached,
+                         f'Year {year}: {total_cached}/{total_results} CVEs')
+
+        return {
+            'source': 'NVD',
+            'type': f'year_{year}',
+            'total_results': total_results,
+            'cached': total_cached,
+            'year': year,
+        }
+
     def update_nvd_recent(self, days: int = 7) -> Dict:
         """
         Download recent CVE updates from NVD.
@@ -1152,8 +1449,8 @@ class VulnDatabase:
         start_date = end_date - timedelta(days=days)
 
         params = {
-            'pubStartDate': start_date.strftime('%Y-%m-%dT00:00:00.000+00:00'),
-            'pubEndDate': end_date.strftime('%Y-%m-%dT23:59:59.999+00:00'),
+            'pubStartDate': start_date.strftime('%Y-%m-%dT00:00:00.000Z'),
+            'pubEndDate': end_date.strftime('%Y-%m-%dT23:59:59.999Z'),
             'resultsPerPage': '2000',
         }
 

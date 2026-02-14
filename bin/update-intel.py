@@ -6,11 +6,14 @@ Standalone script to refresh all threat intelligence data.
 Run this on a connected machine, then copy the USB to an airgapped system.
 
 Usage:
-    python3 bin/update-intel.py              # Update all sources
-    python3 bin/update-intel.py --kev-only   # Just CISA KEV catalog
-    python3 bin/update-intel.py --nvd-only   # Just NVD CVE cache
-    python3 bin/update-intel.py --epss-only  # Just EPSS scores
-    python3 bin/update-intel.py --status     # Show cache status
+    python3 bin/update-intel.py                   # Incremental update (default)
+    python3 bin/update-intel.py --full             # Full NVD bulk download (250K+ CVEs)
+    python3 bin/update-intel.py --incremental      # Only new/modified since last run
+    python3 bin/update-intel.py --year 2024        # Download a specific year
+    python3 bin/update-intel.py --kev-only         # Just CISA KEV catalog
+    python3 bin/update-intel.py --nvd-only         # Just NVD CVE cache (incremental)
+    python3 bin/update-intel.py --epss-only        # Just EPSS scores
+    python3 bin/update-intel.py --status           # Show cache status
 """
 
 import sys
@@ -51,8 +54,123 @@ def update_kev():
         return False
 
 
+def update_nvd_full():
+    """Full NVD bulk download - all 250K+ CVEs by year."""
+    try:
+        from vuln_database import get_vuln_database
+    except ImportError:
+        print("  NVD: SKIPPED (vuln_database module not found)")
+        return False
+
+    vdb = get_vuln_database()
+
+    has_api_key = bool(os.environ.get('NVD_API_KEY'))
+    if has_api_key:
+        print("  NVD API key: ACTIVE (50 req/30s)")
+        print("  Estimated time: ~30-60 minutes")
+    else:
+        print("  NVD API key: none (5 req/30s - set NVD_API_KEY for 10x speed)")
+        print("  Estimated time: ~2-4 hours")
+
+    print()
+    print("[FULL] Downloading ALL CVEs from NVD (1999-present)...")
+    print("  This downloads ~250K+ CVEs. Progress shown per year.")
+    print()
+
+    download_start = time.time()
+
+    def progress_callback(year, page, total_so_far):
+        elapsed = time.time() - download_start
+        rate = total_so_far / elapsed if elapsed > 0 else 0
+        print("  Year {}: page {} | Total: {:,} CVEs | {:.0f} CVEs/min".format(
+            year, page, total_so_far, rate * 60))
+
+    try:
+        result = vdb.update_nvd_full(start_year=1999, callback=progress_callback)
+        print()
+        print("  Full download complete:")
+        print("    New CVEs cached: {:,}".format(result.get('new_cached', 0)))
+        print("    Already existed: {:,}".format(result.get('already_existed', 0)))
+        print("    Total in DB:     {:,}".format(result.get('total_in_db', 0)))
+        print("    Years processed: {}".format(result.get('years_processed', 0)))
+        print("    Elapsed:         {:.0f}s".format(result.get('elapsed_seconds', 0)))
+    except Exception as e:
+        print("  NVD full download: FAILED ({})".format(e))
+        return False
+
+    stats = vdb.get_statistics()
+    print("  NVD total: {:,} CVEs in cache ({:.1f} MB)".format(
+        stats.get('cached_cves', 0), stats.get('db_size_mb', 0)))
+    return True
+
+
+def update_nvd_incremental():
+    """Incremental NVD update - only new/modified CVEs since last run."""
+    try:
+        from vuln_database import get_vuln_database
+    except ImportError:
+        print("  NVD: SKIPPED (vuln_database module not found)")
+        return False
+
+    vdb = get_vuln_database()
+
+    has_api_key = bool(os.environ.get('NVD_API_KEY'))
+    if has_api_key:
+        print("  NVD API key: ACTIVE (50 req/30s)")
+    else:
+        print("  NVD API key: none (5 req/30s - set NVD_API_KEY for 10x speed)")
+
+    print("[INCREMENTAL] Fetching CVEs modified since last update...")
+
+    try:
+        result = vdb.update_nvd_incremental()
+        print("  Incremental update: {} modified CVEs fetched from {} total".format(
+            result.get('cached', 0), result.get('total_results', 0)))
+        print("  Period: since {}".format(result.get('since', 'unknown')))
+    except Exception as e:
+        print("  NVD incremental: FAILED ({})".format(e))
+        return False
+
+    stats = vdb.get_statistics()
+    print("  NVD total: {:,} CVEs in cache ({:.1f} MB)".format(
+        stats.get('cached_cves', 0), stats.get('db_size_mb', 0)))
+    return True
+
+
+def update_nvd_year(year):
+    """Download all CVEs for a specific year."""
+    try:
+        from vuln_database import get_vuln_database
+    except ImportError:
+        print("  NVD: SKIPPED (vuln_database module not found)")
+        return False
+
+    vdb = get_vuln_database()
+
+    has_api_key = bool(os.environ.get('NVD_API_KEY'))
+    if has_api_key:
+        print("  NVD API key: ACTIVE (50 req/30s)")
+    else:
+        print("  NVD API key: none (5 req/30s - set NVD_API_KEY for 10x speed)")
+
+    print("[YEAR] Downloading all CVEs for year {}...".format(year))
+
+    try:
+        result = vdb.update_nvd_year(year)
+        print("  Year {}: {}/{} CVEs cached".format(
+            year, result.get('cached', 0), result.get('total_results', 0)))
+    except Exception as e:
+        print("  NVD year {}: FAILED ({})".format(year, e))
+        return False
+
+    stats = vdb.get_statistics()
+    print("  NVD total: {:,} CVEs in cache ({:.1f} MB)".format(
+        stats.get('cached_cves', 0), stats.get('db_size_mb', 0)))
+    return True
+
+
 def update_nvd():
-    """Update NVD CVE cache (recent + high-profile)."""
+    """Update NVD CVE cache (recent + high-profile) - legacy behavior."""
     try:
         from vuln_database import get_vuln_database
     except ImportError:
@@ -214,7 +332,7 @@ def show_status():
         stats = vdb.get_statistics()
         print()
         print("  NVD (vuln_intel.db):")
-        print("    CVEs cached: {}".format(stats.get('cached_cves', 0)))
+        print("    CVEs cached: {:,}".format(stats.get('cached_cves', 0)))
         db_size = vdb.db_path.stat().st_size if vdb.db_path.exists() else 0
         print("    DB size: {:.1f} MB".format(db_size / 1048576))
     except ImportError:
@@ -225,6 +343,12 @@ def show_status():
 def main():
     parser = argparse.ArgumentParser(
         description='Update Purple Team threat intelligence data')
+    parser.add_argument('--full', action='store_true',
+                       help='Full NVD bulk download (all 250K+ CVEs, 1999-present)')
+    parser.add_argument('--incremental', action='store_true',
+                       help='Incremental update (only CVEs modified since last run)')
+    parser.add_argument('--year', type=int, metavar='YYYY',
+                       help='Download all CVEs for a specific year')
     parser.add_argument('--kev-only', action='store_true',
                        help='Only update CISA KEV catalog')
     parser.add_argument('--nvd-only', action='store_true',
@@ -251,18 +375,34 @@ def main():
         show_status()
         return
 
-    specific = args.kev_only or args.nvd_only or args.epss_only
-
     start = time.time()
 
-    if args.kev_only or not specific:
+    # Handle new bulk download modes
+    if args.full:
         update_kev()
-
-    if args.nvd_only or not specific:
-        update_nvd()
-
-    if args.epss_only or not specific:
+        update_nvd_full()
         update_epss()
+    elif args.year:
+        update_nvd_year(args.year)
+    elif args.incremental:
+        update_kev()
+        update_nvd_incremental()
+        update_epss()
+    else:
+        # Default behavior: incremental if we have existing data, else legacy
+        specific = args.kev_only or args.nvd_only or args.epss_only
+
+        if args.kev_only or not specific:
+            update_kev()
+
+        if args.nvd_only:
+            # --nvd-only now defaults to incremental
+            update_nvd_incremental()
+        elif not specific:
+            update_nvd()
+
+        if args.epss_only or not specific:
+            update_epss()
 
     elapsed = time.time() - start
 

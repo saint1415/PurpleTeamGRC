@@ -611,6 +611,101 @@ class ComplianceMapper:
                     'ISO27001-2022': ['8.1']
                 }
             ),
+            # Windows scanner finding types
+            'endpoint_protection': ControlMapping(
+                'endpoint_protection',
+                'Endpoint protection/antivirus configuration',
+                {
+                    'NIST-800-53': ['SI-3', 'SI-4'],
+                    'HIPAA': ['164.308(a)(1)'],
+                    'PCI-DSS-v4': ['5.1', '5.2'],
+                    'SOC2-Type2': ['CC6.8'],
+                    'ISO27001-2022': ['8.7']
+                }
+            ),
+            'disk_encryption': ControlMapping(
+                'disk_encryption',
+                'Disk/volume encryption status',
+                {
+                    'NIST-800-53': ['SC-28'],
+                    'HIPAA': ['164.312(a)(1)'],
+                    'PCI-DSS-v4': ['3.5'],
+                    'SOC2-Type2': ['CC6.7'],
+                    'ISO27001-2022': ['8.24']
+                }
+            ),
+            'firewall_config': ControlMapping(
+                'firewall_config',
+                'Host firewall configuration',
+                {
+                    'NIST-800-53': ['SC-7'],
+                    'PCI-DSS-v4': ['1.1', '1.2'],
+                    'SOC2-Type2': ['CC6.6'],
+                    'ISO27001-2022': ['8.20']
+                }
+            ),
+            'audit_policy': ControlMapping(
+                'audit_policy',
+                'System audit/logging policy',
+                {
+                    'NIST-800-53': ['AU-2', 'AU-6'],
+                    'HIPAA': ['164.312(b)'],
+                    'PCI-DSS-v4': ['10.1', '10.2'],
+                    'SOC2-Type2': ['CC7.2'],
+                    'ISO27001-2022': ['8.15']
+                }
+            ),
+            'password_policy': ControlMapping(
+                'password_policy',
+                'Password/credential policy',
+                {
+                    'NIST-800-53': ['IA-5'],
+                    'HIPAA': ['164.312(d)'],
+                    'PCI-DSS-v4': ['8.3'],
+                    'SOC2-Type2': ['CC6.1'],
+                    'ISO27001-2022': ['5.17', '8.5']
+                }
+            ),
+            'account_hygiene': ControlMapping(
+                'account_hygiene',
+                'User account management and hygiene',
+                {
+                    'NIST-800-53': ['AC-2', 'AC-6'],
+                    'PCI-DSS-v4': ['8.1', '7.1'],
+                    'SOC2-Type2': ['CC6.1'],
+                    'ISO27001-2022': ['5.15']
+                }
+            ),
+            'scheduled_task_anomaly': ControlMapping(
+                'scheduled_task_anomaly',
+                'Suspicious scheduled task or service',
+                {
+                    'NIST-800-53': ['CM-7', 'SI-4'],
+                    'SOC2-Type2': ['CC7.1'],
+                    'ISO27001-2022': ['8.16']
+                }
+            ),
+            'privilege_escalation': ControlMapping(
+                'privilege_escalation',
+                'Privilege escalation risk',
+                {
+                    'NIST-800-53': ['AC-6'],
+                    'PCI-DSS-v4': ['7.1'],
+                    'SOC2-Type2': ['CC6.3'],
+                    'ISO27001-2022': ['5.15', '8.2']
+                }
+            ),
+            'unauthorized_ai': ControlMapping(
+                'unauthorized_ai',
+                'Unauthorized AI installation or usage',
+                {
+                    'NIST-800-53': ['CM-7', 'CM-10', 'CM-11', 'SA-9', 'SI-4', 'AC-20'],
+                    'PCI-DSS-v4': ['6.3', '12.8'],
+                    'HIPAA': ['164.308(a)(1)', '164.312(a)(1)', '164.312(e)(1)'],
+                    'SOC2-Type2': ['CC6.7', 'CC6.8', 'CC7.1'],
+                    'ISO27001-2022': ['5.23', '8.9', '8.12', '8.20']
+                }
+            ),
         }
 
     def get_controls_for_finding(self, finding_type: str, frameworks: List[str] = None) -> Dict[str, List[str]]:

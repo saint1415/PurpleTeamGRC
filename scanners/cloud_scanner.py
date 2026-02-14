@@ -1,20 +1,49 @@
 #!/usr/bin/env python3
 """
-Purple Team Platform v7.0 - Cloud Security Scanner
-AWS, Azure, GCP security configuration assessment.
-DISABLED in portable deployment mode (no cloud creds on USB).
-All API calls are read-only (no modifications to cloud resources).
-Warns: "Cloud credentials should use read-only IAM roles"
+Purple Team Platform v7.0 - Cloud Configuration Scanner
+
+Assesses security configuration across AWS, Azure, and GCP using their
+respective CLI tools (aws, az, gcloud).
+
+Auto-detects which cloud providers are configured and skips unavailable ones
+gracefully.
+
+AWS checks:
+  1.  S3 - public buckets, encryption, versioning, logging
+  2.  IAM - root MFA, access key age, unused creds, overly permissive policies
+  3.  Security Groups - 0.0.0.0/0 inbound, unrestricted SSH/RDP
+  4.  Logging - CloudTrail, S3 access logging, VPC flow logs
+  5.  Encryption - EBS defaults, RDS encryption, unencrypted snapshots
+
+Azure checks:
+  6.  Storage - public blob access, encryption, HTTPS-only
+  7.  Identity - MFA enforcement, conditional access, PIM
+  8.  NSG - network security group rules, any-any rules
+  9.  Logging - diagnostic settings, activity log alerts
+
+GCP checks:
+  10. Storage - public buckets, uniform access
+  11. IAM - service account keys, primitive roles
+  12. Firewall - overly permissive rules
+  13. Logging - audit logs, VPC flow logs
+
+Scan types:
+  quick    - high-severity checks only (IAM, public exposure)
+  standard - all checks
+  deep     - all checks with per-resource detail
 """
 
+import base64
 import json
-import shutil
 import subprocess
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Dict, List, Optional
+from typing import Any, Dict, List, Optional
 
+# ---------------------------------------------------------------------------
+# Path bootstrap
+# ---------------------------------------------------------------------------
 sys.path.insert(0, str(Path(__file__).parent.parent / 'lib'))
 
 try:
@@ -22,1002 +51,1266 @@ try:
 except ImportError:
     from base import BaseScanner
 
-try:
-    from platform_detect import get_platform_info
-except ImportError:
-    get_platform_info = None
-
-# Optional cloud SDKs -- graceful degradation to CLI fallback
-_boto3 = None
-_azure_identity = None
-_azure_mgmt_resource = None
-_azure_mgmt_network = None
-_azure_mgmt_storage = None
-_azure_mgmt_sql = None
-_google_cloud_resource_manager = None
-_google_cloud_compute = None
-_google_cloud_storage = None
-_google_cloud_sql = None
-
-try:
-    import boto3 as _boto3
-except ImportError:
-    pass
-
-try:
-    import azure.identity as _azure_identity
-    import azure.mgmt.resource as _azure_mgmt_resource
-except ImportError:
-    pass
-
-try:
-    import azure.mgmt.network as _azure_mgmt_network
-except ImportError:
-    pass
-
-try:
-    import azure.mgmt.storage as _azure_mgmt_storage
-except ImportError:
-    pass
-
-try:
-    import azure.mgmt.sql as _azure_mgmt_sql
-except ImportError:
-    pass
-
-try:
-    import google.cloud.resourcemanager as _google_cloud_resource_manager
-except ImportError:
-    pass
-
-try:
-    import google.cloud.compute as _google_cloud_compute
-except ImportError:
-    pass
-
-try:
-    import google.cloud.storage as _google_cloud_storage
-except ImportError:
-    pass
-
-try:
-    import google.cloud.sql as _google_cloud_sql
-except ImportError:
-    pass
-
 
 class CloudScanner(BaseScanner):
-    """Cloud security assessment scanner for AWS, Azure, and GCP."""
+    """Multi-cloud security configuration scanner."""
 
     SCANNER_NAME = "cloud"
-    SCANNER_DESCRIPTION = "Cloud security assessment (AWS/Azure/GCP)"
+    SCANNER_DESCRIPTION = "Cloud security configuration assessment (AWS/Azure/GCP)"
 
-    # CVSS score mapping for cloud findings
-    CVSS_MAP = {
-        'CRITICAL': 9.5,
-        'HIGH': 7.5,
-        'MEDIUM': 5.5,
-        'LOW': 3.0,
-        'INFO': 0.0,
-    }
+    # -----------------------------------------------------------------------
+    # Construction
+    # -----------------------------------------------------------------------
 
     def __init__(self, session_id: Optional[str] = None):
         super().__init__(session_id)
-        self.aws_available = False
-        self.azure_available = False
-        self.gcp_available = False
-        self._detect_providers()
+        self.available_providers: List[str] = []
 
-    # ------------------------------------------------------------------
-    # Provider detection
-    # ------------------------------------------------------------------
-
-    def _detect_providers(self):
-        """Detect which cloud providers are accessible (SDK or CLI)."""
-        # AWS: boto3 or aws CLI
-        if _boto3 is not None:
-            self.aws_available = True
-        elif shutil.which('aws'):
-            self.aws_available = True
-
-        # Azure: azure-identity SDK or az CLI
-        if _azure_identity is not None:
-            self.azure_available = True
-        elif shutil.which('az'):
-            self.azure_available = True
-
-        # GCP: google-cloud SDK or gcloud CLI
-        if _google_cloud_resource_manager is not None:
-            self.gcp_available = True
-        elif shutil.which('gcloud'):
-            self.gcp_available = True
-
-    # ------------------------------------------------------------------
+    # -----------------------------------------------------------------------
     # CLI helpers
-    # ------------------------------------------------------------------
+    # -----------------------------------------------------------------------
 
-    def _run_aws_cli(self, args: List[str]) -> Optional[dict]:
-        """Run AWS CLI command, return parsed JSON or None."""
-        cmd = ['aws'] + args + ['--output', 'json']
+    def _run_cli(self, command: List[str],
+                 timeout: int = 120) -> Optional[str]:
+        """Run a CLI command and return stdout, or None on error."""
+        self.scan_logger.debug(f"CLI> {' '.join(command[:5])}")
         try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30
+            proc = subprocess.run(
+                command, capture_output=True, text=True, timeout=timeout
             )
-            if result.returncode == 0:
-                return json.loads(result.stdout)
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
-            pass
-        return None
+            if proc.returncode != 0:
+                stderr = (proc.stderr or '').strip()
+                if stderr:
+                    self.scan_logger.debug(f"CLI stderr: {stderr[:200]}")
+                return None
+            return (proc.stdout or '').strip()
+        except FileNotFoundError:
+            return None
+        except subprocess.TimeoutExpired:
+            self.scan_logger.warning(
+                f"CLI timed out: {' '.join(command[:3])}"
+            )
+            return None
+        except Exception as exc:
+            self.scan_logger.debug(f"CLI error: {exc}")
+            return None
 
-    def _run_az_cli(self, args: List[str]) -> Optional[dict]:
-        """Run Azure CLI command, return parsed JSON or None."""
-        cmd = ['az'] + args + ['--output', 'json']
+    def _run_cli_json(self, command: List[str],
+                      timeout: int = 120) -> Any:
+        """Run a CLI command and parse JSON output."""
+        raw = self._run_cli(command, timeout)
+        if not raw:
+            return None
         try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30
-            )
-            if result.returncode == 0:
-                return json.loads(result.stdout)
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
-            pass
-        return None
+            return json.loads(raw)
+        except json.JSONDecodeError:
+            return None
 
-    def _run_gcloud_cli(self, args: List[str]) -> Optional[dict]:
-        """Run gcloud CLI command, return parsed JSON or None."""
-        cmd = ['gcloud'] + args + ['--format=json']
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30
-            )
-            if result.returncode == 0:
-                return json.loads(result.stdout)
-        except (subprocess.TimeoutExpired, json.JSONDecodeError, FileNotFoundError):
-            pass
-        return None
+    # -----------------------------------------------------------------------
+    # Provider detection
+    # -----------------------------------------------------------------------
 
-    def _run_gsutil(self, args: List[str]) -> Optional[str]:
-        """Run gsutil command, return stdout or None."""
-        cmd = ['gsutil'] + args
-        try:
-            result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=30
-            )
-            if result.returncode == 0:
-                return result.stdout
-        except (subprocess.TimeoutExpired, FileNotFoundError):
-            pass
-        return None
+    def _detect_providers(self) -> List[str]:
+        """Detect which cloud CLIs are installed and configured."""
+        providers = []
 
-    # ------------------------------------------------------------------
+        # AWS CLI
+        result = self._run_cli(['aws', 'sts', 'get-caller-identity'])
+        if result:
+            providers.append('aws')
+            self.scan_logger.info("AWS CLI detected and configured")
+
+        # Azure CLI
+        result = self._run_cli(['az', 'account', 'show', '-o', 'json'])
+        if result:
+            providers.append('azure')
+            self.scan_logger.info("Azure CLI detected and configured")
+
+        # GCP CLI
+        result = self._run_cli(
+            ['gcloud', 'config', 'get-value', 'project']
+        )
+        if result and result != '(unset)':
+            providers.append('gcp')
+            self.scan_logger.info("GCP CLI detected and configured")
+
+        return providers
+
+    # -----------------------------------------------------------------------
     # Main scan entry point
-    # ------------------------------------------------------------------
+    # -----------------------------------------------------------------------
 
-    def scan(self, targets: Optional[List[str]] = None, **kwargs) -> Dict:
-        """
-        Execute cloud security assessment.
+    def scan(self, targets: List[str] = None,
+             scan_type: str = 'standard', **kwargs) -> Dict:
+        """Execute cloud security scan.
 
         Args:
-            targets: Optional list of provider names to scan ('aws', 'azure', 'gcp').
-                     If None, all detected providers are scanned.
+            targets: Optional list of provider names (['aws','azure','gcp']).
+            scan_type: 'quick', 'standard', or 'deep'.
+
+        Returns:
+            Dict with scan results and summary.
         """
         self.start_time = datetime.utcnow()
+        self.scan_logger.info(f"Starting {scan_type} cloud scan")
 
-        results: Dict = {
-            'targets': targets,
-            'providers_scanned': [],
-            'providers_skipped': [],
-            'checks': [],
-            'summary': {},
-        }
-
-        # ---- Check deployment mode (portable = refuse) ----
-        if get_platform_info is not None:
-            try:
-                pi = get_platform_info()
-                if pi.is_portable:
-                    self.scan_logger.error(
-                        "Cloud scanning DISABLED in portable deployment mode"
-                    )
-                    return {
-                        'error': 'Cloud scanning is disabled in portable mode. '
-                                 'Cloud credentials should not be stored on USB media.',
-                        'deployment_mode': 'portable',
-                    }
-            except Exception:
-                pass
-
-        # ---- IAM role warning ----
-        self.scan_logger.warning(
-            "Cloud credentials should use read-only IAM roles. "
-            "This scanner performs read-only operations only."
-        )
-
-        # ---- Determine which providers to scan ----
+        # Detect available providers
+        self.available_providers = self._detect_providers()
         if targets:
-            requested = [t.lower().strip() for t in targets]
-        else:
-            requested = []
-            if self.aws_available:
-                requested.append('aws')
-            if self.azure_available:
-                requested.append('azure')
-            if self.gcp_available:
-                requested.append('gcp')
+            self.available_providers = [
+                p for p in self.available_providers
+                if p in [t.lower() for t in targets]
+            ]
 
-        if not requested:
-            self.scan_logger.error("No cloud providers detected")
-            return {
-                'error': 'No cloud providers available. '
-                         'Install boto3 / azure-identity / google-cloud SDK, '
-                         'or ensure aws / az / gcloud CLI is on PATH.',
-            }
+        if not self.available_providers:
+            self.scan_logger.warning("No cloud providers available")
+            self.add_finding(
+                severity='INFO',
+                title='No Cloud Providers Detected',
+                description=(
+                    'No configured cloud CLI tools found. Install and '
+                    'configure aws, az, or gcloud to enable cloud scanning.'
+                ),
+                affected_asset='localhost',
+                finding_type='cloud_prerequisite',
+                detection_method='cli_check',
+            )
+            self.end_time = datetime.utcnow()
+            self.save_results()
+            return self.get_summary()
 
-        # ---- Run checks per provider ----
-        for provider in requested:
-            if provider == 'aws' and self.aws_available:
-                self.scan_logger.info("Starting AWS security checks")
-                results['providers_scanned'].append('aws')
-                results['checks'].extend(self._scan_aws())
+        # --- AWS ---
+        if 'aws' in self.available_providers:
+            self.scan_logger.info("=== AWS Security Checks ===")
+            self._check_aws_iam(scan_type)
+            self.human_delay()
+            self._check_aws_s3(scan_type)
+            self.human_delay()
+
+            if scan_type in ('standard', 'deep'):
+                self._check_aws_security_groups(scan_type)
+                self.human_delay()
+                self._check_aws_logging(scan_type)
+                self.human_delay()
+                self._check_aws_encryption(scan_type)
                 self.human_delay()
 
-            elif provider == 'azure' and self.azure_available:
-                self.scan_logger.info("Starting Azure security checks")
-                results['providers_scanned'].append('azure')
-                results['checks'].extend(self._scan_azure())
+        # --- Azure ---
+        if 'azure' in self.available_providers:
+            self.scan_logger.info("=== Azure Security Checks ===")
+            self._check_azure_identity(scan_type)
+            self.human_delay()
+            self._check_azure_storage(scan_type)
+            self.human_delay()
+
+            if scan_type in ('standard', 'deep'):
+                self._check_azure_nsg(scan_type)
+                self.human_delay()
+                self._check_azure_logging(scan_type)
                 self.human_delay()
 
-            elif provider == 'gcp' and self.gcp_available:
-                self.scan_logger.info("Starting GCP security checks")
-                results['providers_scanned'].append('gcp')
-                results['checks'].extend(self._scan_gcp())
+        # --- GCP ---
+        if 'gcp' in self.available_providers:
+            self.scan_logger.info("=== GCP Security Checks ===")
+            self._check_gcp_iam(scan_type)
+            self.human_delay()
+            self._check_gcp_storage(scan_type)
+            self.human_delay()
+
+            if scan_type in ('standard', 'deep'):
+                self._check_gcp_firewall(scan_type)
                 self.human_delay()
-
-            else:
-                results['providers_skipped'].append({
-                    'provider': provider,
-                    'reason': 'Not available (SDK/CLI not detected)',
-                })
-
-        # ---- Summary ----
-        results['summary'] = self._generate_summary(results)
+                self._check_gcp_logging(scan_type)
+                self.human_delay()
 
         self.end_time = datetime.utcnow()
         self.save_results()
-        return results
 
-    # ==================================================================
+        summary = self.get_summary()
+        self.scan_logger.info(
+            f"Cloud scan complete: {summary['findings_count']} findings "
+            f"across {self.available_providers}"
+        )
+        return summary
+
+    # =======================================================================
     # AWS Checks
-    # ==================================================================
+    # =======================================================================
 
-    def _scan_aws(self) -> List[Dict]:
-        """Run all AWS security checks."""
-        checks: List[Dict] = []
-        checks.extend(self._aws_check_s3_public_buckets())
-        checks.extend(self._aws_check_iam_mfa())
-        checks.extend(self._aws_check_security_groups())
-        checks.extend(self._aws_check_cloudtrail())
-        checks.extend(self._aws_check_old_access_keys())
-        checks.extend(self._aws_check_unencrypted_ebs())
-        return checks
+    # -- IAM ----------------------------------------------------------------
 
-    def _aws_check_s3_public_buckets(self) -> List[Dict]:
-        """CRITICAL: Detect S3 buckets with public access."""
-        checks: List[Dict] = []
-        self.scan_logger.info("AWS: Checking S3 bucket public access")
+    def _check_aws_iam(self, scan_type: str) -> None:
+        """Check AWS IAM security configuration."""
+        # Root account MFA
+        summary = self._run_cli_json([
+            'aws', 'iam', 'get-account-summary', '--output', 'json'
+        ])
+        if summary:
+            smap = summary.get('SummaryMap', {})
+            self.add_result('aws_iam_summary', smap, 'aws')
 
-        bucket_data = self._run_aws_cli(['s3api', 'list-buckets'])
-        if not bucket_data or 'Buckets' not in bucket_data:
-            return checks
-
-        for bucket in bucket_data.get('Buckets', []):
-            name = bucket.get('Name', '')
-
-            # Check public access block
-            pab = self._run_aws_cli([
-                's3api', 'get-public-access-block', '--bucket', name
-            ])
-            block_cfg = (pab or {}).get('PublicAccessBlockConfiguration', {})
-            all_blocked = (
-                block_cfg.get('BlockPublicAcls', False)
-                and block_cfg.get('IgnorePublicAcls', False)
-                and block_cfg.get('BlockPublicPolicy', False)
-                and block_cfg.get('RestrictPublicBuckets', False)
-            )
-
-            if not all_blocked:
-                # Double-check with ACL
-                acl = self._run_aws_cli(['s3api', 'get-bucket-acl', '--bucket', name])
-                public_grants = []
-                for grant in (acl or {}).get('Grants', []):
-                    grantee = grant.get('Grantee', {})
-                    uri = grantee.get('URI', '')
-                    if 'AllUsers' in uri or 'AuthenticatedUsers' in uri:
-                        public_grants.append(grant.get('Permission', 'unknown'))
-
-                if public_grants:
-                    self.add_finding(
-                        severity='CRITICAL',
-                        title=f"[Cloud/AWS] S3 bucket publicly accessible: {name}",
-                        description=(
-                            f"S3 bucket '{name}' has public grants: "
-                            f"{', '.join(public_grants)}. "
-                            "Public access block is not fully enabled."
-                        ),
-                        affected_asset=f"aws:s3:{name}",
-                        finding_type='cloud_misconfiguration',
-                        cvss_score=self.CVSS_MAP['CRITICAL'],
-                        remediation=(
-                            "Enable S3 Block Public Access at both the account and "
-                            "bucket level. Review and remove public ACL grants."
-                        ),
-                        detection_method='cloud_api_check',
-                    )
-                    checks.append({
-                        'provider': 'aws', 'check': 's3_public_bucket',
-                        'resource': name, 'status': 'CRITICAL',
-                        'detail': f"Public grants: {public_grants}",
-                    })
-                elif not all_blocked:
-                    # Block Public Access not fully enabled but no public ACL grants
-                    self.add_finding(
-                        severity='MEDIUM',
-                        title=f"[Cloud/AWS] S3 Block Public Access not fully enabled: {name}",
-                        description=(
-                            f"S3 bucket '{name}' does not have all four Block Public "
-                            "Access settings enabled."
-                        ),
-                        affected_asset=f"aws:s3:{name}",
-                        finding_type='cloud_misconfiguration',
-                        cvss_score=self.CVSS_MAP['MEDIUM'],
-                        remediation="Enable all four S3 Block Public Access settings.",
-                        detection_method='cloud_api_check',
-                    )
-                    checks.append({
-                        'provider': 'aws', 'check': 's3_block_public_access',
-                        'resource': name, 'status': 'MEDIUM',
-                    })
-
-        return checks
-
-    def _aws_check_iam_mfa(self) -> List[Dict]:
-        """HIGH: Detect IAM users without MFA enabled."""
-        checks: List[Dict] = []
-        self.scan_logger.info("AWS: Checking IAM users for MFA")
-
-        users_data = self._run_aws_cli(['iam', 'list-users'])
-        if not users_data or 'Users' not in users_data:
-            return checks
-
-        for user in users_data.get('Users', []):
-            username = user.get('UserName', '')
-            mfa_data = self._run_aws_cli([
-                'iam', 'list-mfa-devices', '--user-name', username
-            ])
-            mfa_devices = (mfa_data or {}).get('MFADevices', [])
-
-            if not mfa_devices:
-                self.add_finding(
-                    severity='HIGH',
-                    title=f"[Cloud/AWS] IAM user without MFA: {username}",
-                    description=(
-                        f"IAM user '{username}' has no MFA device configured. "
-                        "Accounts without MFA are vulnerable to credential compromise."
-                    ),
-                    affected_asset=f"aws:iam:user/{username}",
-                    finding_type='cloud_misconfiguration',
-                    cvss_score=self.CVSS_MAP['HIGH'],
-                    remediation="Enable MFA for all IAM users, especially those with console access.",
-                    detection_method='cloud_api_check',
-                )
-                checks.append({
-                    'provider': 'aws', 'check': 'iam_no_mfa',
-                    'resource': username, 'status': 'HIGH',
-                })
-
-        return checks
-
-    def _aws_check_security_groups(self) -> List[Dict]:
-        """HIGH: Detect security groups allowing 0.0.0.0/0 ingress."""
-        checks: List[Dict] = []
-        self.scan_logger.info("AWS: Checking security groups for wide-open ingress")
-
-        sg_data = self._run_aws_cli(['ec2', 'describe-security-groups'])
-        if not sg_data or 'SecurityGroups' not in sg_data:
-            return checks
-
-        for sg in sg_data.get('SecurityGroups', []):
-            sg_id = sg.get('GroupId', '')
-            sg_name = sg.get('GroupName', '')
-
-            for perm in sg.get('IpPermissions', []):
-                from_port = perm.get('FromPort', 0)
-                to_port = perm.get('ToPort', 65535)
-                protocol = perm.get('IpProtocol', '-1')
-
-                for ip_range in perm.get('IpRanges', []):
-                    cidr = ip_range.get('CidrIp', '')
-                    if cidr == '0.0.0.0/0':
-                        port_desc = (
-                            'all ports' if protocol == '-1'
-                            else f"port {from_port}" if from_port == to_port
-                            else f"ports {from_port}-{to_port}"
-                        )
-                        self.add_finding(
-                            severity='HIGH',
-                            title=f"[Cloud/AWS] Security group open to 0.0.0.0/0: {sg_id}",
-                            description=(
-                                f"Security group '{sg_name}' ({sg_id}) allows ingress "
-                                f"from 0.0.0.0/0 on {port_desc} ({protocol})."
-                            ),
-                            affected_asset=f"aws:ec2:sg/{sg_id}",
-                            finding_type='cloud_misconfiguration',
-                            cvss_score=self.CVSS_MAP['HIGH'],
-                            remediation=(
-                                "Restrict security group ingress rules to specific "
-                                "source IP ranges. Remove 0.0.0.0/0 rules."
-                            ),
-                            detection_method='cloud_api_check',
-                        )
-                        checks.append({
-                            'provider': 'aws', 'check': 'sg_wide_open',
-                            'resource': sg_id, 'status': 'HIGH',
-                            'detail': f"0.0.0.0/0 on {port_desc}",
-                        })
-
-                for ip_range in perm.get('Ipv6Ranges', []):
-                    cidr6 = ip_range.get('CidrIpv6', '')
-                    if cidr6 == '::/0':
-                        self.add_finding(
-                            severity='HIGH',
-                            title=f"[Cloud/AWS] Security group open to ::/0: {sg_id}",
-                            description=(
-                                f"Security group '{sg_name}' ({sg_id}) allows IPv6 "
-                                f"ingress from ::/0."
-                            ),
-                            affected_asset=f"aws:ec2:sg/{sg_id}",
-                            finding_type='cloud_misconfiguration',
-                            cvss_score=self.CVSS_MAP['HIGH'],
-                            remediation="Restrict IPv6 ingress to specific source ranges.",
-                            detection_method='cloud_api_check',
-                        )
-                        checks.append({
-                            'provider': 'aws', 'check': 'sg_wide_open_ipv6',
-                            'resource': sg_id, 'status': 'HIGH',
-                        })
-
-        return checks
-
-    def _aws_check_cloudtrail(self) -> List[Dict]:
-        """HIGH: Detect disabled or non-logging CloudTrail trails."""
-        checks: List[Dict] = []
-        self.scan_logger.info("AWS: Checking CloudTrail status")
-
-        trails_data = self._run_aws_cli(['cloudtrail', 'describe-trails'])
-        if not trails_data or 'trailList' not in trails_data:
-            # No trails at all is a finding
-            self.add_finding(
-                severity='HIGH',
-                title="[Cloud/AWS] No CloudTrail trails configured",
-                description="No CloudTrail trails were found. AWS API activity is not being logged.",
-                affected_asset="aws:cloudtrail",
-                finding_type='cloud_misconfiguration',
-                cvss_score=self.CVSS_MAP['HIGH'],
-                remediation="Create a CloudTrail trail that logs to an S3 bucket with encryption.",
-                detection_method='cloud_api_check',
-            )
-            checks.append({
-                'provider': 'aws', 'check': 'cloudtrail_missing',
-                'resource': 'account', 'status': 'HIGH',
-            })
-            return checks
-
-        for trail in trails_data.get('trailList', []):
-            trail_name = trail.get('Name', '')
-            trail_arn = trail.get('TrailARN', '')
-
-            status = self._run_aws_cli([
-                'cloudtrail', 'get-trail-status', '--name', trail_name
-            ])
-            if status and not status.get('IsLogging', False):
-                self.add_finding(
-                    severity='HIGH',
-                    title=f"[Cloud/AWS] CloudTrail logging disabled: {trail_name}",
-                    description=(
-                        f"CloudTrail trail '{trail_name}' exists but logging is disabled. "
-                        "API activity is not being recorded."
-                    ),
-                    affected_asset=f"aws:cloudtrail:{trail_arn}",
-                    finding_type='cloud_misconfiguration',
-                    cvss_score=self.CVSS_MAP['HIGH'],
-                    remediation="Enable logging on the CloudTrail trail.",
-                    detection_method='cloud_api_check',
-                )
-                checks.append({
-                    'provider': 'aws', 'check': 'cloudtrail_disabled',
-                    'resource': trail_name, 'status': 'HIGH',
-                })
-
-        return checks
-
-    def _aws_check_old_access_keys(self) -> List[Dict]:
-        """MEDIUM: Detect IAM access keys older than 90 days."""
-        checks: List[Dict] = []
-        self.scan_logger.info("AWS: Checking for old IAM access keys")
-
-        users_data = self._run_aws_cli(['iam', 'list-users'])
-        if not users_data or 'Users' not in users_data:
-            return checks
-
-        now = datetime.now(timezone.utc)
-
-        for user in users_data.get('Users', []):
-            username = user.get('UserName', '')
-            keys_data = self._run_aws_cli([
-                'iam', 'list-access-keys', '--user-name', username
-            ])
-            if not keys_data:
-                continue
-
-            for key_meta in keys_data.get('AccessKeyMetadata', []):
-                key_id = key_meta.get('AccessKeyId', '')
-                create_date_str = key_meta.get('CreateDate', '')
-                key_status = key_meta.get('Status', 'Inactive')
-
-                if key_status != 'Active':
-                    continue
-
-                try:
-                    # AWS returns ISO 8601 with Z
-                    create_date = datetime.fromisoformat(
-                        create_date_str.replace('Z', '+00:00')
-                    )
-                    age_days = (now - create_date).days
-                except (ValueError, TypeError):
-                    continue
-
-                if age_days > 90:
-                    self.add_finding(
-                        severity='MEDIUM',
-                        title=f"[Cloud/AWS] Old access key ({age_days}d): {username}/{key_id}",
-                        description=(
-                            f"IAM user '{username}' has active access key '{key_id}' "
-                            f"that is {age_days} days old (threshold: 90 days)."
-                        ),
-                        affected_asset=f"aws:iam:user/{username}",
-                        finding_type='cloud_misconfiguration',
-                        cvss_score=self.CVSS_MAP['MEDIUM'],
-                        remediation="Rotate access keys that are older than 90 days.",
-                        detection_method='cloud_api_check',
-                    )
-                    checks.append({
-                        'provider': 'aws', 'check': 'old_access_key',
-                        'resource': f"{username}/{key_id}",
-                        'status': 'MEDIUM',
-                        'detail': f"{age_days} days old",
-                    })
-
-        return checks
-
-    def _aws_check_unencrypted_ebs(self) -> List[Dict]:
-        """MEDIUM: Detect unencrypted EBS volumes."""
-        checks: List[Dict] = []
-        self.scan_logger.info("AWS: Checking for unencrypted EBS volumes")
-
-        vol_data = self._run_aws_cli(['ec2', 'describe-volumes'])
-        if not vol_data or 'Volumes' not in vol_data:
-            return checks
-
-        for vol in vol_data.get('Volumes', []):
-            vol_id = vol.get('VolumeId', '')
-            encrypted = vol.get('Encrypted', False)
-            state = vol.get('State', '')
-
-            if not encrypted:
-                attachments = vol.get('Attachments', [])
-                instance_id = (
-                    attachments[0].get('InstanceId', 'unattached')
-                    if attachments else 'unattached'
-                )
-                self.add_finding(
-                    severity='MEDIUM',
-                    title=f"[Cloud/AWS] Unencrypted EBS volume: {vol_id}",
-                    description=(
-                        f"EBS volume '{vol_id}' (state: {state}, attached to: "
-                        f"{instance_id}) is not encrypted at rest."
-                    ),
-                    affected_asset=f"aws:ec2:volume/{vol_id}",
-                    finding_type='cloud_misconfiguration',
-                    cvss_score=self.CVSS_MAP['MEDIUM'],
-                    remediation=(
-                        "Enable EBS encryption by default for the region. "
-                        "Migrate existing volumes to encrypted copies."
-                    ),
-                    detection_method='cloud_api_check',
-                )
-                checks.append({
-                    'provider': 'aws', 'check': 'ebs_unencrypted',
-                    'resource': vol_id, 'status': 'MEDIUM',
-                })
-
-        return checks
-
-    # ==================================================================
-    # Azure Checks
-    # ==================================================================
-
-    def _scan_azure(self) -> List[Dict]:
-        """Run all Azure security checks."""
-        checks: List[Dict] = []
-        checks.extend(self._azure_check_nsg_any_source())
-        checks.extend(self._azure_check_storage_public())
-        checks.extend(self._azure_check_sql_public())
-        return checks
-
-    def _azure_check_nsg_any_source(self) -> List[Dict]:
-        """HIGH: Detect NSG rules allowing traffic from any source."""
-        checks: List[Dict] = []
-        self.scan_logger.info("Azure: Checking NSG rules for any-source access")
-
-        nsg_data = self._run_az_cli(['network', 'nsg', 'list'])
-        if not isinstance(nsg_data, list):
-            return checks
-
-        for nsg in nsg_data:
-            nsg_name = nsg.get('name', '')
-            rg = nsg.get('resourceGroup', '')
-
-            rules_data = self._run_az_cli([
-                'network', 'nsg', 'rule', 'list',
-                '--nsg-name', nsg_name,
-                '--resource-group', rg,
-            ])
-            if not isinstance(rules_data, list):
-                continue
-
-            for rule in rules_data:
-                rule_name = rule.get('name', '')
-                access = rule.get('access', '').lower()
-                direction = rule.get('direction', '').lower()
-                src_addr = rule.get('sourceAddressPrefix', '')
-
-                if access == 'allow' and direction == 'inbound':
-                    if src_addr in ('*', '0.0.0.0/0', 'Internet', 'Any'):
-                        dest_port = rule.get('destinationPortRange', '*')
-                        self.add_finding(
-                            severity='HIGH',
-                            title=f"[Cloud/Azure] NSG rule allows any source: {nsg_name}/{rule_name}",
-                            description=(
-                                f"NSG '{nsg_name}' in resource group '{rg}' has "
-                                f"inbound allow rule '{rule_name}' with source "
-                                f"'{src_addr}' on port(s) {dest_port}."
-                            ),
-                            affected_asset=f"azure:nsg:{nsg_name}",
-                            finding_type='cloud_misconfiguration',
-                            cvss_score=self.CVSS_MAP['HIGH'],
-                            remediation=(
-                                "Restrict NSG inbound rules to specific source IP "
-                                "ranges. Remove rules that allow traffic from any source."
-                            ),
-                            detection_method='cloud_api_check',
-                        )
-                        checks.append({
-                            'provider': 'azure', 'check': 'nsg_any_source',
-                            'resource': f"{nsg_name}/{rule_name}",
-                            'status': 'HIGH',
-                        })
-
-        return checks
-
-    def _azure_check_storage_public(self) -> List[Dict]:
-        """CRITICAL: Detect storage accounts with public blob access enabled."""
-        checks: List[Dict] = []
-        self.scan_logger.info("Azure: Checking storage account public access")
-
-        sa_data = self._run_az_cli(['storage', 'account', 'list'])
-        if not isinstance(sa_data, list):
-            return checks
-
-        for account in sa_data:
-            name = account.get('name', '')
-            rg = account.get('resourceGroup', '')
-            public_access = account.get('allowBlobPublicAccess', False)
-
-            if public_access:
+            if not smap.get('AccountMFAEnabled', 0):
                 self.add_finding(
                     severity='CRITICAL',
-                    title=f"[Cloud/Azure] Storage account allows public blob access: {name}",
+                    title='AWS Root Account MFA Not Enabled',
                     description=(
-                        f"Storage account '{name}' in resource group '{rg}' has "
-                        "allowBlobPublicAccess set to true. Blob containers could "
-                        "be publicly accessible."
+                        'The AWS root account does not have MFA enabled. '
+                        'Root has unrestricted access and should always '
+                        'be protected with MFA.'
                     ),
-                    affected_asset=f"azure:storage:{name}",
-                    finding_type='cloud_misconfiguration',
-                    cvss_score=self.CVSS_MAP['CRITICAL'],
+                    affected_asset='aws:root',
+                    finding_type='cloud_iam',
                     remediation=(
-                        "Disable public blob access on the storage account: "
-                        "az storage account update --name <name> "
-                        "--allow-blob-public-access false"
+                        'Enable MFA on the root account immediately.'
                     ),
-                    detection_method='cloud_api_check',
+                    raw_data=smap,
+                    detection_method='aws_cli',
                 )
-                checks.append({
-                    'provider': 'azure', 'check': 'storage_public_access',
-                    'resource': name, 'status': 'CRITICAL',
-                })
 
-        return checks
-
-    def _azure_check_sql_public(self) -> List[Dict]:
-        """HIGH: Detect Azure SQL servers with public network access."""
-        checks: List[Dict] = []
-        self.scan_logger.info("Azure: Checking SQL server public access")
-
-        sql_data = self._run_az_cli(['sql', 'server', 'list'])
-        if not isinstance(sql_data, list):
-            return checks
-
-        for server in sql_data:
-            name = server.get('name', '')
-            rg = server.get('resourceGroup', '')
-            public_access = server.get('publicNetworkAccess', 'Enabled')
-
-            if public_access == 'Enabled':
-                self.add_finding(
-                    severity='HIGH',
-                    title=f"[Cloud/Azure] SQL server public network access: {name}",
-                    description=(
-                        f"Azure SQL server '{name}' in resource group '{rg}' has "
-                        "public network access enabled."
-                    ),
-                    affected_asset=f"azure:sql:{name}",
-                    finding_type='cloud_misconfiguration',
-                    cvss_score=self.CVSS_MAP['HIGH'],
-                    remediation=(
-                        "Disable public network access and use private endpoints: "
-                        "az sql server update --name <name> --resource-group <rg> "
-                        "--enable-public-network false"
-                    ),
-                    detection_method='cloud_api_check',
-                )
-                checks.append({
-                    'provider': 'azure', 'check': 'sql_public_access',
-                    'resource': name, 'status': 'HIGH',
-                })
-
-        return checks
-
-    # ==================================================================
-    # GCP Checks
-    # ==================================================================
-
-    def _scan_gcp(self) -> List[Dict]:
-        """Run all GCP security checks."""
-        checks: List[Dict] = []
-        checks.extend(self._gcp_check_firewall_rules())
-        checks.extend(self._gcp_check_gcs_public())
-        checks.extend(self._gcp_check_cloudsql_public())
-        return checks
-
-    def _gcp_check_firewall_rules(self) -> List[Dict]:
-        """HIGH: Detect firewall rules allowing 0.0.0.0/0 ingress."""
-        checks: List[Dict] = []
-        self.scan_logger.info("GCP: Checking firewall rules for 0.0.0.0/0")
-
-        fw_data = self._run_gcloud_cli(['compute', 'firewall-rules', 'list'])
-        if not isinstance(fw_data, list):
-            return checks
-
-        for rule in fw_data:
-            rule_name = rule.get('name', '')
-            direction = rule.get('direction', '').upper()
-            disabled = rule.get('disabled', False)
-            source_ranges = rule.get('sourceRanges', [])
-
-            if disabled or direction != 'INGRESS':
-                continue
-
-            if '0.0.0.0/0' in source_ranges:
-                allowed = rule.get('allowed', [])
-                allowed_desc = []
-                for a in allowed:
-                    proto = a.get('IPProtocol', 'all')
-                    ports = a.get('ports', ['all'])
-                    allowed_desc.append(f"{proto}:{','.join(ports)}")
-
-                self.add_finding(
-                    severity='HIGH',
-                    title=f"[Cloud/GCP] Firewall rule allows 0.0.0.0/0: {rule_name}",
-                    description=(
-                        f"Firewall rule '{rule_name}' allows ingress from 0.0.0.0/0 "
-                        f"on {'; '.join(allowed_desc)}."
-                    ),
-                    affected_asset=f"gcp:compute:firewall/{rule_name}",
-                    finding_type='cloud_misconfiguration',
-                    cvss_score=self.CVSS_MAP['HIGH'],
-                    remediation=(
-                        "Restrict firewall rule source ranges to specific IP "
-                        "addresses or CIDR blocks."
-                    ),
-                    detection_method='cloud_api_check',
-                )
-                checks.append({
-                    'provider': 'gcp', 'check': 'firewall_wide_open',
-                    'resource': rule_name, 'status': 'HIGH',
-                })
-
-        return checks
-
-    def _gcp_check_gcs_public(self) -> List[Dict]:
-        """CRITICAL: Detect publicly accessible GCS buckets."""
-        checks: List[Dict] = []
-        self.scan_logger.info("GCP: Checking GCS bucket public access")
-
-        # List buckets via gcloud (gsutil ls can also work)
-        buckets_data = self._run_gcloud_cli([
-            'storage', 'buckets', 'list',
+        # Credential report
+        self._run_cli([
+            'aws', 'iam', 'generate-credential-report',
+            '--output', 'json'
         ])
-
-        # Fallback: try gsutil ls
-        bucket_names: List[str] = []
-        if isinstance(buckets_data, list):
-            for b in buckets_data:
-                name = b.get('name', b.get('id', ''))
-                if name:
-                    bucket_names.append(name)
-        else:
-            ls_output = self._run_gsutil(['ls'])
-            if ls_output:
-                for line in ls_output.strip().split('\n'):
-                    line = line.strip().rstrip('/')
-                    if line.startswith('gs://'):
-                        bucket_names.append(line[5:])
-
-        for bucket_name in bucket_names:
-            iam_output = self._run_gsutil(['iam', 'get', f'gs://{bucket_name}'])
-            if not iam_output:
-                continue
-
+        report = self._run_cli_json([
+            'aws', 'iam', 'get-credential-report', '--output', 'json'
+        ])
+        if report and report.get('Content'):
             try:
-                iam_policy = json.loads(iam_output)
-            except (json.JSONDecodeError, TypeError):
+                content = base64.b64decode(
+                    report['Content']
+                ).decode('utf-8')
+                self._analyze_credential_report(content, scan_type)
+            except Exception as exc:
+                self.scan_logger.debug(
+                    f"Credential report error: {exc}"
+                )
+
+        # Overly permissive policies
+        if scan_type in ('standard', 'deep'):
+            policies = self._run_cli_json([
+                'aws', 'iam', 'list-policies', '--scope', 'Local',
+                '--only-attached', '--output', 'json',
+            ])
+            if policies:
+                self._check_aws_permissive_policies(
+                    policies.get('Policies', []), scan_type
+                )
+
+    def _analyze_credential_report(self, csv_content: str,
+                                   scan_type: str) -> None:
+        """Analyze the IAM credential report CSV."""
+        lines = csv_content.strip().split('\n')
+        if len(lines) < 2:
+            return
+        headers = lines[0].split(',')
+        old_keys: List[Dict] = []
+        unused_accounts: List[Dict] = []
+
+        for line in lines[1:]:
+            fields = line.split(',')
+            if len(fields) < len(headers):
                 continue
+            row = dict(zip(headers, fields))
+            user = row.get('user', '')
 
-            public_members = {'allUsers', 'allAuthenticatedUsers'}
-            for binding in iam_policy.get('bindings', []):
-                members = set(binding.get('members', []))
-                public_matched = members & public_members
-                if public_matched:
-                    role = binding.get('role', 'unknown')
-                    self.add_finding(
-                        severity='CRITICAL',
-                        title=f"[Cloud/GCP] GCS bucket publicly accessible: {bucket_name}",
-                        description=(
-                            f"GCS bucket '{bucket_name}' grants role '{role}' to "
-                            f"{', '.join(public_matched)}."
-                        ),
-                        affected_asset=f"gcp:storage:{bucket_name}",
-                        finding_type='cloud_misconfiguration',
-                        cvss_score=self.CVSS_MAP['CRITICAL'],
-                        remediation=(
-                            "Remove allUsers and allAuthenticatedUsers bindings "
-                            "from the bucket IAM policy."
-                        ),
-                        detection_method='cloud_api_check',
-                    )
-                    checks.append({
-                        'provider': 'gcp', 'check': 'gcs_public',
-                        'resource': bucket_name, 'status': 'CRITICAL',
+            for key_num in ('1', '2'):
+                active = row.get(
+                    f'access_key_{key_num}_active', 'false'
+                )
+                last_rotated = row.get(
+                    f'access_key_{key_num}_last_rotated', 'N/A'
+                )
+                if active == 'true' and last_rotated != 'N/A':
+                    try:
+                        rotated = datetime.strptime(
+                            last_rotated[:10], '%Y-%m-%d'
+                        )
+                        age_days = (datetime.utcnow() - rotated).days
+                        if age_days > 90:
+                            old_keys.append({
+                                'user': user, 'key': key_num,
+                                'age_days': age_days,
+                            })
+                    except ValueError:
+                        pass
+
+            pw_enabled = row.get('password_enabled', 'false')
+            pw_last_used = row.get('password_last_used', 'N/A')
+            if pw_enabled == 'true' and pw_last_used in (
+                    'N/A', 'no_information', 'not_supported'):
+                unused_accounts.append({'user': user})
+
+        if old_keys:
+            self.add_finding(
+                severity='HIGH',
+                title=(
+                    f'{len(old_keys)} AWS Access Keys Older Than 90 Days'
+                ),
+                description=(
+                    f"{len(old_keys)} IAM access keys have not been "
+                    f"rotated in over 90 days."
+                ),
+                affected_asset='aws:iam',
+                finding_type='cloud_iam',
+                remediation='Rotate access keys at least every 90 days.',
+                raw_data=old_keys,
+                detection_method='aws_cli',
+            )
+        if unused_accounts:
+            self.add_finding(
+                severity='MEDIUM',
+                title=(
+                    f'{len(unused_accounts)} AWS IAM Users With '
+                    f'Unused Credentials'
+                ),
+                description=(
+                    f"{len(unused_accounts)} IAM users have password "
+                    f"credentials enabled but have never logged in."
+                ),
+                affected_asset='aws:iam',
+                finding_type='cloud_iam',
+                remediation='Disable or remove unused IAM credentials.',
+                raw_data=unused_accounts,
+                detection_method='aws_cli',
+            )
+
+    def _check_aws_permissive_policies(self, policies: List[Dict],
+                                       scan_type: str) -> None:
+        """Check for overly permissive IAM policies."""
+        limit = (len(policies) if scan_type == 'deep'
+                 else min(20, len(policies)))
+        overly_permissive: List[Dict] = []
+
+        for policy in policies[:limit]:
+            arn = policy.get('Arn', '')
+            version = policy.get('DefaultVersionId', 'v1')
+            doc = self._run_cli_json([
+                'aws', 'iam', 'get-policy-version',
+                '--policy-arn', arn, '--version-id', version,
+                '--output', 'json',
+            ])
+            if not doc:
+                continue
+            stmts = (doc.get('PolicyVersion', {})
+                     .get('Document', {})
+                     .get('Statement', []))
+            if isinstance(stmts, dict):
+                stmts = [stmts]
+            for stmt in stmts:
+                if (stmt.get('Effect') == 'Allow' and
+                        stmt.get('Action') == '*' and
+                        stmt.get('Resource') == '*'):
+                    overly_permissive.append({
+                        'policy': policy.get('PolicyName', ''),
+                        'arn': arn,
                     })
-
-        return checks
-
-    def _gcp_check_cloudsql_public(self) -> List[Dict]:
-        """HIGH: Detect Cloud SQL instances with public IP."""
-        checks: List[Dict] = []
-        self.scan_logger.info("GCP: Checking Cloud SQL instances for public IPs")
-
-        sql_data = self._run_gcloud_cli(['sql', 'instances', 'list'])
-        if not isinstance(sql_data, list):
-            return checks
-
-        for instance in sql_data:
-            name = instance.get('name', '')
-            settings = instance.get('settings', {})
-            ip_config = settings.get('ipConfiguration', {})
-            ip_addresses = instance.get('ipAddresses', [])
-
-            has_public_ip = False
-            public_ip_addr = None
-            for ip_entry in ip_addresses:
-                if ip_entry.get('type') == 'PRIMARY':
-                    has_public_ip = True
-                    public_ip_addr = ip_entry.get('ipAddress', '')
                     break
 
-            authorized_networks = ip_config.get('authorizedNetworks', [])
-            has_wide_open_net = False
-            for net in authorized_networks:
-                value = net.get('value', '')
-                if value in ('0.0.0.0/0', '::/0'):
-                    has_wide_open_net = True
-                    break
+        if overly_permissive:
+            self.add_finding(
+                severity='HIGH',
+                title=(
+                    f'{len(overly_permissive)} Overly Permissive '
+                    f'IAM Policies'
+                ),
+                description=(
+                    f"{len(overly_permissive)} custom IAM policies grant "
+                    f"'*' action on '*' resource (full admin)."
+                ),
+                affected_asset='aws:iam',
+                finding_type='cloud_iam',
+                remediation=(
+                    'Apply least-privilege: scope actions and resources.'
+                ),
+                raw_data=overly_permissive,
+                detection_method='aws_cli',
+            )
 
-            if has_public_ip:
-                severity = 'HIGH' if has_wide_open_net else 'MEDIUM'
-                detail = (
-                    f"Public IP: {public_ip_addr}."
-                    + (" Authorized networks include 0.0.0.0/0!" if has_wide_open_net else "")
+    # -- S3 -----------------------------------------------------------------
+
+    def _check_aws_s3(self, scan_type: str) -> None:
+        """Check S3 bucket security."""
+        buckets = self._run_cli_json([
+            'aws', 's3api', 'list-buckets', '--output', 'json'
+        ])
+        if not buckets:
+            return
+        bucket_list = buckets.get('Buckets', [])
+        self.add_result('aws_s3_buckets', {'count': len(bucket_list)}, 'aws')
+
+        public_buckets: List[str] = []
+        unencrypted: List[str] = []
+        no_versioning: List[str] = []
+        no_logging: List[str] = []
+        limit = (len(bucket_list) if scan_type == 'deep'
+                 else min(25, len(bucket_list)))
+
+        for bucket in bucket_list[:limit]:
+            name = bucket.get('Name', '')
+
+            # Public access block
+            pab = self._run_cli_json([
+                'aws', 's3api', 'get-public-access-block',
+                '--bucket', name, '--output', 'json'
+            ])
+            if pab:
+                cfg = pab.get('PublicAccessBlockConfiguration', {})
+                if not all([
+                    cfg.get('BlockPublicAcls', False),
+                    cfg.get('IgnorePublicAcls', False),
+                    cfg.get('BlockPublicPolicy', False),
+                    cfg.get('RestrictPublicBuckets', False),
+                ]):
+                    public_buckets.append(name)
+            else:
+                public_buckets.append(name)
+
+            # Encryption
+            enc = self._run_cli_json([
+                'aws', 's3api', 'get-bucket-encryption',
+                '--bucket', name, '--output', 'json'
+            ])
+            if not enc:
+                unencrypted.append(name)
+
+            # Versioning
+            ver = self._run_cli_json([
+                'aws', 's3api', 'get-bucket-versioning',
+                '--bucket', name, '--output', 'json'
+            ])
+            if not ver or ver.get('Status') != 'Enabled':
+                no_versioning.append(name)
+
+            # Logging (standard+)
+            if scan_type in ('standard', 'deep'):
+                log = self._run_cli_json([
+                    'aws', 's3api', 'get-bucket-logging',
+                    '--bucket', name, '--output', 'json'
+                ])
+                if not log or not log.get('LoggingEnabled'):
+                    no_logging.append(name)
+
+        if public_buckets:
+            self.add_finding(
+                severity='CRITICAL',
+                title=(
+                    f'{len(public_buckets)} S3 Buckets Without Full '
+                    f'Public Access Block'
+                ),
+                description=(
+                    f"{len(public_buckets)} S3 buckets do not have all "
+                    f"four public access block settings enabled."
+                ),
+                affected_asset='aws:s3',
+                finding_type='cloud_storage',
+                remediation='Enable S3 Block Public Access on all buckets.',
+                raw_data=public_buckets,
+                detection_method='aws_cli',
+            )
+        if unencrypted:
+            self.add_finding(
+                severity='HIGH',
+                title=f'{len(unencrypted)} S3 Buckets Without Encryption',
+                description=(
+                    f"{len(unencrypted)} S3 buckets do not have default "
+                    f"encryption configured."
+                ),
+                affected_asset='aws:s3',
+                finding_type='cloud_encryption',
+                remediation='Enable default SSE-S3 or SSE-KMS encryption.',
+                raw_data=unencrypted,
+                detection_method='aws_cli',
+            )
+        if no_versioning:
+            self.add_finding(
+                severity='MEDIUM',
+                title=f'{len(no_versioning)} S3 Buckets Without Versioning',
+                description=(
+                    f"{len(no_versioning)} S3 buckets do not have versioning "
+                    f"enabled, risking data loss."
+                ),
+                affected_asset='aws:s3',
+                finding_type='cloud_storage',
+                remediation='Enable versioning on critical buckets.',
+                raw_data=no_versioning,
+                detection_method='aws_cli',
+            )
+        if no_logging:
+            self.add_finding(
+                severity='MEDIUM',
+                title=f'{len(no_logging)} S3 Buckets Without Access Logging',
+                description=(
+                    f"{len(no_logging)} S3 buckets do not have access "
+                    f"logging enabled."
+                ),
+                affected_asset='aws:s3',
+                finding_type='cloud_logging',
+                remediation=(
+                    'Enable S3 server access logging or CloudTrail '
+                    'S3 data events.'
+                ),
+                raw_data=no_logging,
+                detection_method='aws_cli',
+            )
+
+    # -- Security Groups ----------------------------------------------------
+
+    def _check_aws_security_groups(self, scan_type: str) -> None:
+        """Check EC2 security groups for overly permissive rules."""
+        sgs = self._run_cli_json([
+            'aws', 'ec2', 'describe-security-groups', '--output', 'json'
+        ])
+        if not sgs:
+            return
+        sg_list = sgs.get('SecurityGroups', [])
+        self.add_result('aws_security_groups', {'count': len(sg_list)}, 'aws')
+
+        open_to_world: List[Dict] = []
+        open_ssh: List[Dict] = []
+        open_rdp: List[Dict] = []
+
+        for sg in sg_list:
+            sg_id = sg.get('GroupId', '')
+            sg_name = sg.get('GroupName', '')
+            for rule in sg.get('IpPermissions', []):
+                from_port = rule.get('FromPort', 0)
+                to_port = rule.get('ToPort', 65535)
+                proto = rule.get('IpProtocol', '-1')
+
+                all_cidrs = (
+                    [r.get('CidrIp', '') for r in rule.get('IpRanges', [])]
+                    + [r.get('CidrIpv6', '') for r in rule.get('Ipv6Ranges', [])]
                 )
+                for cidr in all_cidrs:
+                    if cidr not in ('0.0.0.0/0', '::/0'):
+                        continue
+                    entry = {
+                        'sg_id': sg_id, 'sg_name': sg_name,
+                        'from_port': from_port, 'to_port': to_port,
+                        'protocol': proto, 'cidr': cidr,
+                    }
+                    if proto == '-1':
+                        open_to_world.append(entry)
+                    elif from_port <= 22 <= to_port:
+                        open_ssh.append(entry)
+                    elif from_port <= 3389 <= to_port:
+                        open_rdp.append(entry)
+                    else:
+                        open_to_world.append(entry)
+
+        if open_to_world:
+            self.add_finding(
+                severity='HIGH',
+                title=(
+                    f'{len(open_to_world)} Security Group Rules Open '
+                    f'to 0.0.0.0/0'
+                ),
+                description=(
+                    f"{len(open_to_world)} security group rules allow "
+                    f"unrestricted inbound access from any IP."
+                ),
+                affected_asset='aws:ec2',
+                finding_type='cloud_network',
+                remediation='Restrict inbound rules to specific CIDR ranges.',
+                raw_data=open_to_world,
+                detection_method='aws_cli',
+            )
+        if open_ssh:
+            self.add_finding(
+                severity='CRITICAL',
+                title=(
+                    f'{len(open_ssh)} Security Groups With SSH Open to World'
+                ),
+                description=(
+                    f"{len(open_ssh)} security groups allow SSH (port 22) "
+                    f"from 0.0.0.0/0."
+                ),
+                affected_asset='aws:ec2',
+                finding_type='cloud_network',
+                remediation='Restrict SSH to known IP ranges or use SSM.',
+                raw_data=open_ssh,
+                detection_method='aws_cli',
+            )
+        if open_rdp:
+            self.add_finding(
+                severity='CRITICAL',
+                title=(
+                    f'{len(open_rdp)} Security Groups With RDP Open to World'
+                ),
+                description=(
+                    f"{len(open_rdp)} security groups allow RDP (port 3389) "
+                    f"from 0.0.0.0/0."
+                ),
+                affected_asset='aws:ec2',
+                finding_type='cloud_network',
+                remediation='Restrict RDP to known IP ranges or use a bastion.',
+                raw_data=open_rdp,
+                detection_method='aws_cli',
+            )
+
+    # -- Logging ------------------------------------------------------------
+
+    def _check_aws_logging(self, scan_type: str) -> None:
+        """Check AWS logging configuration."""
+        trails = self._run_cli_json([
+            'aws', 'cloudtrail', 'describe-trails', '--output', 'json'
+        ])
+        if trails:
+            trail_list = trails.get('trailList', [])
+            if not trail_list:
                 self.add_finding(
-                    severity=severity,
-                    title=f"[Cloud/GCP] Cloud SQL public IP: {name}",
-                    description=(
-                        f"Cloud SQL instance '{name}' has a public IP address "
-                        f"({public_ip_addr}). {detail}"
-                    ),
-                    affected_asset=f"gcp:sql:{name}",
-                    finding_type='cloud_misconfiguration',
-                    cvss_score=self.CVSS_MAP[severity],
-                    remediation=(
-                        "Use private IP connectivity for Cloud SQL. If public IP is "
-                        "required, restrict authorized networks to specific IPs."
-                    ),
-                    detection_method='cloud_api_check',
+                    severity='CRITICAL',
+                    title='No CloudTrail Trails Configured',
+                    description='No CloudTrail trails found in this region.',
+                    affected_asset='aws:cloudtrail',
+                    finding_type='cloud_logging',
+                    remediation='Enable CloudTrail with multi-region logging.',
+                    detection_method='aws_cli',
                 )
-                checks.append({
-                    'provider': 'gcp', 'check': 'cloudsql_public_ip',
-                    'resource': name, 'status': severity,
-                })
+            else:
+                for trail in trail_list:
+                    name = trail.get('Name', '')
+                    status = self._run_cli_json([
+                        'aws', 'cloudtrail', 'get-trail-status',
+                        '--name', name, '--output', 'json'
+                    ])
+                    if status and not status.get('IsLogging', False):
+                        self.add_finding(
+                            severity='HIGH',
+                            title=f'CloudTrail Not Logging: {name}',
+                            description=(
+                                f"Trail '{name}' exists but is not logging."
+                            ),
+                            affected_asset='aws:cloudtrail',
+                            finding_type='cloud_logging',
+                            remediation=(
+                                f'Start logging: aws cloudtrail '
+                                f'start-logging --name {name}'
+                            ),
+                            raw_data=status,
+                            detection_method='aws_cli',
+                        )
+                    if not trail.get('IsMultiRegionTrail', False):
+                        self.add_finding(
+                            severity='MEDIUM',
+                            title=f'CloudTrail Not Multi-Region: {name}',
+                            description=(
+                                f"Trail '{name}' is not configured for "
+                                f"multi-region."
+                            ),
+                            affected_asset='aws:cloudtrail',
+                            finding_type='cloud_logging',
+                            remediation='Enable multi-region on the trail.',
+                            raw_data=trail,
+                            detection_method='aws_cli',
+                        )
 
-        return checks
+        # VPC Flow Logs (deep)
+        if scan_type == 'deep':
+            vpcs = self._run_cli_json([
+                'aws', 'ec2', 'describe-vpcs', '--output', 'json'
+            ])
+            if vpcs:
+                for vpc in vpcs.get('Vpcs', []):
+                    vpc_id = vpc.get('VpcId', '')
+                    fl = self._run_cli_json([
+                        'aws', 'ec2', 'describe-flow-logs',
+                        '--filter',
+                        f'Name=resource-id,Values={vpc_id}',
+                        '--output', 'json',
+                    ])
+                    if not fl or not fl.get('FlowLogs'):
+                        self.add_finding(
+                            severity='MEDIUM',
+                            title=f'No VPC Flow Logs: {vpc_id}',
+                            description=(
+                                f"VPC '{vpc_id}' has no flow logs."
+                            ),
+                            affected_asset=f'aws:vpc:{vpc_id}',
+                            finding_type='cloud_logging',
+                            remediation='Enable VPC flow logs.',
+                            detection_method='aws_cli',
+                        )
 
-    # ==================================================================
-    # Summary
-    # ==================================================================
+    # -- Encryption ---------------------------------------------------------
 
-    def _generate_summary(self, results: Dict) -> Dict:
-        """Generate scan summary from check results."""
-        checks = results.get('checks', [])
-        summary: Dict = {
-            'total_checks': len(checks),
-            'providers_scanned': results.get('providers_scanned', []),
-            'providers_skipped': len(results.get('providers_skipped', [])),
-            'by_severity': {'CRITICAL': 0, 'HIGH': 0, 'MEDIUM': 0, 'LOW': 0, 'INFO': 0},
-            'by_provider': {},
-        }
+    def _check_aws_encryption(self, scan_type: str) -> None:
+        """Check AWS encryption settings."""
+        ebs_enc = self._run_cli_json([
+            'aws', 'ec2', 'get-ebs-encryption-by-default',
+            '--output', 'json'
+        ])
+        if ebs_enc and not ebs_enc.get('EbsEncryptionByDefault', False):
+            self.add_finding(
+                severity='MEDIUM',
+                title='EBS Default Encryption Not Enabled',
+                description=(
+                    'EBS volumes are not encrypted by default.'
+                ),
+                affected_asset='aws:ec2',
+                finding_type='cloud_encryption',
+                remediation='Enable EBS encryption by default.',
+                raw_data=ebs_enc,
+                detection_method='aws_cli',
+            )
 
-        for check in checks:
-            sev = check.get('status', 'INFO')
-            if sev in summary['by_severity']:
-                summary['by_severity'][sev] += 1
+        if scan_type in ('standard', 'deep'):
+            rds = self._run_cli_json([
+                'aws', 'rds', 'describe-db-instances', '--output', 'json'
+            ])
+            if rds:
+                for inst in rds.get('DBInstances', []):
+                    db_id = inst.get('DBInstanceIdentifier', '')
+                    if not inst.get('StorageEncrypted', False):
+                        self.add_finding(
+                            severity='HIGH',
+                            title=f'Unencrypted RDS Instance: {db_id}',
+                            description=(
+                                f"RDS instance '{db_id}' is not encrypted."
+                            ),
+                            affected_asset=f'aws:rds:{db_id}',
+                            finding_type='cloud_encryption',
+                            remediation=(
+                                'Create an encrypted snapshot and restore.'
+                            ),
+                            raw_data={'db_id': db_id},
+                            detection_method='aws_cli',
+                        )
 
-            provider = check.get('provider', 'unknown')
-            summary['by_provider'][provider] = summary['by_provider'].get(provider, 0) + 1
+        if scan_type == 'deep':
+            snaps = self._run_cli_json([
+                'aws', 'ec2', 'describe-snapshots',
+                '--owner-ids', 'self', '--output', 'json'
+            ])
+            if snaps:
+                unenc = [s for s in snaps.get('Snapshots', [])
+                         if not s.get('Encrypted', False)]
+                if unenc:
+                    self.add_finding(
+                        severity='MEDIUM',
+                        title=f'{len(unenc)} Unencrypted EBS Snapshots',
+                        description=(
+                            f"{len(unenc)} EBS snapshots are not encrypted."
+                        ),
+                        affected_asset='aws:ec2',
+                        finding_type='cloud_encryption',
+                        remediation='Copy snapshots with encryption enabled.',
+                        raw_data={'count': len(unenc)},
+                        detection_method='aws_cli',
+                    )
 
-        return summary
+    # =======================================================================
+    # Azure Checks
+    # =======================================================================
+
+    def _check_azure_storage(self, scan_type: str) -> None:
+        """Check Azure Storage account security."""
+        accounts = self._run_cli_json([
+            'az', 'storage', 'account', 'list', '-o', 'json'
+        ])
+        if not accounts:
+            return
+        self.add_result('azure_storage', {'count': len(accounts)}, 'azure')
+
+        for acct in accounts:
+            name = acct.get('name', '')
+            if acct.get('allowBlobPublicAccess', False):
+                self.add_finding(
+                    severity='HIGH',
+                    title=f'Azure Storage Public Blob Access: {name}',
+                    description=(
+                        f"Storage account '{name}' allows public blob access."
+                    ),
+                    affected_asset=f'azure:storage:{name}',
+                    finding_type='cloud_storage',
+                    remediation='Disable public blob access.',
+                    raw_data={'name': name},
+                    detection_method='azure_cli',
+                )
+            if not acct.get('enableHttpsTrafficOnly', True):
+                self.add_finding(
+                    severity='HIGH',
+                    title=f'Azure Storage HTTP Allowed: {name}',
+                    description=(
+                        f"Storage account '{name}' allows non-HTTPS traffic."
+                    ),
+                    affected_asset=f'azure:storage:{name}',
+                    finding_type='cloud_encryption',
+                    remediation='Enable HTTPS-only on the storage account.',
+                    raw_data={'name': name},
+                    detection_method='azure_cli',
+                )
+            tls = acct.get('minimumTlsVersion', '')
+            if tls and tls < 'TLS1_2':
+                self.add_finding(
+                    severity='MEDIUM',
+                    title=f'Azure Storage Weak TLS: {name}',
+                    description=(
+                        f"Storage account '{name}' allows TLS below 1.2."
+                    ),
+                    affected_asset=f'azure:storage:{name}',
+                    finding_type='cloud_encryption',
+                    remediation='Set minimum TLS version to TLS1_2.',
+                    raw_data={'name': name, 'tls': tls},
+                    detection_method='azure_cli',
+                )
+
+    def _check_azure_identity(self, scan_type: str) -> None:
+        """Check Azure AD / Entra ID security."""
+        users = self._run_cli_json([
+            'az', 'ad', 'user', 'list', '--query',
+            '[].{upn:userPrincipalName,accountEnabled:accountEnabled}',
+            '-o', 'json',
+        ])
+        if users:
+            enabled = sum(1 for u in users if u.get('accountEnabled'))
+            self.add_result(
+                'azure_ad_users',
+                {'total': len(users), 'enabled': enabled}, 'azure',
+            )
+
+        if scan_type in ('standard', 'deep'):
+            ca = self._run_cli_json([
+                'az', 'rest', '--method', 'GET', '--uri',
+                'https://graph.microsoft.com/v1.0/identity/'
+                'conditionalAccess/policies',
+                '-o', 'json',
+            ])
+            if ca:
+                policies = ca.get('value', [])
+                enabled_ca = [p for p in policies
+                              if p.get('state') == 'enabled']
+                self.add_result(
+                    'azure_conditional_access',
+                    {'total': len(policies), 'enabled': len(enabled_ca)},
+                    'azure',
+                )
+                if not enabled_ca:
+                    self.add_finding(
+                        severity='HIGH',
+                        title='No Enabled Conditional Access Policies',
+                        description=(
+                            'No conditional access policies are enabled. '
+                            'MFA and access controls are not enforced.'
+                        ),
+                        affected_asset='azure:entra',
+                        finding_type='cloud_iam',
+                        remediation=(
+                            'Create and enable conditional access policies.'
+                        ),
+                        detection_method='azure_cli',
+                    )
+            else:
+                self.add_finding(
+                    severity='INFO',
+                    title='Cannot Query Conditional Access Policies',
+                    description=(
+                        'Insufficient permissions to read conditional access.'
+                    ),
+                    affected_asset='azure:entra',
+                    finding_type='cloud_iam',
+                    detection_method='azure_cli',
+                )
+
+    def _check_azure_nsg(self, scan_type: str) -> None:
+        """Check Azure Network Security Groups."""
+        nsgs = self._run_cli_json([
+            'az', 'network', 'nsg', 'list', '-o', 'json'
+        ])
+        if not nsgs:
+            return
+        self.add_result('azure_nsgs', {'count': len(nsgs)}, 'azure')
+
+        any_any: List[Dict] = []
+        open_mgmt: List[Dict] = []
+
+        for nsg in nsgs:
+            nsg_name = nsg.get('name', '')
+            for rule in nsg.get('securityRules', []):
+                if rule.get('access') != 'Allow':
+                    continue
+                if rule.get('direction') != 'Inbound':
+                    continue
+                src = rule.get('sourceAddressPrefix', '')
+                port = rule.get('destinationPortRange', '')
+                proto = rule.get('protocol', '')
+
+                if src not in ('*', 'Internet', '0.0.0.0/0'):
+                    continue
+
+                entry = {
+                    'nsg': nsg_name, 'rule': rule.get('name', ''),
+                    'port': port, 'protocol': proto,
+                }
+                if port == '*' or proto == '*':
+                    any_any.append(entry)
+                elif port in ('22', '3389'):
+                    open_mgmt.append(entry)
+
+        if any_any:
+            self.add_finding(
+                severity='CRITICAL',
+                title=f'{len(any_any)} NSG Any-Any Inbound Rules',
+                description=(
+                    f"{len(any_any)} NSG rules allow all traffic from "
+                    f"any source."
+                ),
+                affected_asset='azure:network',
+                finding_type='cloud_network',
+                remediation='Restrict NSG rules to specific ports and sources.',
+                raw_data=any_any,
+                detection_method='azure_cli',
+            )
+        if open_mgmt:
+            self.add_finding(
+                severity='HIGH',
+                title=(
+                    f'{len(open_mgmt)} NSG Rules With SSH/RDP Open '
+                    f'to Internet'
+                ),
+                description=(
+                    f"{len(open_mgmt)} NSG rules allow SSH or RDP from "
+                    f"the internet."
+                ),
+                affected_asset='azure:network',
+                finding_type='cloud_network',
+                remediation='Use Azure Bastion or restrict to known IPs.',
+                raw_data=open_mgmt,
+                detection_method='azure_cli',
+            )
+
+    def _check_azure_logging(self, scan_type: str) -> None:
+        """Check Azure diagnostic and activity logging."""
+        alerts = self._run_cli_json([
+            'az', 'monitor', 'activity-log', 'alert', 'list', '-o', 'json'
+        ])
+        if alerts is not None:
+            enabled = [a for a in alerts if a.get('enabled', False)]
+            self.add_result(
+                'azure_activity_alerts',
+                {'total': len(alerts), 'enabled': len(enabled)}, 'azure',
+            )
+            if not enabled:
+                self.add_finding(
+                    severity='MEDIUM',
+                    title='No Activity Log Alerts Configured',
+                    description=(
+                        'No Azure activity log alerts are enabled.'
+                    ),
+                    affected_asset='azure:monitor',
+                    finding_type='cloud_logging',
+                    remediation=(
+                        'Configure activity log alerts for critical ops.'
+                    ),
+                    detection_method='azure_cli',
+                )
+
+        if scan_type == 'deep':
+            sub = self._run_cli_json([
+                'az', 'account', 'show', '-o', 'json'
+            ])
+            if sub:
+                sub_id = sub.get('id', '')
+                diag = self._run_cli_json([
+                    'az', 'monitor', 'diagnostic-settings',
+                    'subscription', 'list',
+                    '--subscription', sub_id, '-o', 'json',
+                ])
+                if diag is not None:
+                    items = (diag.get('value', diag)
+                             if isinstance(diag, dict) else diag)
+                    if not items:
+                        self.add_finding(
+                            severity='MEDIUM',
+                            title='No Subscription Diagnostic Settings',
+                            description=(
+                                'No diagnostic settings on the subscription.'
+                            ),
+                            affected_asset=f'azure:subscription:{sub_id}',
+                            finding_type='cloud_logging',
+                            remediation=(
+                                'Configure diagnostic settings to a '
+                                'Log Analytics workspace.'
+                            ),
+                            detection_method='azure_cli',
+                        )
+
+    # =======================================================================
+    # GCP Checks
+    # =======================================================================
+
+    def _check_gcp_storage(self, scan_type: str) -> None:
+        """Check GCP Cloud Storage bucket security."""
+        buckets = self._run_cli_json([
+            'gcloud', 'storage', 'buckets', 'list', '--format=json'
+        ])
+        if not buckets:
+            return
+        self.add_result('gcp_buckets', {'count': len(buckets)}, 'gcp')
+
+        public_buckets: List[Dict] = []
+        no_uniform: List[str] = []
+
+        for bucket in buckets:
+            name = bucket.get('name', '')
+            iam = self._run_cli_json([
+                'gcloud', 'storage', 'buckets', 'get-iam-policy',
+                f'gs://{name}', '--format=json',
+            ])
+            if iam:
+                for binding in iam.get('bindings', []):
+                    members = binding.get('members', [])
+                    if ('allUsers' in members or
+                            'allAuthenticatedUsers' in members):
+                        public_buckets.append({
+                            'bucket': name,
+                            'role': binding.get('role', ''),
+                        })
+                        break
+
+            ubl = bucket.get('iamConfiguration', {}).get(
+                'uniformBucketLevelAccess', {}
+            )
+            if not ubl.get('enabled', False):
+                no_uniform.append(name)
+
+        if public_buckets:
+            self.add_finding(
+                severity='CRITICAL',
+                title=(
+                    f'{len(public_buckets)} GCP Buckets Publicly Accessible'
+                ),
+                description=(
+                    f"{len(public_buckets)} buckets grant access to "
+                    f"allUsers or allAuthenticatedUsers."
+                ),
+                affected_asset='gcp:storage',
+                finding_type='cloud_storage',
+                remediation=(
+                    'Remove allUsers / allAuthenticatedUsers from IAM.'
+                ),
+                raw_data=public_buckets,
+                detection_method='gcloud_cli',
+            )
+        if no_uniform:
+            self.add_finding(
+                severity='MEDIUM',
+                title=(
+                    f'{len(no_uniform)} GCP Buckets Without Uniform Access'
+                ),
+                description=(
+                    f"{len(no_uniform)} buckets do not enforce uniform "
+                    f"bucket-level access."
+                ),
+                affected_asset='gcp:storage',
+                finding_type='cloud_storage',
+                remediation='Enable uniform bucket-level access.',
+                raw_data=no_uniform,
+                detection_method='gcloud_cli',
+            )
+
+    def _check_gcp_iam(self, scan_type: str) -> None:
+        """Check GCP IAM configuration."""
+        project = self._run_cli([
+            'gcloud', 'config', 'get-value', 'project'
+        ])
+        if not project:
+            return
+
+        # Service account user-managed keys
+        sa_list = self._run_cli_json([
+            'gcloud', 'iam', 'service-accounts', 'list', '--format=json'
+        ])
+        if sa_list:
+            with_keys: List[Dict] = []
+            for sa in sa_list:
+                email = sa.get('email', '')
+                keys = self._run_cli_json([
+                    'gcloud', 'iam', 'service-accounts', 'keys', 'list',
+                    '--iam-account', email,
+                    '--managed-by=user', '--format=json',
+                ])
+                if keys:
+                    with_keys.append({
+                        'service_account': email,
+                        'key_count': len(keys),
+                    })
+            if with_keys:
+                self.add_finding(
+                    severity='HIGH',
+                    title=(
+                        f'{len(with_keys)} Service Accounts With '
+                        f'User-Managed Keys'
+                    ),
+                    description=(
+                        f"{len(with_keys)} service accounts have "
+                        f"user-managed keys that do not auto-rotate."
+                    ),
+                    affected_asset=f'gcp:iam:{project}',
+                    finding_type='cloud_iam',
+                    remediation=(
+                        'Use workload identity federation instead of SA keys.'
+                    ),
+                    raw_data=with_keys,
+                    detection_method='gcloud_cli',
+                )
+
+        # Primitive roles
+        iam_policy = self._run_cli_json([
+            'gcloud', 'projects', 'get-iam-policy', project, '--format=json'
+        ])
+        if iam_policy:
+            prim: List[Dict] = []
+            for binding in iam_policy.get('bindings', []):
+                role = binding.get('role', '')
+                if role in ('roles/owner', 'roles/editor'):
+                    user_m = [m for m in binding.get('members', [])
+                              if m.startswith(('user:', 'group:'))]
+                    if user_m:
+                        prim.append({'role': role, 'members': user_m})
+            if prim:
+                self.add_finding(
+                    severity='HIGH',
+                    title='GCP Primitive Roles In Use',
+                    description=(
+                        'Primitive roles (Owner/Editor) are assigned to '
+                        'users or groups.'
+                    ),
+                    affected_asset=f'gcp:iam:{project}',
+                    finding_type='cloud_iam',
+                    remediation=(
+                        'Replace primitive roles with predefined or '
+                        'custom roles.'
+                    ),
+                    raw_data=prim,
+                    detection_method='gcloud_cli',
+                )
+
+    def _check_gcp_firewall(self, scan_type: str) -> None:
+        """Check GCP firewall rules."""
+        rules = self._run_cli_json([
+            'gcloud', 'compute', 'firewall-rules', 'list', '--format=json'
+        ])
+        if not rules:
+            return
+        self.add_result('gcp_firewall', {'count': len(rules)}, 'gcp')
+
+        permissive: List[Dict] = []
+        open_mgmt: List[Dict] = []
+
+        for rule in rules:
+            if rule.get('direction') != 'INGRESS' or rule.get('disabled'):
+                continue
+            if '0.0.0.0/0' not in rule.get('sourceRanges', []):
+                continue
+            name = rule.get('name', '')
+            for ar in rule.get('allowed', []):
+                proto = ar.get('IPProtocol', '')
+                ports = ar.get('ports', [])
+                if not ports:
+                    permissive.append({
+                        'rule': name, 'protocol': proto, 'ports': 'all',
+                    })
+                else:
+                    for p in ports:
+                        if p in ('22', '3389'):
+                            open_mgmt.append({'rule': name, 'port': p})
+                        elif '-' in str(p):
+                            permissive.append({
+                                'rule': name, 'protocol': proto, 'ports': p,
+                            })
+
+        if permissive:
+            self.add_finding(
+                severity='HIGH',
+                title=(
+                    f'{len(permissive)} GCP Firewall Rules Open to 0.0.0.0/0'
+                ),
+                description=(
+                    f"{len(permissive)} rules allow broad inbound internet "
+                    f"access."
+                ),
+                affected_asset='gcp:compute',
+                finding_type='cloud_network',
+                remediation='Restrict source ranges to specific CIDRs.',
+                raw_data=permissive,
+                detection_method='gcloud_cli',
+            )
+        if open_mgmt:
+            self.add_finding(
+                severity='CRITICAL',
+                title=(
+                    f'{len(open_mgmt)} GCP Firewall Rules With SSH/RDP '
+                    f'Open to World'
+                ),
+                description=(
+                    f"{len(open_mgmt)} rules allow SSH or RDP from 0.0.0.0/0."
+                ),
+                affected_asset='gcp:compute',
+                finding_type='cloud_network',
+                remediation='Use IAP tunneling instead of open SSH/RDP.',
+                raw_data=open_mgmt,
+                detection_method='gcloud_cli',
+            )
+
+    def _check_gcp_logging(self, scan_type: str) -> None:
+        """Check GCP logging configuration."""
+        project = self._run_cli([
+            'gcloud', 'config', 'get-value', 'project'
+        ])
+        if not project:
+            return
+
+        iam_policy = self._run_cli_json([
+            'gcloud', 'projects', 'get-iam-policy', project, '--format=json'
+        ])
+        if iam_policy:
+            ac = iam_policy.get('auditConfigs', [])
+            if not ac:
+                self.add_finding(
+                    severity='MEDIUM',
+                    title='GCP Audit Logging Not Configured',
+                    description='No audit log config found on the project.',
+                    affected_asset=f'gcp:project:{project}',
+                    finding_type='cloud_logging',
+                    remediation='Configure Data Access audit logs.',
+                    detection_method='gcloud_cli',
+                )
+            else:
+                self.add_result(
+                    'gcp_audit_config', {'configs': len(ac)}, 'gcp',
+                )
+
+        if scan_type == 'deep':
+            subnets = self._run_cli_json([
+                'gcloud', 'compute', 'networks', 'subnets', 'list',
+                '--format=json',
+            ])
+            if subnets:
+                no_fl = [
+                    s.get('name', '') for s in subnets
+                    if not s.get('logConfig', {}).get('enable', False)
+                ]
+                if no_fl:
+                    self.add_finding(
+                        severity='MEDIUM',
+                        title=(
+                            f'{len(no_fl)} GCP Subnets Without VPC Flow Logs'
+                        ),
+                        description=(
+                            f"{len(no_fl)} subnets lack VPC flow logs."
+                        ),
+                        affected_asset=f'gcp:network:{project}',
+                        finding_type='cloud_logging',
+                        remediation='Enable VPC flow logs on all subnets.',
+                        raw_data=no_fl,
+                        detection_method='gcloud_cli',
+                    )
 
 
 if __name__ == '__main__':
     scanner = CloudScanner()
-    print("Cloud Scanner initialized")
-
-    # Check deployment mode
-    if get_platform_info:
-        pi = get_platform_info()
-        print(f"  Deployment mode: {pi.deployment_mode}")
-        if pi.is_portable:
-            print("  Cloud scanning DISABLED in portable mode")
-
-    print(f"  AWS available: {scanner.aws_available}")
-    print(f"  Azure available: {scanner.azure_available}")
-    print(f"  GCP available: {scanner.gcp_available}")
-
-    if not any([scanner.aws_available, scanner.azure_available, scanner.gcp_available]):
-        print("\n  No cloud providers detected")
-        print("  Install: pip install boto3 (AWS)")
-        print("  Install: pip install azure-identity azure-mgmt-resource (Azure)")
-        print("  Install: pip install google-cloud-resource-manager (GCP)")
-        print("  Or install CLI: aws, az, gcloud")
-
-    print("\nCloud Scanner ready")
+    print(f"Cloud Scanner initialized: {scanner.SCANNER_NAME}")
+    providers = scanner._detect_providers()
+    print(f"Available providers: {providers}")

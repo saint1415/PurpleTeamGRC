@@ -17,18 +17,30 @@ data/results/
 data/logs/
 data/reports/
 data/archives/
+data/agents.db
+data/asset_inventory.db
+data/audit.db
+data/discovery.db
+data/exceptions.db
+data/remediation.db
+data/risk_register.db
 
 # Intel data IS tracked (for airgapped/offline operation)
 # data/threat_intel/ - KEV catalog, EPSS scores
 # data/vuln_db/      - NVD CVE cache
 
-# Credentials (sensitive)
+# Credentials and secrets (sensitive)
+.env
+.env.*
 config/credentials.yaml
 config/credentials.json
 config/active/credentials.yaml
 config/active/.cred_key
 *.key
 *.pem
+
+# Exports (session-specific, may contain sensitive findings)
+exports/
 
 # OS
 .DS_Store
