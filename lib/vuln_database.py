@@ -2051,9 +2051,12 @@ if __name__ == '__main__':
         print(f"    CVSS v3.1: {cve.get('cvss_v31_score', 'N/A')} ({cve.get('cvss_v31_severity', 'N/A')})")
         print(f"    CWEs: {cve.get('cwe_ids', [])}")
         print(f"    OWASP: {cve.get('owasp_categories', [])}")
-        print(f"    CWE Top 25: {[f'#{c['rank']} {c['cwe_id']}' for c in cve.get('cwe_top25', [])]}")
-        print(f"    CAPEC: {[p['name'] for p in cve.get('capec_patterns', [])]}")
-        print(f"    ATT&CK: {[t['name'] for t in cve.get('attack_techniques', [])]}")
+        top25 = [f"#{c.get('rank')} {c.get('cwe_id')}" for c in cve.get('cwe_top25', [])]
+        capec = [p.get('name') for p in cve.get('capec_patterns', [])]
+        attack = [t.get('name') for t in cve.get('attack_techniques', [])]
+        print(f"    CWE Top 25: {top25}")
+        print(f"    CAPEC: {capec}")
+        print(f"    ATT&CK: {attack}")
         print(f"    KEV Status: {cve.get('kev_status', 'N/A')}")
         print(f"    EPSS Score: {cve.get('epss_score', 'N/A')}")
         print(f"    Effective Priority: {cve.get('effective_priority', 'N/A')}")
