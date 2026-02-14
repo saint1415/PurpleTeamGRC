@@ -25,9 +25,9 @@ data/exceptions.db
 data/remediation.db
 data/risk_register.db
 
-# Intel data IS tracked (for airgapped/offline operation)
+# Intel data IS tracked (for air-gapped/offline operation via Git LFS)
 # data/threat_intel/ - KEV catalog, EPSS scores
-# data/vuln_db/      - NVD CVE cache
+# data/vuln_db/      - NVD CVE database (tracked via Git LFS in .gitattributes)
 
 # Credentials and secrets (sensitive)
 .env
