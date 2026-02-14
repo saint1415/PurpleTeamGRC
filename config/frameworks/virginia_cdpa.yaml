@@ -1,0 +1,195 @@
+# Virginia Consumer Data Protection Act (VCDPA)
+# Va. Code Ann. § 59.1-575 et seq.
+# Effective: January 1, 2023
+
+framework:
+  id: virginia_cdpa
+  name: Virginia Consumer Data Protection Act
+  abbreviation: VCDPA
+  version: "2021"
+  jurisdiction: Virginia
+  effective_date: "2023-01-01"
+  regulatory_body: Virginia Attorney General
+
+  description: |
+    The VCDPA grants Virginia residents rights regarding their personal data
+    and requires businesses meeting certain thresholds to comply with data
+    protection obligations.
+
+  applicability:
+    thresholds:
+      - Conducts business in Virginia OR produces products/services targeted to Virginia residents
+      - AND controls or processes personal data of 100,000+ Virginia consumers
+      - OR controls or processes data of 25,000+ consumers AND derives 50%+ revenue from sale of personal data
+    exemptions:
+      - HIPAA covered entities and business associates
+      - Financial institutions subject to GLBA
+      - Nonprofits
+      - Higher education institutions
+      - Government entities
+      - Certain employment data
+
+  # Consumer Rights
+  consumer_rights:
+    - id: right_know
+      name: Right to Know
+      description: Confirm whether controller is processing data
+      policies_required:
+        - data-subject-rights-policy
+        - privacy-policy
+
+    - id: right_access
+      name: Right to Access
+      description: Access personal data processed by controller
+      policies_required:
+        - data-subject-rights-policy
+
+    - id: right_correct
+      name: Right to Correction
+      description: Correct inaccuracies in personal data
+      policies_required:
+        - data-subject-rights-policy
+        - data-quality-policy
+
+    - id: right_delete
+      name: Right to Deletion
+      description: Delete personal data provided or obtained
+      policies_required:
+        - data-subject-rights-policy
+        - data-retention-policy
+
+    - id: right_portability
+      name: Right to Data Portability
+      description: Obtain copy in portable, readily usable format
+      policies_required:
+        - data-subject-rights-policy
+        - data-portability-policy
+
+    - id: right_opt_out_sale
+      name: Right to Opt Out of Sale
+      description: Opt out of sale of personal data
+      policies_required:
+        - opt-out-policy
+        - data-sale-policy
+
+    - id: right_opt_out_targeted
+      name: Right to Opt Out of Targeted Advertising
+      description: Opt out of processing for targeted advertising
+      policies_required:
+        - opt-out-policy
+        - advertising-policy
+
+    - id: right_opt_out_profiling
+      name: Right to Opt Out of Profiling
+      description: Opt out of profiling with legal/significant effects
+      policies_required:
+        - opt-out-policy
+        - automated-decision-making-policy
+
+  # Controller Responsibilities
+  controller_obligations:
+    - id: purpose_limitation
+      name: Purpose Limitation
+      description: Limit collection to adequate, relevant, limited purposes
+      policies_required:
+        - purpose-limitation-policy
+        - data-minimization-policy
+
+    - id: data_security
+      name: Data Security
+      description: Establish, implement, maintain reasonable security practices
+      policies_required:
+        - information-security-policy
+        - data-protection-policy
+
+    - id: nondiscrimination
+      name: Non-Discrimination
+      description: Process consumer requests without discrimination
+      policies_required:
+        - data-subject-rights-policy
+        - non-discrimination-policy
+
+    - id: sensitive_data_consent
+      name: Sensitive Data Consent
+      description: Obtain consent before processing sensitive data
+      sensitive_data_categories:
+        - Racial or ethnic origin
+        - Religious beliefs
+        - Mental or physical health diagnosis
+        - Sexual orientation
+        - Citizenship or immigration status
+        - Genetic or biometric data (for identification)
+        - Personal data of known child
+        - Precise geolocation data
+      policies_required:
+        - sensitive-data-policy
+        - consent-management-policy
+
+    - id: transparency
+      name: Transparency
+      description: Provide reasonably accessible, clear privacy notice
+      notice_requirements:
+        - Categories of personal data processed
+        - Purpose of processing
+        - How to exercise consumer rights
+        - Categories of data shared with third parties
+        - Categories of third parties with whom data is shared
+      policies_required:
+        - privacy-notice-policy
+        - privacy-policy
+
+  # Data Protection Assessments
+  protection_assessments:
+    required_for:
+      - Targeted advertising
+      - Sale of personal data
+      - Profiling with reasonably foreseeable risk
+      - Processing of sensitive data
+      - Processing with heightened risk of harm
+    policies_required:
+      - data-protection-impact-assessment-policy
+      - risk-assessment-policy
+
+  # Processor Requirements
+  processor_obligations:
+    contract_requirements:
+      - Clear instructions for processing
+      - Nature and purpose of processing
+      - Type of data and duration
+      - Controller's obligations and rights
+    policies_required:
+      - data-processing-agreement-policy
+      - vendor-management-policy
+
+  # Policy Mapping Summary
+  policy_mapping:
+    required:
+      - privacy-policy
+      - privacy-notice-policy
+      - data-subject-rights-policy
+      - information-security-policy
+      - data-protection-policy
+      - consent-management-policy
+      - sensitive-data-policy
+      - opt-out-policy
+      - data-processing-agreement-policy
+      - data-protection-impact-assessment-policy
+
+    recommended:
+      - data-minimization-policy
+      - data-retention-policy
+      - encryption-policy
+      - access-control-policy
+      - vendor-management-policy
+
+  enforcement:
+    enforcement_authority: Virginia Attorney General
+    cure_period: 30 days
+    penalties: Up to $7,500 per violation
+    private_right_of_action: No
+
+  sources:
+    - url: https://www.oag.state.va.us/consumer-protection/index.php/vcdpa
+      type: regulatory
+    - url: https://lis.virginia.gov/cgi-bin/legp604.exe?211+ful+SB1392ER
+      type: statute

@@ -1,0 +1,409 @@
+# General Data Protection Regulation (GDPR)
+# Regulation (EU) 2016/679
+# https://gdpr-info.eu/
+
+framework:
+  id: gdpr
+  name: General Data Protection Regulation (GDPR)
+  version: "2016/679"
+  release_date: 2016-04-27
+  effective_date: 2018-05-25
+  authority: European Union
+  url: https://gdpr-info.eu/
+
+# GDPR Chapters and Key Articles
+# Focus on articles requiring organizational policies and procedures
+
+chapters:
+
+  # ============================================
+  # CHAPTER II - PRINCIPLES (Articles 5-11)
+  # ============================================
+  principles:
+    name: Principles
+    description: Principles relating to processing of personal data
+
+    controls:
+      Art.5.1.a:
+        name: Lawfulness, fairness and transparency
+        description: Personal data shall be processed lawfully, fairly and in a transparent manner
+        policies_required:
+          - data-privacy-policy
+          - privacy-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+      Art.5.1.b:
+        name: Purpose limitation
+        description: Personal data collected for specified, explicit and legitimate purposes
+        policies_required:
+          - data-privacy-policy
+        policies_recommended:
+          - data-classification-policy
+
+      Art.5.1.c:
+        name: Data minimisation
+        description: Personal data shall be adequate, relevant and limited to what is necessary
+        policies_required:
+          - data-privacy-policy
+          - data-classification-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+      Art.5.1.d:
+        name: Accuracy
+        description: Personal data shall be accurate and kept up to date
+        policies_required:
+          - data-integrity-policy
+          - data-privacy-policy
+        policies_recommended: []
+
+      Art.5.1.e:
+        name: Storage limitation
+        description: Personal data kept in identifiable form no longer than necessary
+        policies_required:
+          - data-retention-policy
+          - disposal-policy
+        policies_recommended:
+          - data-privacy-policy
+
+      Art.5.1.f:
+        name: Integrity and confidentiality
+        description: Personal data processed with appropriate security
+        policies_required:
+          - information-security-policy
+          - encryption-policy
+        policies_recommended:
+          - data-classification-policy
+
+      Art.5.2:
+        name: Accountability
+        description: Controller shall be responsible for and demonstrate compliance
+        policies_required:
+          - gdpr-eu-privacy-and-data-protection-policy
+          - documentation-policy
+        policies_recommended:
+          - audit-policy
+
+      Art.6:
+        name: Lawfulness of processing
+        description: Processing shall be lawful only with valid legal basis
+        policies_required:
+          - data-privacy-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - privacy-policy
+
+      Art.7:
+        name: Conditions for consent
+        description: Controller must demonstrate consent and allow withdrawal
+        policies_required:
+          - data-privacy-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - privacy-policy
+
+      Art.9:
+        name: Processing of special categories of personal data
+        description: Prohibition on processing special categories unless exceptions apply
+        policies_required:
+          - data-classification-policy
+          - data-privacy-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+  # ============================================
+  # CHAPTER III - RIGHTS OF DATA SUBJECT (Articles 12-23)
+  # ============================================
+  data_subject_rights:
+    name: Rights of the Data Subject
+    description: Rights of individuals regarding their personal data
+
+    controls:
+      Art.12:
+        name: Transparent information, communication and modalities
+        description: Provide information in concise, transparent, intelligible form
+        policies_required:
+          - privacy-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - web-site-privacy-policy
+
+      Art.13:
+        name: Information to be provided where personal data are collected
+        description: Provide identity, purposes, recipients, retention period, rights
+        policies_required:
+          - privacy-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - data-privacy-policy
+
+      Art.14:
+        name: Information where personal data not obtained from data subject
+        description: Provide information when data obtained from other sources
+        policies_required:
+          - privacy-policy
+          - data-privacy-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+      Art.15:
+        name: Right of access by the data subject
+        description: Data subject right to obtain confirmation and access to data
+        policies_required:
+          - data-privacy-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - access-control-policy
+
+      Art.16:
+        name: Right to rectification
+        description: Data subject right to rectification of inaccurate personal data
+        policies_required:
+          - data-privacy-policy
+          - data-integrity-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+      Art.17:
+        name: Right to erasure (right to be forgotten)
+        description: Data subject right to erasure of personal data
+        policies_required:
+          - data-privacy-policy
+          - disposal-policy
+        policies_recommended:
+          - data-retention-policy
+
+      Art.18:
+        name: Right to restriction of processing
+        description: Data subject right to restrict processing
+        policies_required:
+          - data-privacy-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended: []
+
+      Art.19:
+        name: Notification obligation regarding rectification or erasure
+        description: Communicate rectification, erasure or restriction to recipients
+        policies_required:
+          - data-privacy-policy
+        policies_recommended:
+          - third-party-service-providers-policy
+
+      Art.20:
+        name: Right to data portability
+        description: Data subject right to receive data in structured, machine-readable format
+        policies_required:
+          - data-privacy-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended: []
+
+      Art.21:
+        name: Right to object
+        description: Data subject right to object to processing
+        policies_required:
+          - data-privacy-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - privacy-policy
+
+      Art.22:
+        name: Automated individual decision-making, including profiling
+        description: Right not to be subject to solely automated decision-making
+        policies_required:
+          - data-privacy-policy
+          - ai-ml-governance-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+  # ============================================
+  # CHAPTER IV - CONTROLLER AND PROCESSOR (Articles 24-43)
+  # ============================================
+  controller_processor:
+    name: Controller and Processor
+    description: Obligations of controllers and processors
+
+    controls:
+      Art.24:
+        name: Responsibility of the controller
+        description: Implement appropriate technical and organisational measures
+        policies_required:
+          - information-security-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - it-governance-policy
+
+      Art.25:
+        name: Data protection by design and by default
+        description: Implement data protection principles in design
+        policies_required:
+          - secure-software-development-lifecycle-policy
+          - data-privacy-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+      Art.26:
+        name: Joint controllers
+        description: Joint controllers shall determine responsibilities
+        policies_required:
+          - third-party-service-providers-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended: []
+
+      Art.27:
+        name: Representatives of controllers not established in the Union
+        description: Designate representative in the Union
+        policies_required:
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - compliance-policy
+
+      Art.28:
+        name: Processor
+        description: Processing by a processor governed by contract
+        policies_required:
+          - third-party-service-providers-policy
+          - vendor-access-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+      Art.29:
+        name: Processing under authority of controller or processor
+        description: Processor and employees act only on controller instructions
+        policies_required:
+          - acceptable-use-policy
+          - personnel-security-policy
+        policies_recommended:
+          - data-privacy-policy
+
+      Art.30:
+        name: Records of processing activities
+        description: Maintain records of processing activities
+        policies_required:
+          - documentation-policy
+          - audit-trails-policy
+        policies_recommended:
+          - gdpr-eu-privacy-and-data-protection-policy
+
+      Art.31:
+        name: Cooperation with supervisory authority
+        description: Cooperate with supervisory authority
+        policies_required:
+          - compliance-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - incident-response-policy
+
+      Art.32:
+        name: Security of processing
+        description: Implement appropriate technical and organisational security measures
+        policies_required:
+          - information-security-policy
+          - encryption-policy
+          - access-control-policy
+        policies_recommended:
+          - risk-assessment-policy
+
+      Art.33:
+        name: Notification of personal data breach to supervisory authority
+        description: Notify supervisory authority within 72 hours of breach
+        policies_required:
+          - incident-response-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - incident-response-plan
+
+      Art.34:
+        name: Communication of personal data breach to data subject
+        description: Communicate breach to data subject when high risk
+        policies_required:
+          - incident-response-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - business-continuity-communications-plan
+
+      Art.35:
+        name: Data protection impact assessment
+        description: Carry out DPIA where processing likely results in high risk
+        policies_required:
+          - risk-assessment-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - data-privacy-policy
+
+      Art.36:
+        name: Prior consultation
+        description: Consult supervisory authority where DPIA indicates high risk
+        policies_required:
+          - gdpr-eu-privacy-and-data-protection-policy
+          - risk-assessment-policy
+        policies_recommended:
+          - compliance-policy
+
+      Art.37:
+        name: Designation of the data protection officer
+        description: Designate DPO where required
+        policies_required:
+          - gdpr-eu-privacy-and-data-protection-policy
+          - information-security-policy
+        policies_recommended:
+          - it-governance-policy
+
+      Art.38:
+        name: Position of the data protection officer
+        description: DPO shall be properly resourced and independent
+        policies_required:
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - personnel-security-policy
+
+      Art.39:
+        name: Tasks of the data protection officer
+        description: DPO tasks include informing, monitoring, advising
+        policies_required:
+          - gdpr-eu-privacy-and-data-protection-policy
+          - audit-policy
+        policies_recommended:
+          - security-awareness-and-training-policy
+
+  # ============================================
+  # CHAPTER V - TRANSFERS (Articles 44-50)
+  # ============================================
+  transfers:
+    name: Transfers of Personal Data to Third Countries
+    description: Rules for international data transfers
+
+    controls:
+      Art.44:
+        name: General principle for transfers
+        description: Transfers only with adequate safeguards
+        policies_required:
+          - data-sovereignty-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - third-party-service-providers-policy
+
+      Art.46:
+        name: Transfers subject to appropriate safeguards
+        description: Transfers with appropriate safeguards (SCCs, BCRs)
+        policies_required:
+          - data-sovereignty-policy
+          - gdpr-eu-privacy-and-data-protection-policy
+        policies_recommended:
+          - vendor-access-policy
+
+      Art.49:
+        name: Derogations for specific situations
+        description: Transfers based on derogations (consent, contract, etc.)
+        policies_required:
+          - gdpr-eu-privacy-and-data-protection-policy
+          - data-privacy-policy
+        policies_recommended: []
+
+# Summary
+summary:
+  total_controls: 42
+  chapter_2_principles: 10
+  chapter_3_rights: 12
+  chapter_4_obligations: 17
+  chapter_5_transfers: 3

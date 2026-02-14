@@ -1,0 +1,420 @@
+# EU AI Act - Artificial Intelligence Act
+# Regulation (EU) 2024/1689
+# Effective: August 1, 2024 (phased implementation through 2027)
+
+framework:
+  id: eu_ai_act
+  name: EU AI Act
+  version: "2024/1689"
+  release_date: "2024-07-12"
+  effective_date: "2024-08-01"
+  description: >
+    EU regulation laying down harmonised rules on artificial intelligence.
+    Establishes risk-based approach to AI systems with prohibitions, high-risk
+    requirements, and transparency obligations.
+
+  sources:
+    - url: https://eur-lex.europa.eu/eli/reg/2024/1689
+      type: official
+    - url: https://digital-strategy.ec.europa.eu/en/policies/regulatory-framework-ai
+      type: guidance
+
+  # EU AI Act organizes requirements by Article and risk category
+  articles:
+    # Chapter I - General Provisions
+    art_4:
+      name: "AI Literacy"
+      description: "AI literacy for providers and deployers"
+      controls:
+        art_4_1:
+          name: "AI Literacy Training"
+          description: "Ensure staff have sufficient AI literacy"
+          policies_required:
+            - ai-ml-governance-policy
+            - security-awareness-training-policy
+            - acceptable-use-policy
+
+    # Chapter II - Prohibited AI Practices
+    art_5:
+      name: "Prohibited AI Practices"
+      description: "AI practices that are prohibited"
+      controls:
+        art_5_1:
+          name: "Prohibited Systems"
+          description: "Prohibition on manipulative, exploitative, and certain surveillance AI"
+          policies_required:
+            - ai-ml-governance-policy
+            - ethical-ai-policy
+            - data-protection-policy
+
+    # Chapter III - High-Risk AI Systems
+    art_9:
+      name: "Risk Management System"
+      description: "Risk management for high-risk AI systems"
+      controls:
+        art_9_1:
+          name: "AI Risk Management"
+          description: "Establish, implement, document and maintain risk management system"
+          policies_required:
+            - ai-ml-governance-policy
+            - risk-management-policy
+            - risk-assessment-policy
+        art_9_2:
+          name: "Risk Identification"
+          description: "Identify and analyze known and foreseeable risks"
+          policies_required:
+            - ai-ml-governance-policy
+            - risk-assessment-policy
+        art_9_4:
+          name: "Risk Mitigation"
+          description: "Adopt suitable risk management measures"
+          policies_required:
+            - ai-ml-governance-policy
+            - risk-management-policy
+
+    art_10:
+      name: "Data and Data Governance"
+      description: "Data governance for training, validation, and testing"
+      controls:
+        art_10_2:
+          name: "Data Governance"
+          description: "Training, validation and testing data sets subject to appropriate data governance"
+          policies_required:
+            - ai-ml-governance-policy
+            - data-governance-policy
+            - data-quality-policy
+        art_10_3:
+          name: "Data Requirements"
+          description: "Data sets shall be relevant, representative, and to the best extent possible free of errors"
+          policies_required:
+            - data-quality-policy
+            - ai-ml-governance-policy
+        art_10_5:
+          name: "Bias Detection"
+          description: "Detection and correction of bias"
+          policies_required:
+            - ai-ml-governance-policy
+            - ethical-ai-policy
+
+    art_11:
+      name: "Technical Documentation"
+      description: "Technical documentation requirements"
+      controls:
+        art_11_1:
+          name: "AI Documentation"
+          description: "Technical documentation drawn up before placing on market"
+          policies_required:
+            - ai-ml-governance-policy
+            - documentation-policy
+            - change-management-policy
+
+    art_12:
+      name: "Record-Keeping"
+      description: "Automatic recording of events (logs)"
+      controls:
+        art_12_1:
+          name: "AI Logging"
+          description: "High-risk AI systems shall allow automatic recording of events"
+          policies_required:
+            - ai-ml-governance-policy
+            - logging-and-monitoring-policy
+            - audit-log-policy
+
+    art_13:
+      name: "Transparency and Information"
+      description: "Transparency requirements for users"
+      controls:
+        art_13_1:
+          name: "User Transparency"
+          description: "Design and develop AI systems to enable deployers to interpret output"
+          policies_required:
+            - ai-ml-governance-policy
+            - transparency-policy
+
+    art_14:
+      name: "Human Oversight"
+      description: "Human oversight requirements"
+      controls:
+        art_14_1:
+          name: "Human Oversight Design"
+          description: "Design AI systems for effective human oversight"
+          policies_required:
+            - ai-ml-governance-policy
+            - ethical-ai-policy
+        art_14_2:
+          name: "Oversight Measures"
+          description: "Appropriate human-machine interface tools"
+          policies_required:
+            - ai-ml-governance-policy
+            - acceptable-use-policy
+
+    art_15:
+      name: "Accuracy, Robustness and Cybersecurity"
+      description: "Technical requirements for AI systems"
+      controls:
+        art_15_1:
+          name: "AI Accuracy"
+          description: "AI systems shall achieve appropriate level of accuracy"
+          policies_required:
+            - ai-ml-governance-policy
+            - data-quality-policy
+        art_15_3:
+          name: "AI Robustness"
+          description: "AI systems shall be resilient against errors, faults, and inconsistencies"
+          policies_required:
+            - ai-ml-governance-policy
+            - secure-software-development-policy
+        art_15_5:
+          name: "AI Cybersecurity"
+          description: "AI systems shall be resilient against attempts to exploit vulnerabilities"
+          policies_required:
+            - ai-ml-governance-policy
+            - vulnerability-management-policy
+            - secure-software-development-policy
+            - cybersecurity-framework-policy
+
+    art_16:
+      name: "Provider Obligations"
+      description: "Obligations of providers of high-risk AI systems"
+      controls:
+        art_16_a:
+          name: "Compliance System"
+          description: "Ensure AI systems comply with requirements"
+          policies_required:
+            - ai-ml-governance-policy
+            - compliance-policy
+        art_16_c:
+          name: "Quality Management"
+          description: "Put in place quality management system"
+          policies_required:
+            - ai-ml-governance-policy
+            - quality-management-policy
+        art_16_i:
+          name: "Corrective Actions"
+          description: "Take necessary corrective actions"
+          policies_required:
+            - ai-ml-governance-policy
+            - incident-response-policy
+
+    art_17:
+      name: "Quality Management System"
+      description: "Quality management system requirements"
+      controls:
+        art_17_1:
+          name: "QMS Implementation"
+          description: "Put in place quality management system"
+          policies_required:
+            - ai-ml-governance-policy
+            - quality-management-policy
+            - documentation-policy
+        art_17_1_b:
+          name: "Design Control"
+          description: "Techniques, procedures and systematic actions for design"
+          policies_required:
+            - ai-ml-governance-policy
+            - secure-software-development-policy
+            - change-management-policy
+        art_17_1_c:
+          name: "Development Control"
+          description: "Techniques and procedures for development"
+          policies_required:
+            - ai-ml-governance-policy
+            - secure-software-development-policy
+        art_17_1_e:
+          name: "Data Management"
+          description: "Systems and procedures for data management"
+          policies_required:
+            - ai-ml-governance-policy
+            - data-governance-policy
+            - data-quality-policy
+        art_17_1_f:
+          name: "Risk Management Procedures"
+          description: "Risk management procedures"
+          policies_required:
+            - ai-ml-governance-policy
+            - risk-management-policy
+        art_17_1_h:
+          name: "Accountability Systems"
+          description: "Systems and procedures for accountability"
+          policies_required:
+            - ai-ml-governance-policy
+            - audit-policy
+        art_17_1_i:
+          name: "Reporting Procedures"
+          description: "Procedures for reporting serious incidents"
+          policies_required:
+            - ai-ml-governance-policy
+            - incident-response-policy
+
+    art_18:
+      name: "Documentation Keeping"
+      description: "Providers keeping documentation"
+      controls:
+        art_18_1:
+          name: "Document Retention"
+          description: "Keep documentation at disposal of authorities"
+          policies_required:
+            - ai-ml-governance-policy
+            - documentation-policy
+            - record-retention-policy
+
+    art_19:
+      name: "Automatically Generated Logs"
+      description: "Logs shall be kept by provider"
+      controls:
+        art_19_1:
+          name: "Log Retention"
+          description: "Keep logs of high-risk AI systems"
+          policies_required:
+            - ai-ml-governance-policy
+            - logging-and-monitoring-policy
+            - record-retention-policy
+
+    art_26:
+      name: "Deployer Obligations"
+      description: "Obligations of deployers of high-risk AI systems"
+      controls:
+        art_26_1:
+          name: "Deployer Compliance"
+          description: "Take appropriate technical and organizational measures"
+          policies_required:
+            - ai-ml-governance-policy
+            - acceptable-use-policy
+        art_26_5:
+          name: "Deployer Monitoring"
+          description: "Monitor operation of high-risk AI system"
+          policies_required:
+            - ai-ml-governance-policy
+            - logging-and-monitoring-policy
+        art_26_6:
+          name: "Deployer Record Keeping"
+          description: "Keep logs automatically generated"
+          policies_required:
+            - ai-ml-governance-policy
+            - logging-and-monitoring-policy
+            - record-retention-policy
+        art_26_8:
+          name: "DPIA"
+          description: "Use information to carry out data protection impact assessment"
+          policies_required:
+            - ai-ml-governance-policy
+            - data-protection-impact-assessment-policy
+
+    # Chapter IV - Transparency Obligations
+    art_50:
+      name: "Transparency for Certain AI Systems"
+      description: "Transparency obligations for providers and deployers"
+      controls:
+        art_50_1:
+          name: "AI Interaction Disclosure"
+          description: "Inform natural persons they are interacting with AI"
+          policies_required:
+            - ai-ml-governance-policy
+            - transparency-policy
+            - privacy-policy
+        art_50_2:
+          name: "AI Content Marking"
+          description: "Mark AI-generated content"
+          policies_required:
+            - ai-ml-governance-policy
+            - acceptable-use-policy
+        art_50_4:
+          name: "Deep Fake Disclosure"
+          description: "Disclose artificially generated or manipulated content"
+          policies_required:
+            - ai-ml-governance-policy
+            - acceptable-use-policy
+            - transparency-policy
+
+    # Chapter V - General Purpose AI Models
+    art_53:
+      name: "GPAI Model Obligations"
+      description: "Obligations for providers of general-purpose AI models"
+      controls:
+        art_53_1_a:
+          name: "GPAI Documentation"
+          description: "Draw up and keep technical documentation"
+          policies_required:
+            - ai-ml-governance-policy
+            - documentation-policy
+        art_53_1_b:
+          name: "GPAI Information"
+          description: "Draw up information and documentation for downstream providers"
+          policies_required:
+            - ai-ml-governance-policy
+            - documentation-policy
+            - vendor-risk-management-policy
+        art_53_1_c:
+          name: "GPAI Copyright"
+          description: "Put in place policy to respect EU copyright law"
+          policies_required:
+            - ai-ml-governance-policy
+            - intellectual-property-policy
+        art_53_1_d:
+          name: "GPAI Training Data"
+          description: "Draw up sufficiently detailed summary of training data"
+          policies_required:
+            - ai-ml-governance-policy
+            - data-governance-policy
+
+    art_55:
+      name: "Systemic Risk GPAI"
+      description: "Additional obligations for GPAI models with systemic risk"
+      controls:
+        art_55_1_a:
+          name: "Model Evaluation"
+          description: "Perform model evaluation including adversarial testing"
+          policies_required:
+            - ai-ml-governance-policy
+            - penetration-testing-policy
+        art_55_1_b:
+          name: "Systemic Risk Assessment"
+          description: "Assess and mitigate possible systemic risks"
+          policies_required:
+            - ai-ml-governance-policy
+            - risk-assessment-policy
+            - risk-management-policy
+        art_55_1_c:
+          name: "Incident Tracking"
+          description: "Track, document and report serious incidents"
+          policies_required:
+            - ai-ml-governance-policy
+            - incident-response-policy
+        art_55_1_d:
+          name: "Cybersecurity Protection"
+          description: "Ensure adequate level of cybersecurity protection"
+          policies_required:
+            - ai-ml-governance-policy
+            - cybersecurity-framework-policy
+            - information-security-policy
+
+  # Policy to control mapping
+  policy_mapping:
+    ai-ml-governance-policy: [art_4_1, art_5_1, art_9_1, art_9_2, art_9_4, art_10_2, art_10_3, art_10_5, art_11_1, art_12_1, art_13_1, art_14_1, art_14_2, art_15_1, art_15_3, art_15_5, art_16_a, art_16_c, art_16_i, art_17_1, art_17_1_b, art_17_1_c, art_17_1_e, art_17_1_f, art_17_1_h, art_17_1_i, art_18_1, art_19_1, art_26_1, art_26_5, art_26_6, art_26_8, art_50_1, art_50_2, art_50_4, art_53_1_a, art_53_1_b, art_53_1_c, art_53_1_d, art_55_1_a, art_55_1_b, art_55_1_c, art_55_1_d]
+    security-awareness-training-policy: [art_4_1]
+    acceptable-use-policy: [art_4_1, art_14_2, art_26_1, art_50_2, art_50_4]
+    ethical-ai-policy: [art_5_1, art_10_5, art_14_1]
+    data-protection-policy: [art_5_1]
+    risk-management-policy: [art_9_1, art_9_4, art_17_1_f, art_55_1_b]
+    risk-assessment-policy: [art_9_1, art_9_2, art_55_1_b]
+    data-governance-policy: [art_10_2, art_17_1_e, art_53_1_d]
+    data-quality-policy: [art_10_2, art_10_3, art_15_1]
+    documentation-policy: [art_11_1, art_17_1, art_18_1, art_53_1_a, art_53_1_b]
+    change-management-policy: [art_11_1, art_17_1_b]
+    logging-and-monitoring-policy: [art_12_1, art_19_1, art_26_5, art_26_6]
+    audit-log-policy: [art_12_1]
+    transparency-policy: [art_13_1, art_50_1, art_50_4]
+    secure-software-development-policy: [art_15_3, art_15_5, art_17_1_b, art_17_1_c]
+    vulnerability-management-policy: [art_15_5]
+    cybersecurity-framework-policy: [art_15_5, art_55_1_d]
+    compliance-policy: [art_16_a]
+    quality-management-policy: [art_16_c, art_17_1]
+    incident-response-policy: [art_16_i, art_17_1_i, art_55_1_c]
+    record-retention-policy: [art_18_1, art_19_1, art_26_6]
+    data-protection-impact-assessment-policy: [art_26_8]
+    privacy-policy: [art_50_1]
+    vendor-risk-management-policy: [art_53_1_b]
+    intellectual-property-policy: [art_53_1_c]
+    penetration-testing-policy: [art_55_1_a]
+    information-security-policy: [art_55_1_d]
+    audit-policy: [art_17_1_h]

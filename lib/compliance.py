@@ -5,6 +5,8 @@ Maps security findings to compliance controls across all major frameworks.
 Exceeds requirements for NIST, HIPAA, SOC 1/2, PCI-DSS, ISO 27001, etc.
 """
 
+import glob
+import os
 from dataclasses import dataclass
 from typing import Dict, List, Optional, Set
 from enum import Enum
@@ -14,6 +16,8 @@ class Framework(Enum):
     """Supported compliance frameworks."""
     NIST_800_53 = "NIST-800-53"
     NIST_CSF = "NIST-CSF"
+    NIST_CSF_2_0 = "nist_csf_2.0"
+    NIST_800_171 = "nist_800_171"
     HIPAA = "HIPAA"
     SOC1_TYPE2 = "SOC1-Type2"
     SOC2_TYPE2 = "SOC2-Type2"
@@ -25,6 +29,21 @@ class Framework(Enum):
     SOX = "SOX"
     HITRUST = "HITRUST"
     CIS = "CIS"
+    APRA_CPS234 = "apra_cps234"
+    CCPA = "ccpa"
+    CIS_BENCHMARKS = "cis_benchmarks"
+    COLORADO_PRIVACY = "colorado_privacy"
+    CONNECTICUT_CDPA = "connecticut_cdpa"
+    DORA = "dora"
+    EU_AI_ACT = "eu_ai_act"
+    NIS2 = "nis2"
+    NY_SHIELD = "ny_shield"
+    PCI_DSS_4 = "pci_dss_4"
+    SEC_CYBER = "sec_cyber"
+    SOC2 = "soc2"
+    TEXAS_DPSA = "texas_dpsa"
+    UK_FCA_RESILIENCE = "uk_fca_resilience"
+    VIRGINIA_CDPA = "virginia_cdpa"
 
 
 @dataclass
@@ -51,8 +70,10 @@ class ComplianceMapper:
     """Maps security findings to compliance controls across all frameworks."""
 
     def __init__(self):
+        self._framework_metadata: List[dict] = []
         self._load_control_definitions()
         self._load_mappings()
+        self._load_frameworks_from_yaml()
 
     def _load_control_definitions(self):
         """Load control definitions for all frameworks."""
@@ -452,6 +473,230 @@ class ComplianceMapper:
                            ['Cryptography review'],
                            ['crypto_config', 'key_management']),
         }
+
+    def _load_frameworks_from_yaml(self):
+        """Dynamically load framework YAML files from config/frameworks/ at runtime.
+
+        Handles varying YAML structures (families, domains, functions, themes,
+        categories, chapters, sections, requirements, safeguards, articles).
+        Supplements hardcoded controls without replacing them.
+        """
+        try:
+            import yaml
+        except ImportError:
+            return
+
+        # Resolve path relative to this file's location
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        frameworks_dir = os.path.join(base_dir, 'config', 'frameworks')
+
+        if not os.path.isdir(frameworks_dir):
+            return
+
+        yaml_files = glob.glob(os.path.join(frameworks_dir, '*.yaml'))
+        for yaml_path in sorted(yaml_files):
+            try:
+                with open(yaml_path, 'r', encoding='utf-8') as f:
+                    data = yaml.safe_load(f)
+                if not data or not isinstance(data, dict):
+                    continue
+
+                fw_meta = data.get('framework', {})
+                if not isinstance(fw_meta, dict):
+                    continue
+                fw_id = str(fw_meta.get('id', ''))
+                if not fw_id:
+                    continue
+                fw_name = str(fw_meta.get('name', fw_id))
+                fw_version = str(fw_meta.get('version', ''))
+
+                # Initialize control dict for this framework if not present
+                if fw_id not in self.controls:
+                    self.controls[fw_id] = {}
+
+                # Extract controls from top-level structural keys
+                self._extract_controls_from_data(data, fw_id)
+
+                # Also extract from keys nested under the framework dict
+                # (many YAMLs put domains/families/chapters/requirements here)
+                self._extract_controls_from_data(fw_meta, fw_id)
+
+                # Store metadata
+                self._framework_metadata.append({
+                    'id': fw_id,
+                    'name': fw_name,
+                    'version': fw_version,
+                    'control_count': len(self.controls.get(fw_id, {})),
+                })
+            except Exception:
+                continue
+
+    def _extract_controls_from_data(self, data: dict, fw_id: str):
+        """Walk top-level grouping keys and extract controls from any structure."""
+        # All known top-level grouping keys across the 23 YAML files
+        grouping_keys = [
+            'families', 'domains', 'functions', 'themes', 'categories',
+            'chapters', 'sections', 'requirements', 'safeguards', 'articles',
+            'consumer_rights', 'obligations', 'principles',
+            'controls', 'practices', 'criteria',
+        ]
+        for key in grouping_keys:
+            container = data.get(key)
+            if container is None:
+                continue
+            if isinstance(container, dict):
+                self._walk_dict_groups(container, fw_id)
+            elif isinstance(container, list):
+                self._walk_list_groups(container, fw_id)
+
+    def _walk_dict_groups(self, groups: dict, fw_id: str, parent_name: str = ''):
+        """Walk dict-based groupings (families, domains, themes, etc.)."""
+        for group_key, group_val in groups.items():
+            if not isinstance(group_val, dict):
+                continue
+            group_name = group_val.get('name', parent_name or group_key)
+
+            # Look for control-holding sub-keys
+            ctrl_sub_keys = [
+                'controls', 'practices', 'criteria', 'subcategories',
+                'categories', 'safeguards', 'articles',
+            ]
+            found_controls = False
+            for sub_key in ctrl_sub_keys:
+                sub = group_val.get(sub_key)
+                if sub is None:
+                    continue
+                if isinstance(sub, dict):
+                    # Could be direct controls or another level of nesting
+                    has_nested = any(
+                        isinstance(v, dict) and any(
+                            k2 in v for k2 in ctrl_sub_keys
+                        )
+                        for v in sub.values() if isinstance(v, dict)
+                    )
+                    if has_nested:
+                        self._walk_dict_groups(sub, fw_id, group_name)
+                    else:
+                        self._register_controls_from_dict(sub, fw_id, group_name)
+                    found_controls = True
+                elif isinstance(sub, list):
+                    self._walk_list_groups(sub, fw_id, group_name)
+                    found_controls = True
+
+            if not found_controls:
+                # The group_val itself might contain control-like entries
+                # (e.g., articles -> art_X -> controls)
+                if 'controls' not in group_val and 'description' in group_val:
+                    # This dict IS a control itself
+                    self._register_single_control(group_key, group_val, fw_id, parent_name)
+                else:
+                    # Recurse into values that look like sub-groups
+                    for sub_key, sub_val in group_val.items():
+                        if isinstance(sub_val, dict) and sub_key not in (
+                            'name', 'description', 'policies_required',
+                            'policies_recommended', 'sources', 'levels',
+                            'implementation_groups', 'impact_levels',
+                            'key_concepts', 'definitions', 'applicability',
+                            'types',
+                        ):
+                            if 'controls' in sub_val or 'practices' in sub_val or 'criteria' in sub_val:
+                                self._walk_dict_groups({sub_key: sub_val}, fw_id, group_name)
+
+    def _walk_list_groups(self, items: list, fw_id: str, parent_name: str = ''):
+        """Walk list-based groupings (some requirements, chapters, consumer_rights)."""
+        for item in items:
+            if not isinstance(item, dict):
+                continue
+            item_id = str(item.get('id', ''))
+            item_name = item.get('name', parent_name or item_id)
+
+            # Check for nested controls (list or dict)
+            ctrl_sub_keys = ['controls', 'articles', 'practices', 'requirements']
+            found = False
+            for sub_key in ctrl_sub_keys:
+                sub = item.get(sub_key)
+                if sub is None:
+                    continue
+                if isinstance(sub, dict):
+                    self._register_controls_from_dict(sub, fw_id, item_name)
+                    found = True
+                elif isinstance(sub, list):
+                    self._walk_list_groups(sub, fw_id, item_name)
+                    found = True
+
+            if not found and item_id:
+                # Item itself is a control
+                self._register_single_control(item_id, item, fw_id, parent_name)
+
+    def _register_controls_from_dict(self, controls_dict: dict, fw_id: str, family: str):
+        """Register each entry in a controls dict as a Control object."""
+        for ctrl_id, ctrl_val in controls_dict.items():
+            if not isinstance(ctrl_val, dict):
+                continue
+            self._register_single_control(str(ctrl_id), ctrl_val, fw_id, family)
+
+    def _register_single_control(self, ctrl_id: str, ctrl_data: dict, fw_id: str, family: str):
+        """Register a single control into self.controls, skipping if already present."""
+        if ctrl_id in self.controls.get(fw_id, {}):
+            return  # Don't overwrite hardcoded controls
+        ctrl_name = ctrl_data.get('name', ctrl_id)
+        ctrl_desc = ctrl_data.get('description', '')
+        if isinstance(ctrl_desc, list):
+            ctrl_desc = '; '.join(str(d) for d in ctrl_desc)
+
+        if fw_id not in self.controls:
+            self.controls[fw_id] = {}
+        self.controls[fw_id][ctrl_id] = Control(
+            framework=fw_id,
+            control_id=ctrl_id,
+            control_name=str(ctrl_name),
+            family=str(family),
+            description=str(ctrl_desc),
+            audit_procedures=[],
+            evidence_types=[],
+        )
+
+    def get_all_controls(self, framework: str) -> Dict[str, Control]:
+        """Get all controls for a specific framework (alias for get_all_controls_for_framework).
+
+        Args:
+            framework: Framework ID string.
+
+        Returns:
+            Dict mapping control_id to Control objects.
+        """
+        return self.controls.get(framework, {})
+
+    def get_all_frameworks(self) -> List[dict]:
+        """Get metadata for all known frameworks.
+
+        Returns:
+            List of dicts with keys: id, name, version, control_count.
+            Includes both hardcoded and YAML-loaded frameworks.
+        """
+        # Build set of framework IDs already captured from YAML metadata
+        seen_ids = {m['id'] for m in self._framework_metadata}
+
+        result = list(self._framework_metadata)
+
+        # Include hardcoded frameworks that might not have YAML files
+        for fw_key, fw_controls in self.controls.items():
+            if fw_key not in seen_ids:
+                result.append({
+                    'id': fw_key,
+                    'name': fw_key,
+                    'version': '',
+                    'control_count': len(fw_controls),
+                })
+                seen_ids.add(fw_key)
+            else:
+                # Update control_count to reflect merged totals
+                for entry in result:
+                    if entry['id'] == fw_key:
+                        entry['control_count'] = len(fw_controls)
+                        break
+
+        return result
 
     def _load_mappings(self):
         """Load finding-to-control mappings."""

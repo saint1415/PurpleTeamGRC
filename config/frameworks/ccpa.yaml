@@ -1,0 +1,225 @@
+# California Consumer Privacy Act (CCPA) / California Privacy Rights Act (CPRA)
+# California Civil Code Section 1798.100-199.100
+
+framework:
+  id: ccpa
+  name: CCPA/CPRA
+  version: "2023"
+  release_date: 2023-01-01
+  authority: California Attorney General
+  url: https://oag.ca.gov/privacy/ccpa
+
+# CCPA/CPRA Requirements organized by category
+sections:
+
+  # Consumer Rights
+  consumer_rights:
+    name: Consumer Rights
+    description: Rights granted to California consumers regarding their personal information
+
+    controls:
+      "1798.100":
+        name: Right to Know - Collection
+        description: Consumer right to know what personal information is collected
+        policies_required:
+          - privacy-policy
+          - data-privacy-policy
+        policies_recommended:
+          - web-site-privacy-policy
+
+      "1798.105":
+        name: Right to Delete
+        description: Consumer right to request deletion of personal information
+        policies_required:
+          - data-privacy-policy
+          - disposal-policy
+        policies_recommended:
+          - data-retention-policy
+
+      "1798.106":
+        name: Right to Correct
+        description: Consumer right to correct inaccurate personal information
+        policies_required:
+          - data-privacy-policy
+          - data-integrity-policy
+        policies_recommended: []
+
+      "1798.110":
+        name: Right to Know - Disclosure
+        description: Consumer right to know what personal information is disclosed
+        policies_required:
+          - privacy-policy
+          - data-privacy-policy
+        policies_recommended:
+          - third-party-service-providers-policy
+
+      "1798.115":
+        name: Right to Know - Sale/Sharing
+        description: Consumer right to know about sale or sharing of personal information
+        policies_required:
+          - data-privacy-policy
+          - privacy-policy
+        policies_recommended: []
+
+      "1798.120":
+        name: Right to Opt-Out of Sale/Sharing
+        description: Consumer right to opt-out of sale or sharing
+        policies_required:
+          - data-privacy-policy
+          - privacy-policy
+        policies_recommended:
+          - web-site-privacy-policy
+
+      "1798.121":
+        name: Right to Limit Use of Sensitive Personal Information
+        description: Consumer right to limit use of sensitive personal information
+        policies_required:
+          - data-privacy-policy
+          - data-classification-policy
+        policies_recommended: []
+
+      "1798.125":
+        name: Non-Discrimination
+        description: Prohibition on discriminating against consumers exercising rights
+        policies_required:
+          - data-privacy-policy
+          - ethics-policy
+        policies_recommended: []
+
+  # Business Obligations
+  business_obligations:
+    name: Business Obligations
+    description: Requirements for businesses handling California consumer data
+
+    controls:
+      "1798.100.b":
+        name: Notice at Collection
+        description: Provide notice at or before point of collection
+        policies_required:
+          - privacy-policy
+          - web-site-privacy-policy
+        policies_recommended:
+          - data-privacy-policy
+
+      "1798.130":
+        name: Response to Consumer Requests
+        description: Methods for submitting and responding to consumer requests
+        policies_required:
+          - data-privacy-policy
+          - incident-response-policy
+        policies_recommended:
+          - documentation-policy
+
+      "1798.135":
+        name: Opt-Out Link Requirements
+        description: Clear and conspicuous opt-out link requirements
+        policies_required:
+          - web-site-privacy-policy
+          - data-privacy-policy
+        policies_recommended: []
+
+      "1798.140.d":
+        name: Definition Compliance - Business
+        description: Compliance requirements for qualifying businesses
+        policies_required:
+          - compliance-policy
+          - data-privacy-policy
+        policies_recommended: []
+
+      "1798.145":
+        name: Exemptions and Exceptions
+        description: Understanding and documenting applicable exemptions
+        policies_required:
+          - data-privacy-policy
+          - documentation-policy
+        policies_recommended:
+          - compliance-policy
+
+  # Security Requirements
+  security_requirements:
+    name: Security Requirements
+    description: Data security requirements under CCPA/CPRA
+
+    controls:
+      "1798.150":
+        name: Private Right of Action - Data Breaches
+        description: Security measures to prevent unauthorized access
+        policies_required:
+          - information-security-policy
+          - encryption-policy
+        policies_recommended:
+          - incident-response-policy
+
+      "1798.81.5":
+        name: Reasonable Security Measures
+        description: Implement reasonable security procedures
+        policies_required:
+          - information-security-policy
+          - access-control-policy
+        policies_recommended:
+          - risk-assessment-policy
+
+      "1798.82":
+        name: Data Breach Notification
+        description: Notify consumers of security breaches
+        policies_required:
+          - incident-response-policy
+          - incident-response-plan
+        policies_recommended:
+          - business-continuity-communications-plan
+
+  # Service Provider Requirements
+  service_providers:
+    name: Service Provider Requirements
+    description: Requirements for service providers and contractors
+
+    controls:
+      "1798.140.ag":
+        name: Service Provider Contracts
+        description: Contract requirements with service providers
+        policies_required:
+          - third-party-service-providers-policy
+          - vendor-access-policy
+        policies_recommended:
+          - data-privacy-policy
+
+      "1798.140.j":
+        name: Contractor Requirements
+        description: Requirements for contractors handling personal information
+        policies_required:
+          - third-party-service-providers-policy
+          - data-privacy-policy
+        policies_recommended:
+          - vendor-access-policy
+
+  # CPRA Additions
+  cpra_additions:
+    name: CPRA Additions
+    description: Additional requirements added by CPRA
+
+    controls:
+      "1798.185.a.15":
+        name: Risk Assessments
+        description: Conduct risk assessments for processing activities
+        policies_required:
+          - risk-assessment-policy
+          - data-privacy-policy
+        policies_recommended:
+          - risk-management-policy
+
+      "1798.185.a.16":
+        name: Cybersecurity Audits
+        description: Annual cybersecurity audits for high-risk processing
+        policies_required:
+          - audit-policy
+          - security-self-assessment-policy
+        policies_recommended:
+          - vulnerability-and-penetration-testing-policy
+
+summary:
+  total_controls: 22
+  consumer_rights: 8
+  business_obligations: 5
+  security_requirements: 3
+  service_providers: 2
+  cpra_additions: 2

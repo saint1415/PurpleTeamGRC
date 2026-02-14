@@ -1,0 +1,219 @@
+# Colorado Privacy Act (CPA)
+# C.R.S. § 6-1-1301 et seq.
+# Effective: July 1, 2023
+
+framework:
+  id: colorado_privacy
+  name: Colorado Privacy Act
+  abbreviation: CPA
+  version: "2021"
+  jurisdiction: Colorado
+  effective_date: "2023-07-01"
+  regulatory_body: Colorado Attorney General
+
+  description: |
+    The Colorado Privacy Act provides Colorado residents with rights
+    regarding their personal data and imposes obligations on businesses
+    that process personal data of Colorado residents.
+
+  applicability:
+    thresholds:
+      - Controls or processes personal data of 100,000+ Colorado residents per year
+      - OR controls or processes data of 25,000+ residents AND derives revenue from sale of personal data
+    exemptions:
+      - HIPAA covered entities and business associates
+      - Financial institutions subject to GLBA
+      - Nonprofits
+      - Higher education institutions
+      - Air carriers
+      - National securities associations
+
+  # Consumer Rights
+  consumer_rights:
+    - id: right_access
+      name: Right to Access
+      description: Confirm whether controller is processing personal data
+      policies_required:
+        - data-subject-rights-policy
+        - privacy-policy
+
+    - id: right_correct
+      name: Right to Correction
+      description: Correct inaccuracies in personal data
+      policies_required:
+        - data-subject-rights-policy
+        - data-quality-policy
+
+    - id: right_delete
+      name: Right to Deletion
+      description: Delete personal data
+      policies_required:
+        - data-subject-rights-policy
+        - data-retention-policy
+
+    - id: right_portability
+      name: Right to Data Portability
+      description: Obtain personal data in portable format
+      policies_required:
+        - data-subject-rights-policy
+        - data-portability-policy
+
+    - id: right_opt_out
+      name: Right to Opt Out
+      description: Opt out of targeted advertising, sale of data, or profiling
+      policies_required:
+        - data-subject-rights-policy
+        - privacy-notice-policy
+        - opt-out-policy
+
+  # Controller Responsibilities
+  controller_obligations:
+    - id: transparency
+      name: Transparency
+      description: Provide reasonably accessible privacy notice
+      requirements:
+        - Categories of personal data processed
+        - Purposes of processing
+        - How to exercise rights
+        - Categories of third parties with whom data is shared
+        - Whether data is sold
+      policies_required:
+        - privacy-notice-policy
+        - privacy-policy
+
+    - id: purpose_limitation
+      name: Purpose Limitation
+      description: Limit processing to disclosed purposes
+      policies_required:
+        - data-minimization-policy
+        - purpose-limitation-policy
+
+    - id: data_minimization
+      name: Data Minimization
+      description: Collect only adequate, relevant, limited data
+      policies_required:
+        - data-minimization-policy
+        - data-collection-policy
+
+    - id: secondary_use
+      name: Secondary Use Consent
+      description: Obtain consent before processing for incompatible purposes
+      policies_required:
+        - consent-management-policy
+
+    - id: security
+      name: Data Security
+      description: Implement appropriate technical and organizational measures
+      policies_required:
+        - information-security-policy
+        - data-protection-policy
+        - encryption-policy
+
+    - id: nondiscrimination
+      name: Non-Discrimination
+      description: Not discriminate against consumers exercising rights
+      policies_required:
+        - data-subject-rights-policy
+
+    - id: consent_sensitive
+      name: Sensitive Data Consent
+      description: Obtain consent before processing sensitive data
+      sensitive_data_categories:
+        - Racial or ethnic origin
+        - Religious beliefs
+        - Mental or physical health diagnosis
+        - Sexual orientation
+        - Citizenship or immigration status
+        - Genetic or biometric data
+        - Personal data of known child
+        - Precise geolocation data
+      policies_required:
+        - sensitive-data-policy
+        - consent-management-policy
+
+  # Data Protection Assessments (DPA)
+  protection_assessments:
+    required_for:
+      - Processing for targeted advertising
+      - Sale of personal data
+      - Processing for profiling with significant effects
+      - Processing of sensitive data
+      - Other processing with heightened risk
+
+    assessment_requirements:
+      - Identify and weigh benefits
+      - Identify potential risks to consumers
+      - Consider use of de-identified data
+      - Evaluate safeguards
+    policies_required:
+      - data-protection-impact-assessment-policy
+      - privacy-by-design-policy
+
+  # Processor Requirements
+  processor_obligations:
+    - id: proc_1
+      name: Follow Controller Instructions
+      description: Follow controller instructions
+      policies_required:
+        - data-processing-agreement-policy
+    - id: proc_2
+      name: Maintain Confidentiality
+      description: Maintain confidentiality
+      policies_required:
+        - confidentiality-policy
+    - id: proc_3
+      name: Data Deletion
+      description: Delete or return data after services
+      policies_required:
+        - data-retention-policy
+    - id: proc_4
+      name: Compliance Information
+      description: Make available information for compliance
+      policies_required:
+        - vendor-management-policy
+    - id: proc_5
+      name: Subprocessor Management
+      description: Engage subprocessors with consent and contract
+      policies_required:
+        - subprocessor-policy
+
+  # Universal Opt-Out Mechanism
+  universal_opt_out:
+    effective_date: "2024-07-01"
+    description: Must recognize opt-out preference signals
+    policies_required:
+      - opt-out-policy
+      - privacy-preference-policy
+
+  # Policy Mapping Summary
+  policy_mapping:
+    required:
+      - privacy-policy
+      - privacy-notice-policy
+      - data-subject-rights-policy
+      - information-security-policy
+      - data-protection-policy
+      - consent-management-policy
+      - sensitive-data-policy
+      - data-protection-impact-assessment-policy
+      - data-processing-agreement-policy
+      - vendor-management-policy
+      - data-retention-policy
+
+    recommended:
+      - data-minimization-policy
+      - encryption-policy
+      - access-control-policy
+      - incident-response-policy
+      - privacy-by-design-policy
+
+  enforcement:
+    enforcement_authority: Colorado Attorney General
+    cure_period: 60 days (expires January 1, 2025)
+    penalties: Up to $20,000 per violation
+
+  sources:
+    - url: https://coag.gov/resources/colorado-privacy-act/
+      type: regulatory
+    - url: https://leg.colorado.gov/bills/sb21-190
+      type: statute

@@ -1,0 +1,967 @@
+# NIST SP 800-171 Rev 3
+# Protecting Controlled Unclassified Information in Nonfederal Systems and Organizations
+# https://csrc.nist.gov/publications/detail/sp/800-171/rev-3/final
+
+framework:
+  id: nist_800_171
+  name: NIST SP 800-171 Rev 3
+  version: "Rev 3"
+  release_date: 2024-05-14
+  authority: National Institute of Standards and Technology
+  url: https://csrc.nist.gov/publications/detail/sp/800-171/rev-3/final
+
+# 17 Security Requirement Families
+# 110 Security Requirements
+
+families:
+
+  # ============================================
+  # ACCESS CONTROL (AC)
+  # ============================================
+  access_control:
+    name: Access Control
+    description: Limit system access to authorized users
+
+    controls:
+      "03.01.01":
+        name: Account Management
+        description: Manage system accounts including establishing, activating, modifying, disabling, and removing accounts
+        policies_required:
+          - account-management-policy
+          - access-control-policy
+        policies_recommended:
+          - identity-governance-policy
+
+      "03.01.02":
+        name: Access Enforcement
+        description: Enforce approved authorizations for logical access
+        policies_required:
+          - access-control-policy
+          - logical-access-controls-policy
+        policies_recommended:
+          - user-privilege-policy
+
+      "03.01.03":
+        name: Information Flow Enforcement
+        description: Enforce approved authorizations for controlling information flow
+        policies_required:
+          - data-classification-policy
+          - network-security-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.01.04":
+        name: Separation of Duties
+        description: Separate duties of individuals to reduce risk of malevolent activity
+        policies_required:
+          - access-control-policy
+          - user-privilege-policy
+        policies_recommended:
+          - privileged-access-management-policy
+
+      "03.01.05":
+        name: Least Privilege
+        description: Employ principle of least privilege
+        policies_required:
+          - user-privilege-policy
+          - access-control-policy
+        policies_recommended:
+          - privileged-access-management-policy
+
+      "03.01.06":
+        name: Least Privilege - Privileged Accounts
+        description: Authorize privileged access for specified compelling operational needs
+        policies_required:
+          - privileged-access-management-policy
+          - user-privilege-policy
+        policies_recommended:
+          - account-management-policy
+
+      "03.01.07":
+        name: Unsuccessful Logon Attempts
+        description: Limit unsuccessful logon attempts
+        policies_required:
+          - access-control-policy
+          - logging-policy
+        policies_recommended:
+          - account-management-policy
+
+      "03.01.08":
+        name: System Use Notification
+        description: Display system use notification message before granting access
+        policies_required:
+          - acceptable-use-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.01.09":
+        name: Session Lock
+        description: Prevent access via session lock after period of inactivity
+        policies_required:
+          - workstation-security-policy
+          - access-control-policy
+        policies_recommended:
+          - logical-access-controls-policy
+
+      "03.01.10":
+        name: Session Termination
+        description: Terminate user session after defined conditions
+        policies_required:
+          - access-control-policy
+          - workstation-security-policy
+        policies_recommended:
+          - logging-policy
+
+      "03.01.11":
+        name: Permitted Actions Without Identification or Authentication
+        description: Identify actions permitted without identification or authentication
+        policies_required:
+          - access-control-policy
+        policies_recommended:
+          - identification-and-authentication-policy
+
+      "03.01.12":
+        name: Remote Access
+        description: Monitor and control remote access sessions
+        policies_required:
+          - remote-access-policy
+          - access-control-policy
+        policies_recommended:
+          - vpn-policy
+
+      "03.01.13":
+        name: Remote Access - Cryptographic Protection
+        description: Employ cryptographic mechanisms to protect confidentiality of remote access sessions
+        policies_required:
+          - encryption-policy
+          - remote-access-policy
+        policies_recommended:
+          - vpn-policy
+
+      "03.01.14":
+        name: Remote Access - Routing
+        description: Route remote access via managed access control points
+        policies_required:
+          - network-security-policy
+          - remote-access-policy
+        policies_recommended:
+          - firewall-policy
+
+      "03.01.15":
+        name: Wireless Access
+        description: Protect wireless access using authentication and encryption
+        policies_required:
+          - network-security-policy
+          - encryption-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.01.16":
+        name: Access Control for Mobile Devices
+        description: Establish usage restrictions and connection requirements for mobile devices
+        policies_required:
+          - mobile-device-policy
+          - access-control-policy
+        policies_recommended:
+          - bring-your-own-device-and-technology-policy
+
+      "03.01.17":
+        name: Use of External Systems
+        description: Verify connection to external systems allowed
+        policies_required:
+          - third-party-service-providers-policy
+          - network-security-policy
+        policies_recommended:
+          - cloud-service-provider-policy
+
+      "03.01.18":
+        name: Portable Storage Devices
+        description: Control use of portable storage devices on external systems
+        policies_required:
+          - removable-media-policy
+        policies_recommended:
+          - data-classification-policy
+
+  # ============================================
+  # AWARENESS AND TRAINING (AT)
+  # ============================================
+  awareness_training:
+    name: Awareness and Training
+    description: Ensure personnel are aware of security risks and trained
+
+    controls:
+      "03.02.01":
+        name: Literacy Training and Awareness
+        description: Provide security awareness training
+        policies_required:
+          - security-awareness-and-training-policy
+        policies_recommended:
+          - security-awareness-and-training-plan
+
+      "03.02.02":
+        name: Role-Based Training
+        description: Provide role-based security training
+        policies_required:
+          - security-awareness-and-training-policy
+          - security-awareness-and-training-plan
+        policies_recommended:
+          - personnel-security-policy
+
+      "03.02.03":
+        name: Insider Threat Awareness
+        description: Provide insider threat awareness training
+        policies_required:
+          - insider-threat-policy
+          - security-awareness-and-training-policy
+        policies_recommended:
+          - reporting-violations-policy
+
+  # ============================================
+  # AUDIT AND ACCOUNTABILITY (AU)
+  # ============================================
+  audit_accountability:
+    name: Audit and Accountability
+    description: Create, protect, and retain system audit records
+
+    controls:
+      "03.03.01":
+        name: Event Logging
+        description: Create and retain system audit logs
+        policies_required:
+          - logging-policy
+          - audit-trails-policy
+        policies_recommended:
+          - data-retention-policy
+
+      "03.03.02":
+        name: Audit Record Content
+        description: Ensure audit records contain required information
+        policies_required:
+          - logging-policy
+          - audit-trails-policy
+        policies_recommended:
+          - documentation-policy
+
+      "03.03.03":
+        name: Audit Record Generation Capacity
+        description: Allocate sufficient audit record storage capacity
+        policies_required:
+          - logging-policy
+          - capacity-and-utilization-policy
+        policies_recommended:
+          - data-retention-policy
+
+      "03.03.04":
+        name: Response to Audit Logging Process Failures
+        description: Alert and take actions in event of audit logging failures
+        policies_required:
+          - logging-policy
+          - incident-response-policy
+        policies_recommended:
+          - security-monitoring-policy
+
+      "03.03.05":
+        name: Audit Record Review, Analysis, and Reporting
+        description: Review and analyze system audit records
+        policies_required:
+          - security-monitoring-policy
+          - audit-policy
+        policies_recommended:
+          - logging-policy
+
+      "03.03.06":
+        name: Audit Record Reduction and Report Generation
+        description: Provide audit record reduction and report generation
+        policies_required:
+          - security-monitoring-policy
+          - logging-policy
+        policies_recommended:
+          - audit-policy
+
+      "03.03.07":
+        name: Time Stamps
+        description: Provide time stamps to record audit record date and time
+        policies_required:
+          - logging-policy
+          - configuration-management-policy
+        policies_recommended: []
+
+      "03.03.08":
+        name: Protection of Audit Information
+        description: Protect audit information from unauthorized access
+        policies_required:
+          - logging-policy
+          - access-control-policy
+        policies_recommended:
+          - data-integrity-policy
+
+  # ============================================
+  # CONFIGURATION MANAGEMENT (CM)
+  # ============================================
+  configuration_management:
+    name: Configuration Management
+    description: Establish and maintain baseline configurations
+
+    controls:
+      "03.04.01":
+        name: Baseline Configuration
+        description: Establish and maintain baseline configurations
+        policies_required:
+          - configuration-management-policy
+        policies_recommended:
+          - configuration-management-procedure
+
+      "03.04.02":
+        name: Configuration Settings
+        description: Establish and enforce security configuration settings
+        policies_required:
+          - configuration-management-policy
+          - configuration-management-procedure
+        policies_recommended:
+          - patch-management-policy
+
+      "03.04.03":
+        name: Configuration Change Control
+        description: Track, review, approve, and audit changes to systems
+        policies_required:
+          - change-management-policy
+          - change-management-procedure
+        policies_recommended:
+          - configuration-management-policy
+
+      "03.04.04":
+        name: Impact Analyses
+        description: Analyze security impact of changes prior to implementation
+        policies_required:
+          - change-management-policy
+          - risk-assessment-policy
+        policies_recommended:
+          - configuration-management-policy
+
+      "03.04.05":
+        name: Access Restrictions for Change
+        description: Define and enforce physical and logical access restrictions
+        policies_required:
+          - change-management-policy
+          - access-control-policy
+        policies_recommended:
+          - configuration-management-policy
+
+      "03.04.06":
+        name: Least Functionality
+        description: Configure systems to provide only essential capabilities
+        policies_required:
+          - configuration-management-policy
+          - approved-application-policy
+        policies_recommended:
+          - workstation-security-policy
+
+      "03.04.07":
+        name: Authorized Software - Allow by Exception
+        description: Identify and allow authorized software, deny all other
+        policies_required:
+          - approved-application-policy
+          - configuration-management-policy
+        policies_recommended:
+          - software-licensing-policy
+
+      "03.04.08":
+        name: User-Installed Software
+        description: Control and monitor user-installed software
+        policies_required:
+          - approved-application-policy
+          - acceptable-use-policy
+        policies_recommended:
+          - workstation-security-policy
+
+  # ============================================
+  # IDENTIFICATION AND AUTHENTICATION (IA)
+  # ============================================
+  identification_authentication:
+    name: Identification and Authentication
+    description: Identify and authenticate users
+
+    controls:
+      "03.05.01":
+        name: Identification
+        description: Identify system users, processes, and devices
+        policies_required:
+          - identification-and-authentication-policy
+          - account-management-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.05.02":
+        name: Authentication
+        description: Authenticate identities of users, processes, and devices
+        policies_required:
+          - identification-and-authentication-policy
+          - password-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.05.03":
+        name: Multi-Factor Authentication
+        description: Use multi-factor authentication for local and network access
+        policies_required:
+          - identification-and-authentication-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.05.04":
+        name: Replay-Resistant Authentication
+        description: Employ replay-resistant authentication mechanisms
+        policies_required:
+          - identification-and-authentication-policy
+        policies_recommended:
+          - encryption-policy
+
+      "03.05.05":
+        name: Identifier Management
+        description: Manage system identifiers by receiving authorization
+        policies_required:
+          - account-management-policy
+          - identification-and-authentication-policy
+        policies_recommended:
+          - identity-governance-policy
+
+      "03.05.06":
+        name: Authenticator Management
+        description: Manage system authenticators
+        policies_required:
+          - password-policy
+          - identification-and-authentication-policy
+        policies_recommended:
+          - secrets-management-policy
+
+      "03.05.07":
+        name: Authenticator Feedback
+        description: Obscure feedback of authentication information
+        policies_required:
+          - password-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.05.08":
+        name: Cryptographic Module Authentication
+        description: Implement mechanisms for authentication to cryptographic modules
+        policies_required:
+          - encryption-policy
+          - key-management-policy
+        policies_recommended:
+          - identification-and-authentication-policy
+
+  # ============================================
+  # INCIDENT RESPONSE (IR)
+  # ============================================
+  incident_response:
+    name: Incident Response
+    description: Establish operational incident-handling capability
+
+    controls:
+      "03.06.01":
+        name: Incident Handling
+        description: Establish operational incident-handling capability
+        policies_required:
+          - incident-response-policy
+          - incident-response-plan
+        policies_recommended:
+          - security-monitoring-policy
+
+      "03.06.02":
+        name: Incident Monitoring, Reporting, and Response Assistance
+        description: Track and document incidents and report to appropriate officials
+        policies_required:
+          - incident-response-policy
+          - incident-response-plan
+        policies_recommended:
+          - reporting-violations-policy
+
+      "03.06.03":
+        name: Incident Response Testing
+        description: Test incident response capability
+        policies_required:
+          - incident-response-plan
+        policies_recommended:
+          - incident-response-policy
+
+  # ============================================
+  # MAINTENANCE (MA)
+  # ============================================
+  maintenance:
+    name: Maintenance
+    description: Perform maintenance on organizational systems
+
+    controls:
+      "03.07.01":
+        name: System Maintenance
+        description: Perform system maintenance and timely maintenance
+        policies_required:
+          - hardware-and-software-maintenance-policy
+        policies_recommended:
+          - patch-management-policy
+
+      "03.07.02":
+        name: System Maintenance Tools
+        description: Approve, control, and monitor maintenance tools
+        policies_required:
+          - hardware-and-software-maintenance-policy
+          - approved-application-policy
+        policies_recommended:
+          - asset-management-policy
+
+      "03.07.03":
+        name: Maintenance Personnel
+        description: Ensure maintenance personnel are authorized
+        policies_required:
+          - personnel-security-policy
+          - vendor-access-policy
+        policies_recommended:
+          - physical-access-policy
+
+      "03.07.04":
+        name: Nonlocal Maintenance
+        description: Approve and monitor nonlocal maintenance activities
+        policies_required:
+          - remote-access-policy
+          - hardware-and-software-maintenance-policy
+        policies_recommended:
+          - vendor-access-policy
+
+  # ============================================
+  # MEDIA PROTECTION (MP)
+  # ============================================
+  media_protection:
+    name: Media Protection
+    description: Protect information system media
+
+    controls:
+      "03.08.01":
+        name: Media Storage
+        description: Protect and control media containing CUI
+        policies_required:
+          - removable-media-policy
+          - physical-security-policy
+        policies_recommended:
+          - data-classification-policy
+
+      "03.08.02":
+        name: Media Access
+        description: Restrict access to media containing CUI
+        policies_required:
+          - removable-media-policy
+          - access-control-policy
+        policies_recommended:
+          - physical-access-policy
+
+      "03.08.03":
+        name: Media Sanitization
+        description: Sanitize or destroy media containing CUI before disposal
+        policies_required:
+          - disposal-policy
+          - removable-media-policy
+        policies_recommended:
+          - data-retention-policy
+
+      "03.08.04":
+        name: Media Marking
+        description: Mark media with necessary CUI markings
+        policies_required:
+          - data-marking-policy
+          - data-classification-policy
+        policies_recommended:
+          - removable-media-policy
+
+      "03.08.05":
+        name: Media Transport
+        description: Control access to media during transport outside controlled areas
+        policies_required:
+          - removable-media-policy
+          - encryption-policy
+        policies_recommended:
+          - physical-security-policy
+
+  # ============================================
+  # PERSONNEL SECURITY (PS)
+  # ============================================
+  personnel_security:
+    name: Personnel Security
+    description: Screen individuals prior to authorizing access
+
+    controls:
+      "03.09.01":
+        name: Personnel Screening
+        description: Screen individuals prior to authorizing access to CUI
+        policies_required:
+          - personnel-security-policy
+          - staffing-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.09.02":
+        name: Personnel Termination and Transfer
+        description: Protect CUI during and after personnel actions
+        policies_required:
+          - personnel-security-policy
+          - account-management-policy
+        policies_recommended:
+          - access-control-policy
+
+  # ============================================
+  # PHYSICAL PROTECTION (PE)
+  # ============================================
+  physical_protection:
+    name: Physical Protection
+    description: Limit physical access to systems and facilities
+
+    controls:
+      "03.10.01":
+        name: Physical Access Authorizations
+        description: Develop and maintain lists of authorized individuals with physical access
+        policies_required:
+          - physical-access-policy
+          - physical-security-policy
+        policies_recommended:
+          - facility-security-plan
+
+      "03.10.02":
+        name: Physical Access Control
+        description: Control physical access to systems and facilities
+        policies_required:
+          - physical-access-policy
+          - physical-security-policy
+        policies_recommended:
+          - facility-security-plan
+
+      "03.10.03":
+        name: Visitor Access
+        description: Escort visitors and monitor visitor activity
+        policies_required:
+          - physical-access-policy
+        policies_recommended:
+          - physical-security-policy
+
+      "03.10.04":
+        name: Physical Access Logs
+        description: Maintain audit logs of physical access
+        policies_required:
+          - physical-access-policy
+          - logging-policy
+        policies_recommended:
+          - audit-trails-policy
+
+      "03.10.05":
+        name: Manage Physical Access Devices
+        description: Control and manage physical access devices
+        policies_required:
+          - physical-access-policy
+          - physical-security-policy
+        policies_recommended:
+          - asset-management-policy
+
+      "03.10.06":
+        name: Alternate Work Site
+        description: Enforce safeguards at alternate work sites
+        policies_required:
+          - remote-access-policy
+          - physical-security-policy
+        policies_recommended:
+          - workstation-security-policy
+
+  # ============================================
+  # RISK ASSESSMENT (RA)
+  # ============================================
+  risk_assessment:
+    name: Risk Assessment
+    description: Periodically assess risk to operations and assets
+
+    controls:
+      "03.11.01":
+        name: Risk Assessment
+        description: Periodically assess risk to operations, assets, and individuals
+        policies_required:
+          - risk-assessment-policy
+          - risk-management-policy
+        policies_recommended:
+          - security-controls-review-policy
+
+      "03.11.02":
+        name: Vulnerability Monitoring and Scanning
+        description: Scan for vulnerabilities and remediate
+        policies_required:
+          - vulnerability-and-penetration-testing-policy
+          - patch-management-policy
+        policies_recommended:
+          - risk-assessment-policy
+
+      "03.11.03":
+        name: Risk Response
+        description: Respond to findings from assessments, monitoring, and audits
+        policies_required:
+          - risk-management-policy
+          - incident-response-policy
+        policies_recommended:
+          - risk-assessment-policy
+
+  # ============================================
+  # SECURITY ASSESSMENT (CA)
+  # ============================================
+  security_assessment:
+    name: Security Assessment
+    description: Assess security controls periodically
+
+    controls:
+      "03.12.01":
+        name: Security Assessment
+        description: Periodically assess security controls
+        policies_required:
+          - security-self-assessment-policy
+          - audit-policy
+        policies_recommended:
+          - security-controls-review-policy
+
+      "03.12.02":
+        name: Plan of Action and Milestones
+        description: Develop and implement plans of action
+        policies_required:
+          - risk-management-policy
+          - documentation-policy
+        policies_recommended:
+          - security-controls-review-policy
+
+      "03.12.03":
+        name: Continuous Monitoring
+        description: Develop and implement continuous monitoring
+        policies_required:
+          - security-monitoring-policy
+          - security-self-assessment-policy
+        policies_recommended:
+          - logging-policy
+
+  # ============================================
+  # SYSTEM AND COMMUNICATIONS PROTECTION (SC)
+  # ============================================
+  system_communications:
+    name: System and Communications Protection
+    description: Monitor, control, and protect communications
+
+    controls:
+      "03.13.01":
+        name: Boundary Protection
+        description: Monitor and control communications at system boundaries
+        policies_required:
+          - network-security-policy
+          - firewall-policy
+        policies_recommended:
+          - intrusion-dectection-policy
+
+      "03.13.02":
+        name: Subnetworks for Publicly Accessible System Components
+        description: Implement subnetworks for publicly accessible components
+        policies_required:
+          - network-security-policy
+          - network-configuration-policy
+        policies_recommended:
+          - firewall-policy
+
+      "03.13.03":
+        name: Security Function Isolation
+        description: Isolate security functions from nonsecurity functions
+        policies_required:
+          - network-security-policy
+          - configuration-management-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.13.04":
+        name: Shared System Resources
+        description: Prevent unauthorized and unintended information transfer via shared resources
+        policies_required:
+          - configuration-management-policy
+          - data-classification-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.13.05":
+        name: Network Disconnect
+        description: Deny network communications traffic by default
+        policies_required:
+          - firewall-policy
+          - network-security-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.13.06":
+        name: Network Communication by Exception
+        description: Deny network communications by exception
+        policies_required:
+          - firewall-policy
+          - network-security-policy
+        policies_recommended:
+          - access-control-policy
+
+      "03.13.07":
+        name: Split Tunneling
+        description: Prevent split tunneling for remote devices
+        policies_required:
+          - remote-access-policy
+          - vpn-policy
+        policies_recommended:
+          - network-security-policy
+
+      "03.13.08":
+        name: Transmission Confidentiality and Integrity
+        description: Implement cryptographic mechanisms to protect transmissions
+        policies_required:
+          - encryption-policy
+          - network-security-policy
+        policies_recommended:
+          - data-classification-policy
+
+      "03.13.09":
+        name: Session Authenticity
+        description: Protect authenticity of communications sessions
+        policies_required:
+          - encryption-policy
+          - network-security-policy
+        policies_recommended:
+          - identification-and-authentication-policy
+
+      "03.13.10":
+        name: Cryptographic Key Establishment and Management
+        description: Establish and manage cryptographic keys
+        policies_required:
+          - key-management-policy
+          - encryption-policy
+        policies_recommended: []
+
+      "03.13.11":
+        name: Cryptographic Protection
+        description: Employ FIPS-validated cryptography
+        policies_required:
+          - encryption-policy
+        policies_recommended:
+          - key-management-policy
+
+      "03.13.12":
+        name: Mobile Code
+        description: Control and monitor mobile code
+        policies_required:
+          - approved-application-policy
+          - network-security-policy
+        policies_recommended:
+          - workstation-security-policy
+
+      "03.13.13":
+        name: Voice over Internet Protocol
+        description: Control and monitor VoIP
+        policies_required:
+          - network-security-policy
+        policies_recommended:
+          - configuration-management-policy
+
+      "03.13.14":
+        name: Protection of CUI at Rest
+        description: Protect confidentiality of CUI at rest
+        policies_required:
+          - encryption-policy
+          - data-classification-policy
+        policies_recommended:
+          - database-security-policy
+
+  # ============================================
+  # SYSTEM AND INFORMATION INTEGRITY (SI)
+  # ============================================
+  system_integrity:
+    name: System and Information Integrity
+    description: Identify, report, and correct flaws
+
+    controls:
+      "03.14.01":
+        name: Flaw Remediation
+        description: Identify, report, and correct system flaws
+        policies_required:
+          - patch-management-policy
+          - vulnerability-and-penetration-testing-policy
+        policies_recommended:
+          - change-management-policy
+
+      "03.14.02":
+        name: Malicious Code Protection
+        description: Provide malicious code protection
+        policies_required:
+          - anti-malware-policy
+        policies_recommended:
+          - workstation-security-policy
+
+      "03.14.03":
+        name: Security Alerts and Advisories
+        description: Monitor security alerts and take appropriate actions
+        policies_required:
+          - security-monitoring-policy
+          - patch-management-policy
+        policies_recommended:
+          - incident-response-policy
+
+      "03.14.04":
+        name: Update Malicious Code Protection
+        description: Update malicious code protection mechanisms
+        policies_required:
+          - anti-malware-policy
+          - patch-management-policy
+        policies_recommended:
+          - configuration-management-policy
+
+      "03.14.05":
+        name: Perform System Scans
+        description: Perform periodic scans and real-time scans
+        policies_required:
+          - anti-malware-policy
+          - vulnerability-and-penetration-testing-policy
+        policies_recommended:
+          - security-monitoring-policy
+
+      "03.14.06":
+        name: System Monitoring
+        description: Monitor the system to detect attacks and identify indicators of compromise
+        policies_required:
+          - security-monitoring-policy
+          - intrusion-dectection-policy
+        policies_recommended:
+          - logging-policy
+
+      "03.14.07":
+        name: Identify Unauthorized Use
+        description: Identify unauthorized use of systems
+        policies_required:
+          - security-monitoring-policy
+          - logging-policy
+        policies_recommended:
+          - incident-response-policy
+
+      "03.14.08":
+        name: Spam Protection
+        description: Protect against spam
+        policies_required:
+          - e-mail-policy
+          - anti-malware-policy
+        policies_recommended:
+          - network-security-policy
+
+# Summary
+summary:
+  total_controls: 87
+  access_control: 18
+  awareness_training: 3
+  audit_accountability: 8
+  configuration_management: 8
+  identification_authentication: 8
+  incident_response: 3
+  maintenance: 4
+  media_protection: 5
+  personnel_security: 2
+  physical_protection: 6
+  risk_assessment: 3
+  security_assessment: 3
+  system_communications: 14
+  system_integrity: 8

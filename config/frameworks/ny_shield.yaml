@@ -1,0 +1,216 @@
+# NY SHIELD Act - Stop Hacks and Improve Electronic Data Security Act
+# New York General Business Law Section 899-bb
+# Effective: March 21, 2020 (safeguards: March 21, 2020)
+
+framework:
+  id: ny_shield
+  name: New York SHIELD Act
+  full_name: Stop Hacks and Improve Electronic Data Security Act
+  version: "2019"
+  jurisdiction: New York State
+  effective_date: "2020-03-21"
+  regulatory_body: New York Attorney General
+
+  description: |
+    The SHIELD Act expands New York's data breach notification requirements
+    and requires businesses to implement reasonable safeguards to protect
+    private information of New York residents.
+
+  applicability:
+    - Any person or business that owns or licenses computerized data
+      including private information of a New York resident
+    - No minimum size threshold
+    - Applies regardless of where the business is located
+
+  # Private Information Definition
+  definitions:
+    private_information:
+      - Social Security Number
+      - Driver's license or non-driver ID number
+      - Account, credit, or debit card number (with security code)
+      - Biometric information
+      - Username/email + password or security question answer
+      - HIPAA-defined individually identifiable health information
+      - Financial account number that permits access
+
+  # Security Safeguards Requirements (Section 899-bb)
+  requirements:
+    - id: administrative_safeguards
+      name: Administrative Safeguards
+      description: Reasonable administrative safeguards
+      controls:
+        - id: admin_1
+          name: Security Personnel
+          description: Designate employee(s) to coordinate security program
+          policies_required:
+            - information-security-policy
+            - cybersecurity-roles-responsibilities
+
+        - id: admin_2
+          name: Risk Assessment
+          description: Identify reasonably foreseeable internal/external risks
+          policies_required:
+            - risk-assessment-policy
+            - risk-management-policy
+
+        - id: admin_3
+          name: Safeguard Assessment
+          description: Assess sufficiency of safeguards
+          policies_required:
+            - security-assessment-policy
+
+        - id: admin_4
+          name: Employee Training
+          description: Train and manage employees in security practices
+          policies_required:
+            - security-awareness-training-policy
+            - employee-security-policy
+
+        - id: admin_5
+          name: Vendor Selection
+          description: Select service providers capable of maintaining safeguards
+          policies_required:
+            - vendor-management-policy
+            - third-party-risk-policy
+
+        - id: admin_6
+          name: Vendor Contracts
+          description: Require service providers by contract to implement safeguards
+          policies_required:
+            - vendor-contract-policy
+            - data-processing-agreement-policy
+
+    - id: technical_safeguards
+      name: Technical Safeguards
+      description: Reasonable technical safeguards
+      controls:
+        - id: tech_1
+          name: Risk Assessment
+          description: Assess risks in network and software design
+          policies_required:
+            - security-architecture-policy
+            - vulnerability-management-policy
+
+        - id: tech_2
+          name: Processing, Transmission, Storage
+          description: Assess risks in information processing, transmission, storage
+          policies_required:
+            - data-handling-policy
+            - encryption-policy
+            - data-protection-policy
+
+        - id: tech_3
+          name: Threat Detection
+          description: Detect, prevent, respond to attacks/system failures
+          policies_required:
+            - intrusion-detection-policy
+            - security-monitoring-policy
+            - incident-response-policy
+
+        - id: tech_4
+          name: Security Testing
+          description: Regularly test and monitor effectiveness of controls
+          policies_required:
+            - security-testing-policy
+            - vulnerability-scanning-policy
+            - penetration-testing-policy
+
+    - id: physical_safeguards
+      name: Physical Safeguards
+      description: Reasonable physical safeguards
+      controls:
+        - id: phys_1
+          name: Intrusion Risk Assessment
+          description: Assess risks of information storage in physical areas
+          policies_required:
+            - physical-security-policy
+            - data-center-security-policy
+
+        - id: phys_2
+          name: Intrusion Detection
+          description: Detect, prevent, respond to intrusions
+          policies_required:
+            - physical-access-control-policy
+            - environmental-security-policy
+
+        - id: phys_3
+          name: Physical Access
+          description: Protect against unauthorized access during/after collection
+          policies_required:
+            - physical-access-control-policy
+            - visitor-management-policy
+
+        - id: phys_4
+          name: Information Disposal
+          description: Dispose of private information within reasonable time after no longer needed
+          policies_required:
+            - data-retention-policy
+            - secure-disposal-policy
+            - media-sanitization-policy
+
+  # Breach Notification Requirements (Section 899-aa)
+  breach_notification:
+    timeline: "expedient" # Most expedient time possible, without unreasonable delay
+    notification_methods:
+      - Written notice
+      - Electronic notice (if primary contact method)
+      - Telephone (if direct contact available)
+      - Substitute notice (if > 500,000 affected or cost > $250,000)
+
+    notify_parties:
+      - Affected individuals
+      - New York Attorney General
+      - NY Department of State (Division of Consumer Protection)
+      - NY State Police
+
+    content_requirements:
+      - Contact information for the person or business
+      - Telephone numbers and websites for major credit bureaus
+      - FTC and Attorney General contact information
+
+    policies_required:
+      - incident-response-policy
+      - breach-notification-policy
+      - data-breach-policy
+
+  # Small Business Exemption
+  small_business_compliance:
+    description: |
+      Small businesses may demonstrate compliance through a simplified
+      security program appropriate to their size and complexity.
+    factors:
+      - Size and complexity of the business
+      - Nature and scope of business activities
+      - Sensitivity of personal information collected
+
+  # Policy mapping summary
+  policy_mapping:
+    required:
+      - information-security-policy
+      - risk-assessment-policy
+      - security-awareness-training-policy
+      - vendor-management-policy
+      - encryption-policy
+      - incident-response-policy
+      - breach-notification-policy
+      - physical-security-policy
+      - data-retention-policy
+      - secure-disposal-policy
+
+    recommended:
+      - cybersecurity-roles-responsibilities
+      - vulnerability-management-policy
+      - penetration-testing-policy
+      - data-protection-policy
+      - access-control-policy
+
+  penalties:
+    civil_penalty: Up to $5,000 per violation
+    injunctive_relief: Attorney General may seek injunction
+    private_right_of_action: No explicit private right of action in SHIELD
+
+  sources:
+    - url: https://ag.ny.gov/resources/organizations/data-breach-reporting
+      type: regulatory
+    - url: https://www.nysenate.gov/legislation/laws/GBS/899-BB
+      type: statute

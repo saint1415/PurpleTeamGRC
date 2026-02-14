@@ -1,0 +1,315 @@
+# NIS2 - Network and Information Security Directive 2
+# EU Directive 2022/2555
+# Effective: October 18, 2024
+
+framework:
+  id: nis2
+  name: NIS2 Directive
+  version: "2022/2555"
+  release_date: "2022-12-27"
+  effective_date: "2024-10-18"
+  description: >
+    EU directive establishing measures for a high common level of cybersecurity
+    across the Union. Applies to essential and important entities in critical sectors.
+
+  sources:
+    - url: https://eur-lex.europa.eu/eli/dir/2022/2555
+      type: official
+    - url: https://digital-strategy.ec.europa.eu/en/policies/nis2-directive
+      type: guidance
+
+  # NIS2 organizes requirements by Article
+  articles:
+    art_20:
+      name: "Governance"
+      description: "Management body responsibilities and cybersecurity training"
+      controls:
+        art_20_1:
+          name: "Management Oversight"
+          description: "Management bodies shall approve cybersecurity risk-management measures"
+          policies_required:
+            - cybersecurity-framework-policy
+            - it-governance-policy
+            - executive-cyber-governance-policy
+        art_20_2:
+          name: "Management Training"
+          description: "Members of management bodies shall follow training to gain sufficient knowledge and skills"
+          policies_required:
+            - security-awareness-training-policy
+            - acceptable-use-policy
+
+    art_21:
+      name: "Cybersecurity Risk-Management Measures"
+      description: "Technical, operational, and organizational measures"
+      controls:
+        art_21_2_a:
+          name: "Policies on Risk Analysis"
+          description: "Policies on risk analysis and information system security"
+          policies_required:
+            - risk-management-policy
+            - risk-assessment-policy
+            - information-security-policy
+            - cybersecurity-framework-policy
+        art_21_2_b:
+          name: "Incident Handling"
+          description: "Incident handling procedures and response"
+          policies_required:
+            - incident-response-policy
+            - incident-response-plan
+            - security-incident-handling-policy
+            - cyber-crisis-management-policy
+        art_21_2_c:
+          name: "Business Continuity"
+          description: "Business continuity and crisis management"
+          policies_required:
+            - business-continuity-policy
+            - disaster-recovery-policy
+            - crisis-management-policy
+            - backup-policy
+        art_21_2_d:
+          name: "Supply Chain Security"
+          description: "Supply chain security including security-related aspects"
+          policies_required:
+            - vendor-risk-management-policy
+            - third-party-access-policy
+            - supply-chain-security-policy
+            - software-bill-of-materials-policy
+        art_21_2_e:
+          name: "Network Security"
+          description: "Security in network and information systems acquisition, development and maintenance"
+          policies_required:
+            - network-security-policy
+            - secure-software-development-policy
+            - system-acquisition-policy
+            - change-management-policy
+        art_21_2_f:
+          name: "Vulnerability Handling"
+          description: "Policies and procedures for assessing effectiveness of cybersecurity risk-management measures"
+          policies_required:
+            - vulnerability-management-policy
+            - patch-management-policy
+            - penetration-testing-policy
+            - vulnerability-disclosure-policy
+        art_21_2_g:
+          name: "Cyber Hygiene"
+          description: "Basic cyber hygiene practices and cybersecurity training"
+          policies_required:
+            - security-awareness-training-policy
+            - acceptable-use-policy
+            - password-policy
+            - clean-desk-policy
+        art_21_2_h:
+          name: "Cryptography"
+          description: "Policies and procedures regarding the use of cryptography"
+          policies_required:
+            - encryption-policy
+            - cryptographic-key-management-policy
+            - quantum-safe-cryptography-policy
+        art_21_2_i:
+          name: "Human Resource Security"
+          description: "Human resources security, access control policies, and asset management"
+          policies_required:
+            - access-control-policy
+            - user-access-management-policy
+            - personnel-security-policy
+            - asset-management-policy
+        art_21_2_j:
+          name: "Multi-Factor Authentication"
+          description: "Use of multi-factor authentication or continuous authentication solutions"
+          policies_required:
+            - multi-factor-authentication-policy
+            - authentication-policy
+            - privileged-access-management-policy
+        art_21_2_k:
+          name: "Secure Communications"
+          description: "Secured voice, video, and text communications"
+          policies_required:
+            - communications-security-policy
+            - email-security-policy
+            - wireless-security-policy
+        art_21_2_l:
+          name: "Emergency Communications"
+          description: "Secured emergency communication systems"
+          policies_required:
+            - crisis-management-policy
+            - communications-security-policy
+            - incident-response-plan
+
+    art_23:
+      name: "Reporting Obligations"
+      description: "Incident reporting requirements"
+      controls:
+        art_23_1:
+          name: "Significant Incident Reporting"
+          description: "Notify CSIRT or competent authority of significant incidents"
+          policies_required:
+            - incident-response-policy
+            - data-breach-notification-policy
+            - security-incident-handling-policy
+        art_23_4_a:
+          name: "Early Warning"
+          description: "Early warning within 24 hours of becoming aware"
+          policies_required:
+            - incident-response-policy
+            - incident-response-plan
+        art_23_4_b:
+          name: "Incident Notification"
+          description: "Incident notification within 72 hours"
+          policies_required:
+            - incident-response-policy
+            - data-breach-notification-policy
+        art_23_4_c:
+          name: "Intermediate Report"
+          description: "Intermediate report upon request"
+          policies_required:
+            - incident-response-policy
+            - security-incident-handling-policy
+        art_23_4_d:
+          name: "Final Report"
+          description: "Final report within one month"
+          policies_required:
+            - incident-response-policy
+            - incident-response-plan
+            - lessons-learned-policy
+
+    art_24:
+      name: "Use of European Cybersecurity Certification"
+      description: "Requirements for certified ICT products and services"
+      controls:
+        art_24_1:
+          name: "Certification Requirements"
+          description: "Use of certified ICT products, services, and processes"
+          policies_required:
+            - vendor-risk-management-policy
+            - system-acquisition-policy
+            - secure-software-development-policy
+
+    art_25:
+      name: "Standardisation"
+      description: "Use of European and international standards"
+      controls:
+        art_25_1:
+          name: "Standards Compliance"
+          description: "Encourage use of European and international standards"
+          policies_required:
+            - information-security-policy
+            - cybersecurity-framework-policy
+
+    art_26:
+      name: "Peer Reviews"
+      description: "Voluntary peer reviews"
+      controls:
+        art_26_1:
+          name: "Peer Review Participation"
+          description: "Participate in voluntary peer reviews"
+          policies_required:
+            - compliance-policy
+            - audit-policy
+
+    art_27:
+      name: "Registration Requirements"
+      description: "Entity registration with authorities"
+      controls:
+        art_27_1:
+          name: "Entity Registration"
+          description: "Submit registration information to competent authority"
+          policies_required:
+            - compliance-policy
+            - it-governance-policy
+
+    art_28:
+      name: "Database of Domain Name Registration Data"
+      description: "WHOIS and domain registration requirements"
+      controls:
+        art_28_1:
+          name: "Domain Data Accuracy"
+          description: "Maintain accurate and complete domain registration data"
+          policies_required:
+            - data-quality-policy
+            - information-management-policy
+
+    art_29:
+      name: "Cybersecurity Information Sharing"
+      description: "Voluntary information sharing arrangements"
+      controls:
+        art_29_1:
+          name: "Information Sharing"
+          description: "Exchange cybersecurity information within trusted communities"
+          policies_required:
+            - information-sharing-policy
+            - incident-response-policy
+
+    art_32:
+      name: "Supervisory Measures - Essential Entities"
+      description: "Supervision and enforcement for essential entities"
+      controls:
+        art_32_2:
+          name: "Audit and Assessment"
+          description: "Subject to regular and targeted security audits"
+          policies_required:
+            - audit-policy
+            - penetration-testing-policy
+            - compliance-policy
+
+    art_33:
+      name: "Supervisory Measures - Important Entities"
+      description: "Supervision and enforcement for important entities"
+      controls:
+        art_33_2:
+          name: "Ex-Post Supervision"
+          description: "Ex-post supervisory measures based on evidence"
+          policies_required:
+            - audit-policy
+            - compliance-policy
+            - logging-and-monitoring-policy
+
+  # Policy to control mapping
+  policy_mapping:
+    risk-management-policy: [art_21_2_a]
+    risk-assessment-policy: [art_21_2_a]
+    information-security-policy: [art_21_2_a, art_25_1]
+    cybersecurity-framework-policy: [art_20_1, art_21_2_a, art_25_1]
+    incident-response-policy: [art_21_2_b, art_23_1, art_23_4_a, art_23_4_b, art_23_4_c, art_23_4_d, art_29_1]
+    incident-response-plan: [art_21_2_b, art_23_4_a, art_23_4_d]
+    security-incident-handling-policy: [art_21_2_b, art_23_1, art_23_4_c]
+    cyber-crisis-management-policy: [art_21_2_b]
+    business-continuity-policy: [art_21_2_c]
+    disaster-recovery-policy: [art_21_2_c]
+    crisis-management-policy: [art_21_2_c, art_21_2_l]
+    backup-policy: [art_21_2_c]
+    vendor-risk-management-policy: [art_21_2_d, art_24_1]
+    third-party-access-policy: [art_21_2_d]
+    supply-chain-security-policy: [art_21_2_d]
+    software-bill-of-materials-policy: [art_21_2_d]
+    network-security-policy: [art_21_2_e]
+    secure-software-development-policy: [art_21_2_e, art_24_1]
+    system-acquisition-policy: [art_21_2_e, art_24_1]
+    change-management-policy: [art_21_2_e]
+    vulnerability-management-policy: [art_21_2_f]
+    patch-management-policy: [art_21_2_f]
+    penetration-testing-policy: [art_21_2_f, art_32_2]
+    vulnerability-disclosure-policy: [art_21_2_f]
+    security-awareness-training-policy: [art_20_2, art_21_2_g]
+    acceptable-use-policy: [art_20_2, art_21_2_g]
+    password-policy: [art_21_2_g]
+    clean-desk-policy: [art_21_2_g]
+    encryption-policy: [art_21_2_h]
+    cryptographic-key-management-policy: [art_21_2_h]
+    quantum-safe-cryptography-policy: [art_21_2_h]
+    access-control-policy: [art_21_2_i]
+    user-access-management-policy: [art_21_2_i]
+    personnel-security-policy: [art_21_2_i]
+    asset-management-policy: [art_21_2_i]
+    multi-factor-authentication-policy: [art_21_2_j]
+    authentication-policy: [art_21_2_j]
+    privileged-access-management-policy: [art_21_2_j]
+    communications-security-policy: [art_21_2_k, art_21_2_l]
+    email-security-policy: [art_21_2_k]
+    wireless-security-policy: [art_21_2_k]
+    data-breach-notification-policy: [art_23_1, art_23_4_b]
+    lessons-learned-policy: [art_23_4_d]
+    compliance-policy: [art_26_1, art_27_1, art_32_2, art_33_2]
+    audit-policy: [art_26_1, art_32_2, art_33_2]
+    it-governance-policy: [art_20_1, art_27_1]
+    executive-cyber-governance-policy: [art_20_1]
+    logging-and-monitoring-policy: [art_33_2]

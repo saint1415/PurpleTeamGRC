@@ -1,0 +1,648 @@
+# PCI DSS 4.0.1
+# Payment Card Industry Data Security Standard
+# https://www.pcisecuritystandards.org
+
+framework:
+  id: pci_dss_4
+  name: PCI DSS 4.0.1
+  version: "4.0.1"
+  release_date: 2024-06-01
+  authority: Payment Card Industry Security Standards Council (PCI SSC)
+  url: https://www.pcisecuritystandards.org/document_library/
+
+# PCI DSS 4.0 Requirements
+# 12 Requirements grouped into 6 Goals
+
+requirements:
+
+  # ============================================
+  # BUILD AND MAINTAIN A SECURE NETWORK AND SYSTEMS
+  # ============================================
+  network_security:
+    name: Build and Maintain a Secure Network and Systems
+    description: Requirements 1-2
+
+    controls:
+      # Requirement 1: Install and Maintain Network Security Controls
+      "1.1":
+        name: Processes and mechanisms for installing and maintaining network security controls are defined and understood
+        description: Define and implement policies for network security controls
+        policies_required:
+          - network-security-policy
+          - firewall-policy
+        policies_recommended:
+          - network-configuration-policy
+
+      "1.2":
+        name: Network security controls (NSCs) are configured and maintained
+        description: NSCs restrict traffic and protect the CDE
+        policies_required:
+          - firewall-policy
+          - network-security-policy
+        policies_recommended:
+          - change-management-policy
+
+      "1.3":
+        name: Network access to and from the CDE is restricted
+        description: Restrict inbound and outbound traffic
+        policies_required:
+          - network-security-policy
+          - access-control-policy
+        policies_recommended:
+          - firewall-policy
+
+      "1.4":
+        name: Network connections between trusted and untrusted networks are controlled
+        description: Control network connections and implement DMZ
+        policies_required:
+          - network-security-policy
+          - firewall-policy
+        policies_recommended:
+          - network-configuration-policy
+
+      "1.5":
+        name: Risks to the CDE from computing devices able to connect to both untrusted networks and the CDE are mitigated
+        description: Personal firewall software for portable devices
+        policies_required:
+          - workstation-security-policy
+          - portable-computing-policy
+        policies_recommended:
+          - bring-your-own-device-and-technology-policy
+
+      # Requirement 2: Apply Secure Configurations to All System Components
+      "2.1":
+        name: Processes and mechanisms for applying secure configurations are defined and understood
+        description: Define secure configuration standards
+        policies_required:
+          - configuration-management-policy
+        policies_recommended:
+          - standard-operating-procedure-policy
+
+      "2.2":
+        name: System components are configured and managed securely
+        description: Develop configuration standards for all system components
+        policies_required:
+          - configuration-management-policy
+          - configuration-management-procedure
+        policies_recommended:
+          - patch-management-policy
+
+      "2.3":
+        name: Wireless environments are configured and managed securely
+        description: Wireless settings for environments connected to CDE
+        policies_required:
+          - network-security-policy
+        policies_recommended:
+          - configuration-management-policy
+
+  # ============================================
+  # PROTECT ACCOUNT DATA
+  # ============================================
+  protect_data:
+    name: Protect Account Data
+    description: Requirements 3-4
+
+    controls:
+      # Requirement 3: Protect Stored Account Data
+      "3.1":
+        name: Processes and mechanisms for protecting stored account data are defined and understood
+        description: Define policies for protecting stored account data
+        policies_required:
+          - data-classification-policy
+          - pci-policy
+        policies_recommended:
+          - data-retention-policy
+
+      "3.2":
+        name: Storage of account data is kept to a minimum
+        description: Data retention and disposal policies
+        policies_required:
+          - data-retention-policy
+          - disposal-policy
+        policies_recommended:
+          - pci-policy
+
+      "3.3":
+        name: Sensitive authentication data (SAD) is not stored after authorization
+        description: SAD not retained after authorization
+        policies_required:
+          - pci-policy
+          - data-classification-policy
+        policies_recommended:
+          - encryption-policy
+
+      "3.4":
+        name: Access to displays of full PAN and ability to copy cardholder data are restricted
+        description: Mask PAN when displayed
+        policies_required:
+          - pci-policy
+          - access-control-policy
+        policies_recommended:
+          - data-marking-policy
+
+      "3.5":
+        name: Primary account number (PAN) is secured wherever it is stored
+        description: Render PAN unreadable
+        policies_required:
+          - encryption-policy
+          - key-management-policy
+        policies_recommended:
+          - pci-policy
+
+      "3.6":
+        name: Cryptographic keys used to protect stored account data are secured
+        description: Key management processes
+        policies_required:
+          - key-management-policy
+          - encryption-policy
+        policies_recommended:
+          - pci-policy
+
+      "3.7":
+        name: Where cryptography is used to protect stored account data, key management processes and procedures are defined
+        description: Key management documentation
+        policies_required:
+          - key-management-policy
+        policies_recommended:
+          - documentation-policy
+
+      # Requirement 4: Protect Cardholder Data with Strong Cryptography During Transmission
+      "4.1":
+        name: Processes and mechanisms for protecting cardholder data with strong cryptography during transmission are defined and understood
+        description: Policies for protecting data in transit
+        policies_required:
+          - encryption-policy
+          - pci-policy
+        policies_recommended:
+          - network-security-policy
+
+      "4.2":
+        name: PAN is protected with strong cryptography during transmission
+        description: Use strong cryptography for transmission
+        policies_required:
+          - encryption-policy
+          - network-security-policy
+        policies_recommended:
+          - key-management-policy
+
+  # ============================================
+  # MAINTAIN A VULNERABILITY MANAGEMENT PROGRAM
+  # ============================================
+  vulnerability_management:
+    name: Maintain a Vulnerability Management Program
+    description: Requirements 5-6
+
+    controls:
+      # Requirement 5: Protect All Systems and Networks from Malicious Software
+      "5.1":
+        name: Processes and mechanisms for protecting all systems and networks from malicious software are defined and understood
+        description: Anti-malware policies
+        policies_required:
+          - anti-malware-policy
+        policies_recommended:
+          - workstation-security-policy
+
+      "5.2":
+        name: Malicious software (malware) is prevented or detected and addressed
+        description: Deploy anti-malware solutions
+        policies_required:
+          - anti-malware-policy
+          - anti-malware-procedure
+        policies_recommended:
+          - workstation-security-policy
+
+      "5.3":
+        name: Anti-malware mechanisms and processes are active, maintained, and monitored
+        description: Ensure anti-malware is active and current
+        policies_required:
+          - anti-malware-policy
+          - security-monitoring-policy
+        policies_recommended:
+          - patch-management-policy
+
+      "5.4":
+        name: Anti-phishing mechanisms protect users against phishing attacks
+        description: Protect against phishing
+        policies_required:
+          - security-awareness-and-training-policy
+          - anti-malware-policy
+        policies_recommended:
+          - e-mail-policy
+
+      # Requirement 6: Develop and Maintain Secure Systems and Software
+      "6.1":
+        name: Processes and mechanisms for developing and maintaining secure systems and software are defined and understood
+        description: Secure development policies
+        policies_required:
+          - secure-software-development-lifecycle-policy
+          - software-development-policy
+        policies_recommended:
+          - pci-policy
+
+      "6.2":
+        name: Bespoke and custom software are developed securely
+        description: Secure coding practices
+        policies_required:
+          - secure-software-development-lifecycle-policy
+        policies_recommended:
+          - software-development-policy
+
+      "6.3":
+        name: Security vulnerabilities are identified and addressed
+        description: Vulnerability identification and patching
+        policies_required:
+          - vulnerability-and-penetration-testing-policy
+          - patch-management-policy
+        policies_recommended:
+          - risk-assessment-policy
+
+      "6.4":
+        name: Public-facing web applications are protected against attacks
+        description: Web application firewall or code review
+        policies_required:
+          - secure-software-development-lifecycle-policy
+          - vulnerability-and-penetration-testing-policy
+        policies_recommended:
+          - network-security-policy
+
+      "6.5":
+        name: Changes to all system components are managed securely
+        description: Change control procedures
+        policies_required:
+          - change-management-policy
+          - change-management-procedure
+        policies_recommended:
+          - configuration-management-policy
+
+  # ============================================
+  # IMPLEMENT STRONG ACCESS CONTROL MEASURES
+  # ============================================
+  access_control:
+    name: Implement Strong Access Control Measures
+    description: Requirements 7-9
+
+    controls:
+      # Requirement 7: Restrict Access to System Components and Cardholder Data by Business Need to Know
+      "7.1":
+        name: Processes and mechanisms for restricting access to system components and cardholder data by business need to know are defined and understood
+        description: Access control policies
+        policies_required:
+          - access-control-policy
+          - pci-policy
+        policies_recommended:
+          - user-privilege-policy
+
+      "7.2":
+        name: Access to system components and data is appropriately defined and assigned
+        description: Limit access based on job function
+        policies_required:
+          - access-control-policy
+          - user-privilege-policy
+        policies_recommended:
+          - account-management-policy
+
+      "7.3":
+        name: Access to system components and data is managed via an access control system(s)
+        description: Technical access controls
+        policies_required:
+          - logical-access-controls-policy
+          - access-control-policy
+        policies_recommended:
+          - privileged-access-management-policy
+
+      # Requirement 8: Identify Users and Authenticate Access to System Components
+      "8.1":
+        name: Processes and mechanisms for identifying users and authenticating access to system components are defined and understood
+        description: User identification policies
+        policies_required:
+          - identification-and-authentication-policy
+          - account-management-policy
+        policies_recommended:
+          - pci-policy
+
+      "8.2":
+        name: User identification and related accounts for users and administrators are strictly managed throughout an account's lifecycle
+        description: Account management procedures
+        policies_required:
+          - account-management-policy
+          - personnel-security-policy
+        policies_recommended:
+          - identity-governance-policy
+
+      "8.3":
+        name: Strong authentication for users and administrators is established and managed
+        description: Strong authentication mechanisms
+        policies_required:
+          - password-policy
+          - identification-and-authentication-policy
+        policies_recommended:
+          - access-control-policy
+
+      "8.4":
+        name: Multi-factor authentication (MFA) is implemented to secure access into the CDE
+        description: MFA for all access into CDE
+        policies_required:
+          - identification-and-authentication-policy
+          - access-control-policy
+        policies_recommended:
+          - remote-access-policy
+
+      "8.5":
+        name: Multi-factor authentication (MFA) systems are configured to prevent misuse
+        description: MFA implementation standards
+        policies_required:
+          - identification-and-authentication-policy
+        policies_recommended:
+          - configuration-management-policy
+
+      "8.6":
+        name: Use of application and system accounts and associated authentication factors is strictly managed
+        description: Service account management
+        policies_required:
+          - account-management-policy
+          - privileged-access-management-policy
+        policies_recommended:
+          - secrets-management-policy
+
+      # Requirement 9: Restrict Physical Access to Cardholder Data
+      "9.1":
+        name: Processes and mechanisms for restricting physical access to cardholder data are defined and understood
+        description: Physical security policies
+        policies_required:
+          - physical-security-policy
+          - physical-access-policy
+        policies_recommended:
+          - pci-policy
+
+      "9.2":
+        name: Physical access controls manage entry into facilities and systems containing cardholder data
+        description: Physical entry controls
+        policies_required:
+          - physical-access-policy
+          - facility-security-plan
+        policies_recommended:
+          - physical-security-policy
+
+      "9.3":
+        name: Physical access for personnel and visitors is authorized and managed
+        description: Personnel and visitor access procedures
+        policies_required:
+          - physical-access-policy
+        policies_recommended:
+          - personnel-security-policy
+
+      "9.4":
+        name: Media with cardholder data is securely stored, accessed, distributed, and destroyed
+        description: Media handling and disposal
+        policies_required:
+          - removable-media-policy
+          - disposal-policy
+        policies_recommended:
+          - data-classification-policy
+
+      "9.5":
+        name: Point of interaction (POI) devices are protected from tampering and unauthorized substitution
+        description: POI device security
+        policies_required:
+          - physical-security-policy
+          - pci-policy
+        policies_recommended:
+          - asset-management-policy
+
+  # ============================================
+  # REGULARLY MONITOR AND TEST NETWORKS
+  # ============================================
+  monitoring:
+    name: Regularly Monitor and Test Networks
+    description: Requirements 10-11
+
+    controls:
+      # Requirement 10: Log and Monitor All Access to System Components and Cardholder Data
+      "10.1":
+        name: Processes and mechanisms for logging and monitoring all access to system components and cardholder data are defined and understood
+        description: Logging policies
+        policies_required:
+          - logging-policy
+          - audit-trails-policy
+        policies_recommended:
+          - pci-policy
+
+      "10.2":
+        name: Audit logs are implemented to support the detection, alerting, and analysis of anomalies and suspicious activity
+        description: Audit log implementation
+        policies_required:
+          - logging-policy
+          - audit-trails-policy
+        policies_recommended:
+          - security-monitoring-policy
+
+      "10.3":
+        name: Audit logs are protected from destruction and unauthorized modifications
+        description: Audit log integrity
+        policies_required:
+          - logging-policy
+          - data-integrity-policy
+        policies_recommended:
+          - access-control-policy
+
+      "10.4":
+        name: Audit logs are reviewed to identify anomalies or suspicious activity
+        description: Log review procedures
+        policies_required:
+          - security-monitoring-policy
+          - logging-policy
+        policies_recommended:
+          - incident-response-policy
+
+      "10.5":
+        name: Audit log history is retained and available for analysis
+        description: Log retention
+        policies_required:
+          - data-retention-policy
+          - logging-policy
+        policies_recommended:
+          - backup-policy
+
+      "10.6":
+        name: Time-synchronization mechanisms support consistent time settings across all systems
+        description: Time synchronization
+        policies_required:
+          - configuration-management-policy
+        policies_recommended:
+          - logging-policy
+
+      "10.7":
+        name: Failures of critical security control systems are detected, alerted, and addressed promptly
+        description: Security control monitoring
+        policies_required:
+          - security-monitoring-policy
+          - incident-response-policy
+        policies_recommended:
+          - logging-policy
+
+      # Requirement 11: Test Security of Systems and Networks Regularly
+      "11.1":
+        name: Processes and mechanisms for regularly testing security of systems and networks are defined and understood
+        description: Security testing policies
+        policies_required:
+          - vulnerability-and-penetration-testing-policy
+        policies_recommended:
+          - security-controls-review-policy
+
+      "11.2":
+        name: Wireless access points are identified and monitored, and unauthorized wireless access points are addressed
+        description: Wireless scanning
+        policies_required:
+          - network-security-policy
+          - security-monitoring-policy
+        policies_recommended:
+          - configuration-management-policy
+
+      "11.3":
+        name: External and internal vulnerabilities are regularly identified, prioritized, and addressed
+        description: Vulnerability scanning
+        policies_required:
+          - vulnerability-and-penetration-testing-policy
+          - patch-management-policy
+        policies_recommended:
+          - risk-assessment-policy
+
+      "11.4":
+        name: External and internal penetration testing is regularly performed
+        description: Penetration testing
+        policies_required:
+          - vulnerability-and-penetration-testing-policy
+        policies_recommended:
+          - security-controls-review-policy
+
+      "11.5":
+        name: Network intrusions and unexpected file changes are detected and responded to
+        description: IDS/IPS and file integrity monitoring
+        policies_required:
+          - intrusion-dectection-policy
+          - security-monitoring-policy
+        policies_recommended:
+          - incident-response-policy
+
+      "11.6":
+        name: Unauthorized changes on payment pages are detected and responded to
+        description: Payment page integrity monitoring
+        policies_required:
+          - security-monitoring-policy
+          - change-management-policy
+        policies_recommended:
+          - pci-policy
+
+  # ============================================
+  # MAINTAIN AN INFORMATION SECURITY POLICY
+  # ============================================
+  security_policy:
+    name: Maintain an Information Security Policy
+    description: Requirement 12
+
+    controls:
+      # Requirement 12: Support Information Security with Organizational Policies and Programs
+      "12.1":
+        name: A comprehensive information security policy that governs and provides direction for protection of the entity's information assets is known and current
+        description: Information security policy
+        policies_required:
+          - information-security-policy
+          - pci-policy
+        policies_recommended:
+          - cybersecurity-policy
+
+      "12.2":
+        name: Acceptable use policies for end-user technologies are defined and implemented
+        description: Acceptable use policies
+        policies_required:
+          - acceptable-use-policy
+        policies_recommended:
+          - pci-policy
+
+      "12.3":
+        name: Risks to the cardholder data environment are formally identified, evaluated, and managed
+        description: Risk assessment
+        policies_required:
+          - risk-assessment-policy
+          - risk-management-policy
+        policies_recommended:
+          - pci-policy
+
+      "12.4":
+        name: PCI DSS compliance is managed
+        description: Assign PCI DSS compliance responsibilities
+        policies_required:
+          - pci-policy
+          - compliance-policy
+        policies_recommended:
+          - it-governance-policy
+
+      "12.5":
+        name: PCI DSS scope is documented and validated
+        description: Document and validate scope
+        policies_required:
+          - pci-policy
+          - documentation-policy
+        policies_recommended:
+          - asset-management-policy
+
+      "12.6":
+        name: Security awareness education is an ongoing activity
+        description: Security awareness program
+        policies_required:
+          - security-awareness-and-training-policy
+          - security-awareness-and-training-plan
+        policies_recommended:
+          - pci-policy
+
+      "12.7":
+        name: Personnel are screened to reduce risks from insider threats
+        description: Personnel screening
+        policies_required:
+          - personnel-security-policy
+          - staffing-policy
+        policies_recommended:
+          - insider-threat-policy
+
+      "12.8":
+        name: Risk to information assets associated with third-party service provider (TPSP) relationships is managed
+        description: Third-party risk management
+        policies_required:
+          - third-party-service-providers-policy
+          - vendor-access-policy
+        policies_recommended:
+          - supply-chain-security-policy
+
+      "12.9":
+        name: Third-party service providers (TPSPs) support their customers' PCI DSS compliance
+        description: TPSP compliance support
+        policies_required:
+          - third-party-service-providers-policy
+          - pci-policy
+        policies_recommended:
+          - compliance-policy
+
+      "12.10":
+        name: Suspected and confirmed security incidents that could impact the CDE are responded to immediately
+        description: Incident response
+        policies_required:
+          - incident-response-policy
+          - incident-response-plan
+        policies_recommended:
+          - business-continuity-policy
+
+# Summary
+summary:
+  total_controls: 63
+  requirement_1: 5
+  requirement_2: 3
+  requirement_3: 7
+  requirement_4: 2
+  requirement_5: 4
+  requirement_6: 5
+  requirement_7: 3
+  requirement_8: 6
+  requirement_9: 5
+  requirement_10: 7
+  requirement_11: 6
+  requirement_12: 10

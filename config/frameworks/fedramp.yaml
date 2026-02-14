@@ -1,0 +1,1029 @@
+framework:
+  id: fedramp
+  name: FedRAMP (Federal Risk and Authorization Management Program)
+  version: "Rev 5"
+  release_date: 2023-05-30
+  description: |
+    FedRAMP is a government-wide program that provides a standardized approach to
+    security assessment, authorization, and continuous monitoring for cloud products and services.
+    Based on NIST SP 800-53 Rev 5 with FedRAMP-specific requirements.
+
+  sources:
+    - url: https://www.fedramp.gov/blog/
+      type: rss
+      check_interval: daily
+    - url: https://www.fedramp.gov/updates/
+      type: webpage
+      check_interval: weekly
+
+  # Impact Levels
+  impact_levels:
+    Low:
+      description: Limited adverse effect on organizational operations
+      control_count: 156
+    Moderate:
+      description: Serious adverse effect on organizational operations
+      control_count: 325
+    High:
+      description: Severe or catastrophic adverse effect
+      control_count: 421
+
+  # Control Families (based on NIST 800-53 with FedRAMP additions)
+  families:
+    AC:
+      name: Access Control
+      controls:
+        AC-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - access-control-policy
+            - information-security-policy
+        AC-2:
+          name: Account Management
+          impact: [Low, Moderate, High]
+          policies_required:
+            - access-control-policy
+            - user-access-management-policy
+        AC-3:
+          name: Access Enforcement
+          impact: [Low, Moderate, High]
+          policies_required:
+            - access-control-policy
+        AC-4:
+          name: Information Flow Enforcement
+          impact: [Moderate, High]
+          policies_required:
+            - network-security-policy
+            - data-classification-policy
+        AC-5:
+          name: Separation of Duties
+          impact: [Moderate, High]
+          policies_required:
+            - access-control-policy
+            - segregation-of-duties-policy
+        AC-6:
+          name: Least Privilege
+          impact: [Low, Moderate, High]
+          policies_required:
+            - access-control-policy
+            - privileged-access-management-policy
+        AC-7:
+          name: Unsuccessful Logon Attempts
+          impact: [Low, Moderate, High]
+          policies_required:
+            - access-control-policy
+            - password-policy
+        AC-8:
+          name: System Use Notification
+          impact: [Low, Moderate, High]
+          policies_required:
+            - acceptable-use-policy
+        AC-11:
+          name: Device Lock
+          impact: [Moderate, High]
+          policies_required:
+            - endpoint-security-policy
+        AC-12:
+          name: Session Termination
+          impact: [Moderate, High]
+          policies_required:
+            - access-control-policy
+        AC-14:
+          name: Permitted Actions Without Identification or Authentication
+          impact: [Low, Moderate, High]
+          policies_required:
+            - access-control-policy
+        AC-17:
+          name: Remote Access
+          impact: [Low, Moderate, High]
+          policies_required:
+            - remote-access-policy
+            - vpn-policy
+        AC-18:
+          name: Wireless Access
+          impact: [Low, Moderate, High]
+          policies_required:
+            - wireless-security-policy
+            - network-security-policy
+        AC-19:
+          name: Access Control for Mobile Devices
+          impact: [Low, Moderate, High]
+          policies_required:
+            - mobile-device-policy
+            - byod-policy
+        AC-20:
+          name: Use of External Systems
+          impact: [Low, Moderate, High]
+          policies_required:
+            - acceptable-use-policy
+            - third-party-access-policy
+        AC-21:
+          name: Information Sharing
+          impact: [Moderate, High]
+          policies_required:
+            - data-classification-policy
+        AC-22:
+          name: Publicly Accessible Content
+          impact: [Low, Moderate, High]
+          policies_required:
+            - information-security-policy
+
+    AT:
+      name: Awareness and Training
+      controls:
+        AT-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-awareness-training-policy
+        AT-2:
+          name: Literacy Training and Awareness
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-awareness-training-policy
+        AT-3:
+          name: Role-Based Training
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-awareness-training-policy
+        AT-4:
+          name: Training Records
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-awareness-training-policy
+            - record-retention-policy
+
+    AU:
+      name: Audit and Accountability
+      controls:
+        AU-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-policy
+            - audit-trails-policy
+        AU-2:
+          name: Event Logging
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-trails-policy
+        AU-3:
+          name: Content of Audit Records
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-trails-policy
+        AU-4:
+          name: Audit Log Storage Capacity
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-trails-policy
+        AU-5:
+          name: Response to Audit Logging Process Failures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-trails-policy
+        AU-6:
+          name: Audit Record Review, Analysis, and Reporting
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-policy
+        AU-7:
+          name: Audit Record Reduction and Report Generation
+          impact: [Moderate, High]
+          policies_required:
+            - audit-trails-policy
+        AU-8:
+          name: Time Stamps
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-trails-policy
+        AU-9:
+          name: Protection of Audit Information
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-trails-policy
+            - access-control-policy
+        AU-11:
+          name: Audit Record Retention
+          impact: [Low, Moderate, High]
+          policies_required:
+            - data-retention-policy
+            - audit-trails-policy
+        AU-12:
+          name: Audit Record Generation
+          impact: [Low, Moderate, High]
+          policies_required:
+            - audit-trails-policy
+
+    CA:
+      name: Assessment, Authorization, and Monitoring
+      controls:
+        CA-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-assessment-policy
+        CA-2:
+          name: Control Assessments
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-assessment-policy
+            - audit-policy
+        CA-3:
+          name: Information Exchange
+          impact: [Low, Moderate, High]
+          policies_required:
+            - interconnection-security-policy
+        CA-5:
+          name: Plan of Action and Milestones
+          impact: [Low, Moderate, High]
+          policies_required:
+            - vulnerability-management-policy
+        CA-6:
+          name: Authorization
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-assessment-policy
+        CA-7:
+          name: Continuous Monitoring
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-monitoring-policy
+            - continuous-monitoring-policy
+        CA-8:
+          name: Penetration Testing
+          impact: [Moderate, High]
+          policies_required:
+            - penetration-testing-policy
+        CA-9:
+          name: Internal System Connections
+          impact: [Low, Moderate, High]
+          policies_required:
+            - network-security-policy
+
+    CM:
+      name: Configuration Management
+      controls:
+        CM-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - configuration-management-policy
+        CM-2:
+          name: Baseline Configuration
+          impact: [Low, Moderate, High]
+          policies_required:
+            - configuration-management-policy
+        CM-3:
+          name: Configuration Change Control
+          impact: [Moderate, High]
+          policies_required:
+            - change-management-policy
+        CM-4:
+          name: Impact Analyses
+          impact: [Low, Moderate, High]
+          policies_required:
+            - change-management-policy
+        CM-5:
+          name: Access Restrictions for Change
+          impact: [Moderate, High]
+          policies_required:
+            - change-management-policy
+            - access-control-policy
+        CM-6:
+          name: Configuration Settings
+          impact: [Low, Moderate, High]
+          policies_required:
+            - configuration-management-policy
+        CM-7:
+          name: Least Functionality
+          impact: [Low, Moderate, High]
+          policies_required:
+            - configuration-management-policy
+        CM-8:
+          name: System Component Inventory
+          impact: [Low, Moderate, High]
+          policies_required:
+            - asset-management-policy
+        CM-9:
+          name: Configuration Management Plan
+          impact: [Moderate, High]
+          policies_required:
+            - configuration-management-policy
+        CM-10:
+          name: Software Usage Restrictions
+          impact: [Low, Moderate, High]
+          policies_required:
+            - software-installation-policy
+        CM-11:
+          name: User-Installed Software
+          impact: [Low, Moderate, High]
+          policies_required:
+            - software-installation-policy
+            - acceptable-use-policy
+
+    CP:
+      name: Contingency Planning
+      controls:
+        CP-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - business-continuity-policy
+            - disaster-recovery-policy
+        CP-2:
+          name: Contingency Plan
+          impact: [Low, Moderate, High]
+          policies_required:
+            - business-continuity-policy
+        CP-3:
+          name: Contingency Training
+          impact: [Low, Moderate, High]
+          policies_required:
+            - business-continuity-policy
+        CP-4:
+          name: Contingency Plan Testing
+          impact: [Low, Moderate, High]
+          policies_required:
+            - business-continuity-policy
+            - disaster-recovery-policy
+        CP-6:
+          name: Alternate Storage Site
+          impact: [Moderate, High]
+          policies_required:
+            - disaster-recovery-policy
+        CP-7:
+          name: Alternate Processing Site
+          impact: [Moderate, High]
+          policies_required:
+            - disaster-recovery-policy
+        CP-8:
+          name: Telecommunications Services
+          impact: [Moderate, High]
+          policies_required:
+            - disaster-recovery-policy
+        CP-9:
+          name: System Backup
+          impact: [Low, Moderate, High]
+          policies_required:
+            - backup-policy
+        CP-10:
+          name: System Recovery and Reconstitution
+          impact: [Low, Moderate, High]
+          policies_required:
+            - disaster-recovery-policy
+
+    IA:
+      name: Identification and Authentication
+      controls:
+        IA-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - authentication-policy
+            - identity-management-policy
+        IA-2:
+          name: Identification and Authentication (Organizational Users)
+          impact: [Low, Moderate, High]
+          policies_required:
+            - authentication-policy
+        IA-3:
+          name: Device Identification and Authentication
+          impact: [Moderate, High]
+          policies_required:
+            - authentication-policy
+            - network-security-policy
+        IA-4:
+          name: Identifier Management
+          impact: [Low, Moderate, High]
+          policies_required:
+            - identity-management-policy
+        IA-5:
+          name: Authenticator Management
+          impact: [Low, Moderate, High]
+          policies_required:
+            - password-policy
+            - authentication-policy
+        IA-6:
+          name: Authentication Feedback
+          impact: [Low, Moderate, High]
+          policies_required:
+            - authentication-policy
+        IA-7:
+          name: Cryptographic Module Authentication
+          impact: [Low, Moderate, High]
+          policies_required:
+            - encryption-policy
+        IA-8:
+          name: Identification and Authentication (Non-Organizational Users)
+          impact: [Low, Moderate, High]
+          policies_required:
+            - authentication-policy
+            - third-party-access-policy
+        IA-11:
+          name: Re-authentication
+          impact: [Moderate, High]
+          policies_required:
+            - authentication-policy
+
+    IR:
+      name: Incident Response
+      controls:
+        IR-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - incident-response-policy
+        IR-2:
+          name: Incident Response Training
+          impact: [Low, Moderate, High]
+          policies_required:
+            - incident-response-policy
+        IR-3:
+          name: Incident Response Testing
+          impact: [Moderate, High]
+          policies_required:
+            - incident-response-policy
+        IR-4:
+          name: Incident Handling
+          impact: [Low, Moderate, High]
+          policies_required:
+            - incident-response-policy
+        IR-5:
+          name: Incident Monitoring
+          impact: [Low, Moderate, High]
+          policies_required:
+            - incident-response-policy
+            - security-monitoring-policy
+        IR-6:
+          name: Incident Reporting
+          impact: [Low, Moderate, High]
+          policies_required:
+            - incident-response-policy
+        IR-7:
+          name: Incident Response Assistance
+          impact: [Low, Moderate, High]
+          policies_required:
+            - incident-response-policy
+        IR-8:
+          name: Incident Response Plan
+          impact: [Low, Moderate, High]
+          policies_required:
+            - incident-response-policy
+        IR-9:
+          name: Information Spillage Response
+          impact: [Moderate, High]
+          policies_required:
+            - incident-response-policy
+            - data-breach-policy
+
+    MA:
+      name: Maintenance
+      controls:
+        MA-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - system-maintenance-policy
+        MA-2:
+          name: Controlled Maintenance
+          impact: [Low, Moderate, High]
+          policies_required:
+            - system-maintenance-policy
+        MA-3:
+          name: Maintenance Tools
+          impact: [Moderate, High]
+          policies_required:
+            - system-maintenance-policy
+        MA-4:
+          name: Nonlocal Maintenance
+          impact: [Low, Moderate, High]
+          policies_required:
+            - system-maintenance-policy
+            - remote-access-policy
+        MA-5:
+          name: Maintenance Personnel
+          impact: [Low, Moderate, High]
+          policies_required:
+            - system-maintenance-policy
+            - personnel-security-policy
+        MA-6:
+          name: Timely Maintenance
+          impact: [Moderate, High]
+          policies_required:
+            - system-maintenance-policy
+
+    MP:
+      name: Media Protection
+      controls:
+        MP-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - media-handling-policy
+        MP-2:
+          name: Media Access
+          impact: [Low, Moderate, High]
+          policies_required:
+            - media-handling-policy
+            - access-control-policy
+        MP-3:
+          name: Media Marking
+          impact: [Moderate, High]
+          policies_required:
+            - media-handling-policy
+            - data-classification-policy
+        MP-4:
+          name: Media Storage
+          impact: [Moderate, High]
+          policies_required:
+            - media-handling-policy
+        MP-5:
+          name: Media Transport
+          impact: [Moderate, High]
+          policies_required:
+            - media-handling-policy
+        MP-6:
+          name: Media Sanitization
+          impact: [Low, Moderate, High]
+          policies_required:
+            - media-handling-policy
+            - data-retention-policy
+        MP-7:
+          name: Media Use
+          impact: [Low, Moderate, High]
+          policies_required:
+            - removable-media-policy
+
+    PE:
+      name: Physical and Environmental Protection
+      controls:
+        PE-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-2:
+          name: Physical Access Authorizations
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-3:
+          name: Physical Access Control
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-4:
+          name: Access Control for Transmission
+          impact: [Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-5:
+          name: Access Control for Output Devices
+          impact: [Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-6:
+          name: Monitoring Physical Access
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-8:
+          name: Visitor Access Records
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-9:
+          name: Power Equipment and Cabling
+          impact: [Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-10:
+          name: Emergency Shutoff
+          impact: [Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-11:
+          name: Emergency Power
+          impact: [Moderate, High]
+          policies_required:
+            - physical-security-policy
+            - disaster-recovery-policy
+        PE-12:
+          name: Emergency Lighting
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-13:
+          name: Fire Protection
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-14:
+          name: Environmental Controls
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-15:
+          name: Water Damage Protection
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-16:
+          name: Delivery and Removal
+          impact: [Low, Moderate, High]
+          policies_required:
+            - physical-security-policy
+        PE-17:
+          name: Alternate Work Site
+          impact: [Moderate, High]
+          policies_required:
+            - remote-work-policy
+
+    PL:
+      name: Planning
+      controls:
+        PL-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - information-security-policy
+        PL-2:
+          name: System Security and Privacy Plans
+          impact: [Low, Moderate, High]
+          policies_required:
+            - information-security-policy
+        PL-4:
+          name: Rules of Behavior
+          impact: [Low, Moderate, High]
+          policies_required:
+            - acceptable-use-policy
+        PL-8:
+          name: Security and Privacy Architectures
+          impact: [Moderate, High]
+          policies_required:
+            - information-security-policy
+        PL-10:
+          name: Baseline Selection
+          impact: [Low, Moderate, High]
+          policies_required:
+            - configuration-management-policy
+        PL-11:
+          name: Baseline Tailoring
+          impact: [Low, Moderate, High]
+          policies_required:
+            - configuration-management-policy
+
+    PS:
+      name: Personnel Security
+      controls:
+        PS-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - personnel-security-policy
+        PS-2:
+          name: Position Risk Designation
+          impact: [Low, Moderate, High]
+          policies_required:
+            - personnel-security-policy
+        PS-3:
+          name: Personnel Screening
+          impact: [Low, Moderate, High]
+          policies_required:
+            - personnel-security-policy
+            - background-check-policy
+        PS-4:
+          name: Personnel Termination
+          impact: [Low, Moderate, High]
+          policies_required:
+            - termination-policy
+        PS-5:
+          name: Personnel Transfer
+          impact: [Low, Moderate, High]
+          policies_required:
+            - personnel-security-policy
+        PS-6:
+          name: Access Agreements
+          impact: [Low, Moderate, High]
+          policies_required:
+            - acceptable-use-policy
+            - nda-policy
+        PS-7:
+          name: External Personnel Security
+          impact: [Low, Moderate, High]
+          policies_required:
+            - vendor-management-policy
+            - personnel-security-policy
+        PS-8:
+          name: Personnel Sanctions
+          impact: [Low, Moderate, High]
+          policies_required:
+            - personnel-security-policy
+            - acceptable-use-policy
+
+    RA:
+      name: Risk Assessment
+      controls:
+        RA-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - risk-assessment-policy
+        RA-2:
+          name: Security Categorization
+          impact: [Low, Moderate, High]
+          policies_required:
+            - data-classification-policy
+        RA-3:
+          name: Risk Assessment
+          impact: [Low, Moderate, High]
+          policies_required:
+            - risk-assessment-policy
+        RA-5:
+          name: Vulnerability Monitoring and Scanning
+          impact: [Low, Moderate, High]
+          policies_required:
+            - vulnerability-management-policy
+        RA-7:
+          name: Risk Response
+          impact: [Low, Moderate, High]
+          policies_required:
+            - risk-assessment-policy
+        RA-9:
+          name: Criticality Analysis
+          impact: [High]
+          policies_required:
+            - risk-assessment-policy
+
+    SA:
+      name: System and Services Acquisition
+      controls:
+        SA-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - system-acquisition-policy
+        SA-2:
+          name: Allocation of Resources
+          impact: [Low, Moderate, High]
+          policies_required:
+            - information-security-policy
+        SA-3:
+          name: System Development Life Cycle
+          impact: [Low, Moderate, High]
+          policies_required:
+            - software-development-policy
+        SA-4:
+          name: Acquisition Process
+          impact: [Low, Moderate, High]
+          policies_required:
+            - system-acquisition-policy
+            - vendor-management-policy
+        SA-5:
+          name: System Documentation
+          impact: [Low, Moderate, High]
+          policies_required:
+            - system-acquisition-policy
+        SA-8:
+          name: Security and Privacy Engineering Principles
+          impact: [Moderate, High]
+          policies_required:
+            - software-development-policy
+        SA-9:
+          name: External System Services
+          impact: [Low, Moderate, High]
+          policies_required:
+            - vendor-management-policy
+            - cloud-security-policy
+        SA-10:
+          name: Developer Configuration Management
+          impact: [Moderate, High]
+          policies_required:
+            - software-development-policy
+            - configuration-management-policy
+        SA-11:
+          name: Developer Testing and Evaluation
+          impact: [Moderate, High]
+          policies_required:
+            - software-development-policy
+        SA-22:
+          name: Unsupported System Components
+          impact: [Low, Moderate, High]
+          policies_required:
+            - patch-management-policy
+
+    SC:
+      name: System and Communications Protection
+      controls:
+        SC-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - network-security-policy
+        SC-2:
+          name: Separation of System and User Functionality
+          impact: [Moderate, High]
+          policies_required:
+            - network-security-policy
+        SC-4:
+          name: Information in Shared System Resources
+          impact: [Moderate, High]
+          policies_required:
+            - data-classification-policy
+        SC-5:
+          name: Denial-of-Service Protection
+          impact: [Low, Moderate, High]
+          policies_required:
+            - network-security-policy
+        SC-7:
+          name: Boundary Protection
+          impact: [Low, Moderate, High]
+          policies_required:
+            - network-security-policy
+            - firewall-policy
+        SC-8:
+          name: Transmission Confidentiality and Integrity
+          impact: [Moderate, High]
+          policies_required:
+            - encryption-policy
+        SC-10:
+          name: Network Disconnect
+          impact: [Moderate, High]
+          policies_required:
+            - network-security-policy
+        SC-12:
+          name: Cryptographic Key Establishment and Management
+          impact: [Low, Moderate, High]
+          policies_required:
+            - encryption-policy
+            - key-management-policy
+        SC-13:
+          name: Cryptographic Protection
+          impact: [Low, Moderate, High]
+          policies_required:
+            - encryption-policy
+        SC-15:
+          name: Collaborative Computing Devices and Applications
+          impact: [Low, Moderate, High]
+          policies_required:
+            - acceptable-use-policy
+        SC-17:
+          name: Public Key Infrastructure Certificates
+          impact: [Moderate, High]
+          policies_required:
+            - encryption-policy
+            - certificate-management-policy
+        SC-18:
+          name: Mobile Code
+          impact: [Moderate, High]
+          policies_required:
+            - software-installation-policy
+        SC-19:
+          name: Voice over Internet Protocol
+          impact: [Moderate, High]
+          policies_required:
+            - network-security-policy
+        SC-20:
+          name: Secure Name/Address Resolution Service
+          impact: [Low, Moderate, High]
+          policies_required:
+            - network-security-policy
+        SC-21:
+          name: Secure Name/Address Resolution Service (Recursive or Caching Resolver)
+          impact: [Low, Moderate, High]
+          policies_required:
+            - network-security-policy
+        SC-22:
+          name: Architecture and Provisioning for Name/Address Resolution Service
+          impact: [Low, Moderate, High]
+          policies_required:
+            - network-security-policy
+        SC-23:
+          name: Session Authenticity
+          impact: [Moderate, High]
+          policies_required:
+            - authentication-policy
+        SC-28:
+          name: Protection of Information at Rest
+          impact: [Moderate, High]
+          policies_required:
+            - encryption-policy
+        SC-39:
+          name: Process Isolation
+          impact: [Low, Moderate, High]
+          policies_required:
+            - configuration-management-policy
+
+    SI:
+      name: System and Information Integrity
+      controls:
+        SI-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - information-security-policy
+        SI-2:
+          name: Flaw Remediation
+          impact: [Low, Moderate, High]
+          policies_required:
+            - patch-management-policy
+            - vulnerability-management-policy
+        SI-3:
+          name: Malicious Code Protection
+          impact: [Low, Moderate, High]
+          policies_required:
+            - anti-malware-policy
+        SI-4:
+          name: System Monitoring
+          impact: [Low, Moderate, High]
+          policies_required:
+            - security-monitoring-policy
+        SI-5:
+          name: Security Alerts, Advisories, and Directives
+          impact: [Low, Moderate, High]
+          policies_required:
+            - vulnerability-management-policy
+        SI-7:
+          name: Software, Firmware, and Information Integrity
+          impact: [Moderate, High]
+          policies_required:
+            - configuration-management-policy
+        SI-8:
+          name: Spam Protection
+          impact: [Moderate, High]
+          policies_required:
+            - email-security-policy
+        SI-10:
+          name: Information Input Validation
+          impact: [Moderate, High]
+          policies_required:
+            - software-development-policy
+            - secure-coding-policy
+        SI-11:
+          name: Error Handling
+          impact: [Moderate, High]
+          policies_required:
+            - software-development-policy
+        SI-12:
+          name: Information Management and Retention
+          impact: [Low, Moderate, High]
+          policies_required:
+            - data-retention-policy
+        SI-16:
+          name: Memory Protection
+          impact: [Moderate, High]
+          policies_required:
+            - configuration-management-policy
+
+    SR:
+      name: Supply Chain Risk Management
+      controls:
+        SR-1:
+          name: Policy and Procedures
+          impact: [Low, Moderate, High]
+          policies_required:
+            - supply-chain-security-policy
+        SR-2:
+          name: Supply Chain Risk Management Plan
+          impact: [Moderate, High]
+          policies_required:
+            - supply-chain-security-policy
+        SR-3:
+          name: Supply Chain Controls and Processes
+          impact: [Moderate, High]
+          policies_required:
+            - supply-chain-security-policy
+            - vendor-management-policy
+        SR-5:
+          name: Acquisition Strategies, Tools, and Methods
+          impact: [Moderate, High]
+          policies_required:
+            - supply-chain-security-policy
+        SR-6:
+          name: Supplier Assessments and Reviews
+          impact: [Moderate, High]
+          policies_required:
+            - vendor-management-policy
+        SR-8:
+          name: Notification Agreements
+          impact: [Moderate, High]
+          policies_required:
+            - vendor-management-policy
+        SR-10:
+          name: Inspection of Systems or Components
+          impact: [High]
+          policies_required:
+            - supply-chain-security-policy
+        SR-11:
+          name: Component Authenticity
+          impact: [Moderate, High]
+          policies_required:
+            - supply-chain-security-policy
+        SR-12:
+          name: Component Disposal
+          impact: [Moderate, High]
+          policies_required:
+            - media-handling-policy
+            - data-retention-policy

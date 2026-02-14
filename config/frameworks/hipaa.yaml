@@ -1,0 +1,662 @@
+# HIPAA Security and Privacy Rules
+# Health Insurance Portability and Accountability Act
+# 45 CFR Parts 160, 162, and 164
+
+framework:
+  id: hipaa
+  name: HIPAA Security and Privacy Rules
+  version: "2013"
+  release_date: 2013-01-25
+  authority: U.S. Department of Health and Human Services (HHS)
+  url: https://www.hhs.gov/hipaa/for-professionals/security/index.html
+
+# HIPAA Security Rule - Administrative Safeguards (164.308)
+# HIPAA Security Rule - Physical Safeguards (164.310)
+# HIPAA Security Rule - Technical Safeguards (164.312)
+# HIPAA Privacy Rule - Key Requirements (164.500-534)
+
+safeguards:
+
+  # ============================================
+  # ADMINISTRATIVE SAFEGUARDS (164.308)
+  # ============================================
+  administrative:
+    name: Administrative Safeguards
+    description: Administrative actions, policies, and procedures to manage the security measures
+
+    controls:
+      # 164.308(a)(1) - Security Management Process
+      164.308.a.1.i:
+        name: Risk Analysis (Required)
+        description: Conduct an accurate and thorough assessment of potential risks and vulnerabilities to ePHI
+        policies_required:
+          - risk-assessment-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - risk-management-policy
+
+      164.308.a.1.ii.A:
+        name: Risk Management (Required)
+        description: Implement security measures sufficient to reduce risks and vulnerabilities to a reasonable level
+        policies_required:
+          - risk-management-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - security-controls-review-policy
+
+      164.308.a.1.ii.B:
+        name: Sanction Policy (Required)
+        description: Apply appropriate sanctions against workforce members who fail to comply with security policies
+        policies_required:
+          - acceptable-use-policy
+          - reporting-violations-policy
+        policies_recommended:
+          - personnel-security-policy
+
+      164.308.a.1.ii.C:
+        name: Information System Activity Review (Required)
+        description: Implement procedures to regularly review records of information system activity
+        policies_required:
+          - audit-trails-policy
+          - logging-policy
+        policies_recommended:
+          - security-monitoring-policy
+
+      # 164.308(a)(2) - Assigned Security Responsibility
+      164.308.a.2:
+        name: Assigned Security Responsibility (Required)
+        description: Identify the security official responsible for developing and implementing policies and procedures
+        policies_required:
+          - information-security-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - it-governance-policy
+
+      # 164.308(a)(3) - Workforce Security
+      164.308.a.3.i:
+        name: Authorization and/or Supervision (Addressable)
+        description: Implement procedures for authorization and supervision of workforce members who work with ePHI
+        policies_required:
+          - access-control-policy
+          - personnel-security-policy
+        policies_recommended:
+          - user-privilege-policy
+
+      164.308.a.3.ii.A:
+        name: Workforce Clearance Procedure (Addressable)
+        description: Implement procedures to determine appropriate access of workforce to ePHI
+        policies_required:
+          - personnel-security-policy
+          - access-control-policy
+        policies_recommended:
+          - account-management-policy
+
+      164.308.a.3.ii.B:
+        name: Termination Procedures (Addressable)
+        description: Implement procedures for terminating access to ePHI when employment ends
+        policies_required:
+          - personnel-security-policy
+          - account-management-policy
+        policies_recommended:
+          - access-control-policy
+
+      # 164.308(a)(4) - Information Access Management
+      164.308.a.4.i:
+        name: Isolating Health Care Clearinghouse Functions (Required)
+        description: If a clearinghouse is part of a larger organization, isolate the clearinghouse functions
+        policies_required:
+          - network-security-policy
+          - access-control-policy
+        policies_recommended:
+          - data-classification-policy
+
+      164.308.a.4.ii.A:
+        name: Access Authorization (Addressable)
+        description: Implement policies and procedures for granting access to ePHI
+        policies_required:
+          - access-control-policy
+          - user-privilege-policy
+        policies_recommended:
+          - account-management-policy
+
+      164.308.a.4.ii.B:
+        name: Access Establishment and Modification (Addressable)
+        description: Implement policies and procedures for establishing, modifying, and terminating access to ePHI
+        policies_required:
+          - account-management-policy
+          - access-control-policy
+        policies_recommended:
+          - identity-governance-policy
+
+      164.308.a.4.ii.C:
+        name: Access Establishment and Modification (Addressable)
+        description: Implement policies and procedures for establishing, modifying, and terminating access to ePHI
+        policies_required:
+          - account-management-policy
+          - access-control-policy
+        policies_recommended:
+          - privileged-access-management-policy
+
+      # 164.308(a)(5) - Security Awareness and Training
+      164.308.a.5.i:
+        name: Security Awareness and Training (Required)
+        description: Implement security awareness and training program for all workforce members
+        policies_required:
+          - security-awareness-and-training-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - security-awareness-and-training-plan
+
+      164.308.a.5.ii.A:
+        name: Security Reminders (Addressable)
+        description: Provide periodic security updates
+        policies_required:
+          - security-awareness-and-training-policy
+        policies_recommended:
+          - mass-communication-policy
+
+      164.308.a.5.ii.B:
+        name: Protection from Malicious Software (Addressable)
+        description: Procedures for guarding against, detecting, and reporting malicious software
+        policies_required:
+          - anti-malware-policy
+        policies_recommended:
+          - workstation-security-policy
+
+      164.308.a.5.ii.C:
+        name: Log-in Monitoring (Addressable)
+        description: Procedures for monitoring log-in attempts and reporting discrepancies
+        policies_required:
+          - logging-policy
+          - security-monitoring-policy
+        policies_recommended:
+          - audit-trails-policy
+
+      164.308.a.5.ii.D:
+        name: Password Management (Addressable)
+        description: Procedures for creating, changing, and safeguarding passwords
+        policies_required:
+          - password-policy
+        policies_recommended:
+          - account-management-policy
+
+      # 164.308(a)(6) - Security Incident Procedures
+      164.308.a.6.i:
+        name: Security Incident Procedures (Required)
+        description: Implement policies and procedures to address security incidents
+        policies_required:
+          - incident-response-policy
+          - incident-response-plan
+        policies_recommended:
+          - hipaa-and-hitech-policy
+
+      164.308.a.6.ii:
+        name: Response and Reporting (Required)
+        description: Identify and respond to suspected or known security incidents
+        policies_required:
+          - incident-response-policy
+          - incident-response-plan
+        policies_recommended:
+          - reporting-violations-policy
+
+      # 164.308(a)(7) - Contingency Plan
+      164.308.a.7.i:
+        name: Contingency Plan (Required)
+        description: Establish policies and procedures for responding to emergencies
+        policies_required:
+          - business-continuity-policy
+          - business-continuity-disaster-recovery-plan
+        policies_recommended:
+          - hipaa-and-hitech-policy
+
+      164.308.a.7.ii.A:
+        name: Data Backup Plan (Required)
+        description: Establish procedures to create and maintain retrievable exact copies of ePHI
+        policies_required:
+          - backup-policy
+          - backup-procedure
+        policies_recommended:
+          - data-retention-policy
+
+      164.308.a.7.ii.B:
+        name: Disaster Recovery Plan (Required)
+        description: Establish procedures to restore any loss of data
+        policies_required:
+          - business-continuity-disaster-recovery-plan
+        policies_recommended:
+          - business-continuity-policy
+
+      164.308.a.7.ii.C:
+        name: Emergency Mode Operation Plan (Required)
+        description: Establish procedures for critical business processes to protect ePHI during emergencies
+        policies_required:
+          - business-continuity-disaster-recovery-plan
+          - business-continuity-policy
+        policies_recommended:
+          - incident-response-plan
+
+      164.308.a.7.ii.D:
+        name: Testing and Revision Procedures (Addressable)
+        description: Implement procedures for periodic testing and revision of contingency plans
+        policies_required:
+          - business-continuity-policy
+        policies_recommended:
+          - business-continuity-disaster-recovery-plan
+
+      164.308.a.7.ii.E:
+        name: Applications and Data Criticality Analysis (Addressable)
+        description: Assess the relative criticality of specific applications and data
+        policies_required:
+          - business-impact-analysis
+        policies_recommended:
+          - data-classification-policy
+
+      # 164.308(a)(8) - Evaluation
+      164.308.a.8:
+        name: Evaluation (Required)
+        description: Perform periodic technical and non-technical evaluations
+        policies_required:
+          - audit-policy
+          - security-self-assessment-policy
+        policies_recommended:
+          - security-controls-review-policy
+
+      # 164.308(b)(1) - Business Associate Contracts
+      164.308.b.1:
+        name: Business Associate Contracts and Other Arrangements (Required)
+        description: Obtain satisfactory assurances from business associates
+        policies_required:
+          - third-party-service-providers-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - vendor-access-policy
+
+  # ============================================
+  # PHYSICAL SAFEGUARDS (164.310)
+  # ============================================
+  physical:
+    name: Physical Safeguards
+    description: Physical measures, policies, and procedures to protect electronic information systems
+
+    controls:
+      # 164.310(a)(1) - Facility Access Controls
+      164.310.a.1:
+        name: Facility Access Controls (Required)
+        description: Implement policies to limit physical access to electronic information systems
+        policies_required:
+          - physical-access-policy
+          - physical-security-policy
+        policies_recommended:
+          - facility-security-plan
+
+      164.310.a.2.i:
+        name: Contingency Operations (Addressable)
+        description: Establish procedures for facility access in support of data restoration
+        policies_required:
+          - business-continuity-disaster-recovery-plan
+          - physical-access-policy
+        policies_recommended:
+          - business-continuity-policy
+
+      164.310.a.2.ii:
+        name: Facility Security Plan (Addressable)
+        description: Implement policies to safeguard the facility from unauthorized physical access
+        policies_required:
+          - facility-security-plan
+          - physical-security-policy
+        policies_recommended:
+          - physical-access-policy
+
+      164.310.a.2.iii:
+        name: Access Control and Validation Procedures (Addressable)
+        description: Implement procedures to control and validate person's access to facilities
+        policies_required:
+          - physical-access-policy
+        policies_recommended:
+          - visitor-management-policy
+
+      164.310.a.2.iv:
+        name: Maintenance Records (Addressable)
+        description: Implement policies and procedures to document repairs and modifications
+        policies_required:
+          - hardware-and-software-maintenance-policy
+        policies_recommended:
+          - documentation-policy
+
+      # 164.310(b) - Workstation Use
+      164.310.b:
+        name: Workstation Use (Required)
+        description: Implement policies for proper functions and manner of use of workstations
+        policies_required:
+          - workstation-security-policy
+          - acceptable-use-policy
+        policies_recommended:
+          - clear-desk-policy
+
+      # 164.310(c) - Workstation Security
+      164.310.c:
+        name: Workstation Security (Required)
+        description: Implement physical safeguards for all workstations that access ePHI
+        policies_required:
+          - workstation-security-policy
+          - physical-security-policy
+        policies_recommended:
+          - portable-computing-policy
+
+      # 164.310(d)(1) - Device and Media Controls
+      164.310.d.1:
+        name: Device and Media Controls (Required)
+        description: Implement policies for receipt and removal of hardware and electronic media
+        policies_required:
+          - asset-management-policy
+          - removable-media-policy
+        policies_recommended:
+          - disposal-policy
+
+      164.310.d.2.i:
+        name: Disposal (Required)
+        description: Implement policies for final disposition of ePHI and media
+        policies_required:
+          - disposal-policy
+          - data-retention-policy
+        policies_recommended:
+          - asset-management-policy
+
+      164.310.d.2.ii:
+        name: Media Re-use (Required)
+        description: Implement procedures for removal of ePHI from media before reuse
+        policies_required:
+          - disposal-policy
+          - removable-media-policy
+        policies_recommended:
+          - data-classification-policy
+
+      164.310.d.2.iii:
+        name: Accountability (Addressable)
+        description: Maintain record of movements of hardware and electronic media
+        policies_required:
+          - asset-management-policy
+        policies_recommended:
+          - documentation-policy
+
+      164.310.d.2.iv:
+        name: Data Backup and Storage (Addressable)
+        description: Create retrievable, exact copy of ePHI before moving equipment
+        policies_required:
+          - backup-policy
+        policies_recommended:
+          - data-retention-policy
+
+  # ============================================
+  # TECHNICAL SAFEGUARDS (164.312)
+  # ============================================
+  technical:
+    name: Technical Safeguards
+    description: Technology and policy and procedures for its use to protect and control access to ePHI
+
+    controls:
+      # 164.312(a)(1) - Access Control
+      164.312.a.1:
+        name: Access Control (Required)
+        description: Implement technical policies to allow only authorized persons to access ePHI
+        policies_required:
+          - access-control-policy
+          - logical-access-controls-policy
+        policies_recommended:
+          - account-management-policy
+
+      164.312.a.2.i:
+        name: Unique User Identification (Required)
+        description: Assign unique name/number for identifying and tracking user identity
+        policies_required:
+          - account-management-policy
+          - identification-and-authentication-policy
+        policies_recommended:
+          - access-control-policy
+
+      164.312.a.2.ii:
+        name: Emergency Access Procedure (Required)
+        description: Establish procedures for obtaining necessary ePHI during an emergency
+        policies_required:
+          - business-continuity-disaster-recovery-plan
+          - access-control-policy
+        policies_recommended:
+          - privileged-access-management-policy
+
+      164.312.a.2.iii:
+        name: Automatic Logoff (Addressable)
+        description: Implement electronic procedures that terminate session after inactivity
+        policies_required:
+          - workstation-security-policy
+          - access-control-policy
+        policies_recommended:
+          - logical-access-controls-policy
+
+      164.312.a.2.iv:
+        name: Encryption and Decryption (Addressable)
+        description: Implement mechanism to encrypt and decrypt ePHI
+        policies_required:
+          - encryption-policy
+        policies_recommended:
+          - data-classification-policy
+
+      # 164.312(b) - Audit Controls
+      164.312.b:
+        name: Audit Controls (Required)
+        description: Implement mechanisms to record and examine activity in information systems
+        policies_required:
+          - audit-trails-policy
+          - logging-policy
+        policies_recommended:
+          - security-monitoring-policy
+
+      # 164.312(c)(1) - Integrity
+      164.312.c.1:
+        name: Integrity (Required)
+        description: Implement policies to protect ePHI from improper alteration or destruction
+        policies_required:
+          - data-integrity-policy
+        policies_recommended:
+          - data-classification-policy
+
+      164.312.c.2:
+        name: Mechanism to Authenticate ePHI (Addressable)
+        description: Implement electronic mechanisms to corroborate that ePHI has not been altered
+        policies_required:
+          - data-integrity-policy
+        policies_recommended:
+          - encryption-policy
+
+      # 164.312(d) - Person or Entity Authentication
+      164.312.d:
+        name: Person or Entity Authentication (Required)
+        description: Implement procedures to verify person or entity seeking access is the one claimed
+        policies_required:
+          - identification-and-authentication-policy
+          - password-policy
+        policies_recommended:
+          - access-control-policy
+
+      # 164.312(e)(1) - Transmission Security
+      164.312.e.1:
+        name: Transmission Security (Required)
+        description: Implement technical security measures to guard against unauthorized access during transmission
+        policies_required:
+          - encryption-policy
+          - network-security-policy
+        policies_recommended:
+          - data-classification-policy
+
+      164.312.e.2.i:
+        name: Integrity Controls (Addressable)
+        description: Implement security measures to ensure electronically transmitted ePHI is not improperly modified
+        policies_required:
+          - data-integrity-policy
+          - encryption-policy
+        policies_recommended:
+          - network-security-policy
+
+      164.312.e.2.ii:
+        name: Encryption (Addressable)
+        description: Implement mechanism to encrypt ePHI whenever deemed appropriate
+        policies_required:
+          - encryption-policy
+        policies_recommended:
+          - key-management-policy
+
+  # ============================================
+  # PRIVACY RULE KEY REQUIREMENTS (164.500-534)
+  # ============================================
+  privacy:
+    name: Privacy Rule
+    description: Standards for protecting individuals' medical records and personal health information
+
+    controls:
+      # Notice of Privacy Practices
+      164.520:
+        name: Notice of Privacy Practices (Required)
+        description: Provide notice of privacy practices to individuals
+        policies_required:
+          - privacy-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - web-site-privacy-policy
+
+      # Rights to Request Privacy Protection
+      164.522:
+        name: Rights to Request Privacy Protection (Required)
+        description: Process requests for privacy protection of PHI
+        policies_required:
+          - data-privacy-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - privacy-policy
+
+      # Access of Individuals to PHI
+      164.524:
+        name: Access of Individuals to PHI (Required)
+        description: Provide individuals access to their PHI upon request
+        policies_required:
+          - data-privacy-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - access-control-policy
+
+      # Amendment of PHI
+      164.526:
+        name: Amendment of PHI (Required)
+        description: Allow individuals to request amendment of their PHI
+        policies_required:
+          - data-privacy-policy
+          - data-integrity-policy
+        policies_recommended:
+          - documentation-policy
+
+      # Accounting of Disclosures
+      164.528:
+        name: Accounting of Disclosures (Required)
+        description: Provide accounting of disclosures of PHI upon request
+        policies_required:
+          - audit-trails-policy
+          - data-privacy-policy
+        policies_recommended:
+          - logging-policy
+
+      # Administrative Requirements
+      164.530.a:
+        name: Personnel Designations (Required)
+        description: Designate a privacy official and contact person
+        policies_required:
+          - hipaa-and-hitech-policy
+          - information-security-policy
+        policies_recommended:
+          - it-governance-policy
+
+      164.530.b:
+        name: Training (Required)
+        description: Train all workforce members on privacy policies and procedures
+        policies_required:
+          - security-awareness-and-training-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - personnel-security-policy
+
+      164.530.c:
+        name: Safeguards (Required)
+        description: Have appropriate administrative, technical, and physical safeguards
+        policies_required:
+          - information-security-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - physical-security-policy
+
+      164.530.d:
+        name: Complaints (Required)
+        description: Have a process for individuals to make complaints
+        policies_required:
+          - reporting-violations-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - incident-response-policy
+
+      164.530.e:
+        name: Sanctions (Required)
+        description: Have and apply appropriate sanctions against workforce members
+        policies_required:
+          - acceptable-use-policy
+          - reporting-violations-policy
+        policies_recommended:
+          - personnel-security-policy
+
+      164.530.f:
+        name: Mitigation (Required)
+        description: Mitigate harmful effects of privacy violations
+        policies_required:
+          - incident-response-policy
+          - hipaa-and-hitech-policy
+        policies_recommended:
+          - business-continuity-policy
+
+      164.530.g:
+        name: Refraining from Intimidating or Retaliatory Acts (Required)
+        description: Not intimidate or retaliate against individuals exercising their rights
+        policies_required:
+          - ethics-policy
+          - reporting-violations-policy
+        policies_recommended:
+          - acceptable-use-policy
+
+      164.530.h:
+        name: Waiver of Rights (Required)
+        description: Not require individuals to waive their rights as a condition of treatment
+        policies_required:
+          - hipaa-and-hitech-policy
+          - data-privacy-policy
+        policies_recommended:
+          - ethics-policy
+
+      164.530.i:
+        name: Policies and Procedures (Required)
+        description: Implement policies and procedures to comply with the Privacy Rule
+        policies_required:
+          - hipaa-and-hitech-policy
+          - documentation-policy
+        policies_recommended:
+          - standard-operating-procedure-policy
+
+      164.530.j:
+        name: Documentation (Required)
+        description: Maintain policies, procedures, and communications in written form
+        policies_required:
+          - documentation-policy
+          - data-retention-policy
+        policies_recommended:
+          - hipaa-and-hitech-policy
+
+# Summary
+summary:
+  total_controls: 60
+  administrative_safeguards: 28
+  physical_safeguards: 14
+  technical_safeguards: 13
+  privacy_rule: 15

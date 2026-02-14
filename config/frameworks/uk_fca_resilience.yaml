@@ -1,0 +1,217 @@
+# UK FCA/PRA Operational Resilience Framework
+# PS21/3: Building operational resilience
+# Effective: March 31, 2022 (transition period ends March 31, 2025)
+
+framework:
+  id: uk_fca_resilience
+  name: UK FCA/PRA Operational Resilience
+  full_name: FCA PS21/3 and PRA PS6/21 Operational Resilience
+  version: "2021"
+  jurisdiction: United Kingdom
+  sector: Financial Services
+  effective_date: "2022-03-31"
+  transition_deadline: "2025-03-31"
+  regulatory_bodies:
+    - Financial Conduct Authority (FCA)
+    - Prudential Regulation Authority (PRA)
+
+  description: |
+    The UK operational resilience framework requires financial services firms
+    to identify their Important Business Services, set impact tolerances, and
+    ensure they can remain within those tolerances through severe but plausible
+    disruption scenarios.
+
+  applicability:
+    fca_entities:
+      - Banks
+      - Building societies
+      - Designated investment firms
+      - Enhanced scope SMCR firms
+      - Recognised investment exchanges
+      - Insurers
+      - Payment service providers
+      - E-money issuers
+    pra_entities:
+      - PRA-authorised banks and insurers
+      - PRA-designated investment firms
+
+  # Core Concepts
+  key_concepts:
+    important_business_services:
+      description: |
+        A service provided to clients or other external recipients that,
+        if disrupted, could pose a risk to firm viability, market integrity,
+        or consumer harm.
+
+    impact_tolerances:
+      description: |
+        The maximum tolerable level of disruption to an Important Business
+        Service, as measured by time limits and/or other metrics.
+
+    scenario_testing:
+      description: |
+        Testing of severe but plausible disruption scenarios to verify
+        the firm can remain within impact tolerances.
+
+  # Requirements
+  requirements:
+    - id: ibs_identification
+      name: Important Business Service Identification
+      description: Identify and document Important Business Services
+      regulatory_ref: FCA SYSC 15A.2
+      policies_required:
+        - business-impact-analysis-policy
+        - critical-services-policy
+        - service-catalog-policy
+
+    - id: impact_tolerance_setting
+      name: Impact Tolerance Setting
+      description: Set impact tolerances for each IBS
+      regulatory_ref: FCA SYSC 15A.3
+      policies_required:
+        - impact-tolerance-policy
+        - risk-appetite-policy
+        - service-level-management-policy
+
+    - id: mapping
+      name: Operational Mapping
+      description: Map resources supporting Important Business Services
+      regulatory_ref: FCA SYSC 15A.4
+      resources_to_map:
+        - People
+        - Processes
+        - Technology
+        - Facilities
+        - Information and data
+        - Third parties
+      policies_required:
+        - business-process-management-policy
+        - dependency-mapping-policy
+        - asset-management-policy
+
+    - id: scenario_testing
+      name: Scenario Testing
+      description: Test ability to remain within impact tolerances
+      regulatory_ref: FCA SYSC 15A.5
+      policies_required:
+        - business-continuity-testing-policy
+        - disaster-recovery-testing-policy
+        - scenario-testing-policy
+        - tabletop-exercise-policy
+
+    - id: vulnerability_identification
+      name: Vulnerability Identification
+      description: Identify and address vulnerabilities in operational resilience
+      regulatory_ref: FCA SYSC 15A.6
+      policies_required:
+        - vulnerability-management-policy
+        - risk-assessment-policy
+        - remediation-policy
+
+    - id: response_recovery
+      name: Response and Recovery
+      description: Effective response and recovery capabilities
+      regulatory_ref: FCA SYSC 15A.7
+      policies_required:
+        - incident-response-policy
+        - business-continuity-policy
+        - disaster-recovery-policy
+        - crisis-management-policy
+
+    - id: communication
+      name: Communications Strategy
+      description: Internal and external communications during disruption
+      regulatory_ref: FCA SYSC 15A.8
+      policies_required:
+        - crisis-communication-policy
+        - stakeholder-communication-policy
+        - regulatory-notification-policy
+
+    - id: self_assessment
+      name: Self-Assessment Document
+      description: Document explaining operational resilience approach
+      regulatory_ref: FCA SYSC 15A.9
+      policies_required:
+        - operational-resilience-policy
+        - governance-documentation-policy
+
+    - id: board_responsibility
+      name: Board and Governance
+      description: Board approves and oversees operational resilience
+      regulatory_ref: FCA SYSC 15A.1
+      policies_required:
+        - it-governance-policy
+        - board-oversight-policy
+        - executive-cybersecurity-governance-policy
+
+  # Third Party Dependencies
+  third_party_requirements:
+    description: |
+      Firms must understand and manage risks from outsourcing and
+      third-party dependencies that support Important Business Services.
+    policies_required:
+      - vendor-management-policy
+      - third-party-risk-policy
+      - outsourcing-policy
+      - supply-chain-resilience-policy
+      - exit-strategy-policy
+
+  # Policy Mapping Summary
+  policy_mapping:
+    governance:
+      - operational-resilience-policy
+      - it-governance-policy
+      - board-oversight-policy
+      - risk-appetite-policy
+
+    service_management:
+      - business-impact-analysis-policy
+      - critical-services-policy
+      - impact-tolerance-policy
+      - dependency-mapping-policy
+
+    resilience_capabilities:
+      - business-continuity-policy
+      - disaster-recovery-policy
+      - incident-response-policy
+      - crisis-management-policy
+
+    testing:
+      - business-continuity-testing-policy
+      - disaster-recovery-testing-policy
+      - scenario-testing-policy
+      - vulnerability-management-policy
+
+    third_party:
+      - vendor-management-policy
+      - third-party-risk-policy
+      - outsourcing-policy
+      - exit-strategy-policy
+
+    communication:
+      - crisis-communication-policy
+      - regulatory-notification-policy
+      - stakeholder-communication-policy
+
+  timeline:
+    - date: "2022-03-31"
+      milestone: Rules come into force
+      requirements:
+        - Identify Important Business Services
+        - Set impact tolerances
+        - Begin mapping and testing
+
+    - date: "2025-03-31"
+      milestone: Transition period ends
+      requirements:
+        - Demonstrated ability to remain within tolerances
+        - Completed remediation of vulnerabilities
+        - Mature testing programme
+
+  sources:
+    - url: https://www.fca.org.uk/publication/policy/ps21-3.pdf
+      type: official
+    - url: https://www.bankofengland.co.uk/prudential-regulation/publication/2021/march/operational-resilience-ps
+      type: official
+    - url: https://www.fca.org.uk/firms/operational-resilience
+      type: regulatory

@@ -1,0 +1,1284 @@
+# NIST SP 800-53 Rev 5
+# Security and Privacy Controls for Information Systems and Organizations
+# Published: September 2020, Updated: December 2020
+
+framework:
+  id: nist_800_53
+  name: NIST SP 800-53 Rev 5
+  version: "Rev 5"
+  release_date: "2020-09-23"
+  authority: "National Institute of Standards and Technology (NIST)"
+  url: "https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final"
+  description: >
+    Security and Privacy Controls for Information Systems and Organizations.
+    Provides a catalog of security and privacy controls for federal information
+    systems and organizations to protect against threats.
+
+  sources:
+    - url: https://csrc.nist.gov/publications/detail/sp/800-53/rev-5/final
+      type: official
+    - url: https://csrc.nist.gov/News/rss
+      type: rss
+
+# NIST 800-53 Control Families (20 families)
+families:
+  AC:
+    name: "Access Control"
+    controls:
+      AC-1:
+        name: "Policy and Procedures"
+        description: "Develop, document, and disseminate access control policy and procedures"
+        policies_required:
+          - access-control-policy
+          - information-security-policy
+      AC-2:
+        name: "Account Management"
+        description: "Define and manage information system accounts"
+        policies_required:
+          - account-management-policy
+          - user-access-management-policy
+          - access-control-policy
+      AC-3:
+        name: "Access Enforcement"
+        description: "Enforce approved authorizations for logical access"
+        policies_required:
+          - access-control-policy
+          - logical-access-controls-policy
+      AC-4:
+        name: "Information Flow Enforcement"
+        description: "Enforce approved authorizations for information flows"
+        policies_required:
+          - network-security-policy
+          - data-classification-policy
+      AC-5:
+        name: "Separation of Duties"
+        description: "Separate duties to prevent malicious activity"
+        policies_required:
+          - access-control-policy
+          - user-privilege-policy
+      AC-6:
+        name: "Least Privilege"
+        description: "Employ least privilege principle"
+        policies_required:
+          - access-control-policy
+          - user-privilege-policy
+          - privileged-access-management-policy
+      AC-7:
+        name: "Unsuccessful Logon Attempts"
+        description: "Limit and respond to unsuccessful logon attempts"
+        policies_required:
+          - access-control-policy
+          - password-policy
+      AC-8:
+        name: "System Use Notification"
+        description: "Display system use notification message"
+        policies_required:
+          - acceptable-use-policy
+      AC-11:
+        name: "Device Lock"
+        description: "Prevent access via session lock"
+        policies_required:
+          - workstation-security-policy
+          - access-control-policy
+      AC-12:
+        name: "Session Termination"
+        description: "Automatically terminate user session"
+        policies_required:
+          - access-control-policy
+      AC-14:
+        name: "Permitted Actions without Identification"
+        description: "Identify actions permitted without authentication"
+        policies_required:
+          - access-control-policy
+      AC-17:
+        name: "Remote Access"
+        description: "Establish usage restrictions for remote access"
+        policies_required:
+          - remote-access-policy
+          - vpn-policy
+      AC-18:
+        name: "Wireless Access"
+        description: "Establish usage restrictions for wireless access"
+        policies_required:
+          - wireless-security-policy
+          - network-security-policy
+      AC-19:
+        name: "Access Control for Mobile Devices"
+        description: "Establish usage restrictions for mobile devices"
+        policies_required:
+          - mobile-device-policy
+          - bring-your-own-device-and-technology-policy
+      AC-20:
+        name: "Use of External Systems"
+        description: "Establish terms for external system use"
+        policies_required:
+          - third-party-service-providers-policy
+          - cloud-service-provider-policy
+      AC-21:
+        name: "Information Sharing"
+        description: "Facilitate information sharing"
+        policies_required:
+          - data-classification-policy
+          - information-sharing-policy
+      AC-22:
+        name: "Publicly Accessible Content"
+        description: "Designate and review publicly accessible content"
+        policies_required:
+          - web-site-privacy-policy
+          - data-classification-policy
+
+  AT:
+    name: "Awareness and Training"
+    controls:
+      AT-1:
+        name: "Policy and Procedures"
+        description: "Develop awareness and training policy"
+        policies_required:
+          - security-awareness-and-training-policy
+      AT-2:
+        name: "Literacy Training and Awareness"
+        description: "Provide security and privacy literacy training"
+        policies_required:
+          - security-awareness-and-training-policy
+          - security-awareness-and-training-plan
+      AT-3:
+        name: "Role-Based Training"
+        description: "Provide role-based security and privacy training"
+        policies_required:
+          - security-awareness-and-training-policy
+      AT-4:
+        name: "Training Records"
+        description: "Document and monitor training activities"
+        policies_required:
+          - security-awareness-and-training-policy
+          - documentation-policy
+
+  AU:
+    name: "Audit and Accountability"
+    controls:
+      AU-1:
+        name: "Policy and Procedures"
+        description: "Develop audit and accountability policy"
+        policies_required:
+          - audit-policy
+          - logging-policy
+      AU-2:
+        name: "Event Logging"
+        description: "Identify events to be logged"
+        policies_required:
+          - logging-policy
+          - audit-trails-policy
+      AU-3:
+        name: "Content of Audit Records"
+        description: "Ensure audit records contain required content"
+        policies_required:
+          - logging-policy
+          - audit-trails-policy
+      AU-4:
+        name: "Audit Log Storage Capacity"
+        description: "Allocate audit log storage capacity"
+        policies_required:
+          - logging-policy
+      AU-5:
+        name: "Response to Audit Logging Failures"
+        description: "Alert on audit logging failures"
+        policies_required:
+          - logging-policy
+          - incident-response-policy
+      AU-6:
+        name: "Audit Record Review, Analysis, and Reporting"
+        description: "Review and analyze audit records"
+        policies_required:
+          - audit-policy
+          - security-monitoring-policy
+      AU-7:
+        name: "Audit Record Reduction and Report Generation"
+        description: "Provide audit reduction and report generation"
+        policies_required:
+          - audit-policy
+      AU-8:
+        name: "Time Stamps"
+        description: "Use internal system clocks for timestamps"
+        policies_required:
+          - logging-policy
+      AU-9:
+        name: "Protection of Audit Information"
+        description: "Protect audit information from unauthorized access"
+        policies_required:
+          - logging-policy
+          - access-control-policy
+      AU-10:
+        name: "Non-repudiation"
+        description: "Provide irrefutable evidence of actions"
+        policies_required:
+          - audit-trails-policy
+      AU-11:
+        name: "Audit Record Retention"
+        description: "Retain audit records for defined period"
+        policies_required:
+          - data-retention-policy
+          - logging-policy
+      AU-12:
+        name: "Audit Record Generation"
+        description: "Generate audit records for defined events"
+        policies_required:
+          - logging-policy
+          - audit-trails-policy
+
+  CA:
+    name: "Assessment, Authorization, and Monitoring"
+    controls:
+      CA-1:
+        name: "Policy and Procedures"
+        description: "Develop assessment, authorization, and monitoring policy"
+        policies_required:
+          - compliance-policy
+          - security-controls-review-policy
+      CA-2:
+        name: "Control Assessments"
+        description: "Assess security and privacy controls"
+        policies_required:
+          - security-controls-review-policy
+          - security-self-assessment-policy
+      CA-3:
+        name: "Information Exchange"
+        description: "Approve and manage information exchange"
+        policies_required:
+          - information-sharing-policy
+          - third-party-service-providers-policy
+      CA-5:
+        name: "Plan of Action and Milestones"
+        description: "Develop and update plan of action and milestones"
+        policies_required:
+          - risk-management-policy
+      CA-6:
+        name: "Authorization"
+        description: "Authorize system before operation"
+        policies_required:
+          - change-management-policy
+          - compliance-policy
+      CA-7:
+        name: "Continuous Monitoring"
+        description: "Develop continuous monitoring program"
+        policies_required:
+          - security-monitoring-policy
+          - vulnerability-and-penetration-testing-policy
+      CA-8:
+        name: "Penetration Testing"
+        description: "Conduct penetration testing"
+        policies_required:
+          - vulnerability-and-penetration-testing-policy
+      CA-9:
+        name: "Internal System Connections"
+        description: "Authorize internal system connections"
+        policies_required:
+          - network-security-policy
+
+  CM:
+    name: "Configuration Management"
+    controls:
+      CM-1:
+        name: "Policy and Procedures"
+        description: "Develop configuration management policy"
+        policies_required:
+          - configuration-management-policy
+      CM-2:
+        name: "Baseline Configuration"
+        description: "Develop and maintain baseline configurations"
+        policies_required:
+          - configuration-management-policy
+          - configuration-management-procedure
+      CM-3:
+        name: "Configuration Change Control"
+        description: "Implement configuration change control"
+        policies_required:
+          - change-management-policy
+          - change-management-procedure
+      CM-4:
+        name: "Impact Analyses"
+        description: "Analyze changes for security impact"
+        policies_required:
+          - change-management-policy
+      CM-5:
+        name: "Access Restrictions for Change"
+        description: "Define and enforce access restrictions for changes"
+        policies_required:
+          - change-management-policy
+          - access-control-policy
+      CM-6:
+        name: "Configuration Settings"
+        description: "Establish and document configuration settings"
+        policies_required:
+          - configuration-management-policy
+      CM-7:
+        name: "Least Functionality"
+        description: "Configure system to provide only essential capabilities"
+        policies_required:
+          - configuration-management-policy
+      CM-8:
+        name: "System Component Inventory"
+        description: "Develop and maintain component inventory"
+        policies_required:
+          - asset-management-policy
+      CM-9:
+        name: "Configuration Management Plan"
+        description: "Develop and implement configuration management plan"
+        policies_required:
+          - configuration-management-policy
+      CM-10:
+        name: "Software Usage Restrictions"
+        description: "Use software in accordance with agreements"
+        policies_required:
+          - software-licensing-policy
+          - approved-application-policy
+      CM-11:
+        name: "User-Installed Software"
+        description: "Control user-installed software"
+        policies_required:
+          - approved-application-policy
+          - acceptable-use-policy
+
+  CP:
+    name: "Contingency Planning"
+    controls:
+      CP-1:
+        name: "Policy and Procedures"
+        description: "Develop contingency planning policy"
+        policies_required:
+          - business-continuity-policy
+      CP-2:
+        name: "Contingency Plan"
+        description: "Develop and implement contingency plan"
+        policies_required:
+          - business-continuity-disaster-recovery-plan
+          - business-continuity-policy
+      CP-3:
+        name: "Contingency Training"
+        description: "Provide contingency training"
+        policies_required:
+          - business-continuity-policy
+          - security-awareness-and-training-policy
+      CP-4:
+        name: "Contingency Plan Testing"
+        description: "Test contingency plan"
+        policies_required:
+          - business-continuity-policy
+      CP-6:
+        name: "Alternate Storage Site"
+        description: "Establish alternate storage site"
+        policies_required:
+          - backup-policy
+          - business-continuity-policy
+      CP-7:
+        name: "Alternate Processing Site"
+        description: "Establish alternate processing site"
+        policies_required:
+          - business-continuity-disaster-recovery-plan
+      CP-8:
+        name: "Telecommunications Services"
+        description: "Establish alternate telecommunications services"
+        policies_required:
+          - business-continuity-policy
+      CP-9:
+        name: "System Backup"
+        description: "Conduct system backups"
+        policies_required:
+          - backup-policy
+          - backup-procedure
+      CP-10:
+        name: "System Recovery and Reconstitution"
+        description: "Provide for system recovery and reconstitution"
+        policies_required:
+          - business-continuity-disaster-recovery-plan
+          - incident-response-plan
+
+  IA:
+    name: "Identification and Authentication"
+    controls:
+      IA-1:
+        name: "Policy and Procedures"
+        description: "Develop identification and authentication policy"
+        policies_required:
+          - identification-and-authentication-policy
+          - access-control-policy
+      IA-2:
+        name: "Identification and Authentication (Organizational Users)"
+        description: "Uniquely identify and authenticate organizational users"
+        policies_required:
+          - identification-and-authentication-policy
+          - multi-factor-authentication-policy
+      IA-3:
+        name: "Device Identification and Authentication"
+        description: "Uniquely identify and authenticate devices"
+        policies_required:
+          - network-security-policy
+      IA-4:
+        name: "Identifier Management"
+        description: "Manage system identifiers"
+        policies_required:
+          - account-management-policy
+      IA-5:
+        name: "Authenticator Management"
+        description: "Manage system authenticators"
+        policies_required:
+          - password-policy
+          - key-management-policy
+      IA-6:
+        name: "Authentication Feedback"
+        description: "Obscure authentication feedback"
+        policies_required:
+          - access-control-policy
+      IA-7:
+        name: "Cryptographic Module Authentication"
+        description: "Implement cryptographic module authentication"
+        policies_required:
+          - encryption-policy
+      IA-8:
+        name: "Identification and Authentication (Non-Organizational Users)"
+        description: "Identify and authenticate non-organizational users"
+        policies_required:
+          - vendor-access-policy
+          - third-party-service-providers-policy
+      IA-11:
+        name: "Re-authentication"
+        description: "Require users to re-authenticate"
+        policies_required:
+          - access-control-policy
+      IA-12:
+        name: "Identity Proofing"
+        description: "Identity proof users"
+        policies_required:
+          - personnel-security-policy
+          - identification-and-authentication-policy
+
+  IR:
+    name: "Incident Response"
+    controls:
+      IR-1:
+        name: "Policy and Procedures"
+        description: "Develop incident response policy"
+        policies_required:
+          - incident-response-policy
+      IR-2:
+        name: "Incident Response Training"
+        description: "Provide incident response training"
+        policies_required:
+          - incident-response-policy
+          - security-awareness-and-training-policy
+      IR-3:
+        name: "Incident Response Testing"
+        description: "Test incident response capability"
+        policies_required:
+          - incident-response-policy
+      IR-4:
+        name: "Incident Handling"
+        description: "Implement incident handling capability"
+        policies_required:
+          - incident-response-policy
+          - incident-response-plan
+      IR-5:
+        name: "Incident Monitoring"
+        description: "Track and document incidents"
+        policies_required:
+          - incident-response-policy
+          - security-monitoring-policy
+      IR-6:
+        name: "Incident Reporting"
+        description: "Report incidents"
+        policies_required:
+          - incident-response-policy
+          - reporting-violations-policy
+      IR-7:
+        name: "Incident Response Assistance"
+        description: "Provide incident response support"
+        policies_required:
+          - incident-response-policy
+      IR-8:
+        name: "Incident Response Plan"
+        description: "Develop and implement incident response plan"
+        policies_required:
+          - incident-response-plan
+      IR-9:
+        name: "Information Spillage Response"
+        description: "Respond to information spillage"
+        policies_required:
+          - incident-response-policy
+          - data-classification-policy
+
+  MA:
+    name: "Maintenance"
+    controls:
+      MA-1:
+        name: "Policy and Procedures"
+        description: "Develop system maintenance policy"
+        policies_required:
+          - hardware-and-software-maintenance-policy
+      MA-2:
+        name: "Controlled Maintenance"
+        description: "Schedule and perform maintenance"
+        policies_required:
+          - hardware-and-software-maintenance-policy
+      MA-3:
+        name: "Maintenance Tools"
+        description: "Approve and control maintenance tools"
+        policies_required:
+          - hardware-and-software-maintenance-policy
+      MA-4:
+        name: "Nonlocal Maintenance"
+        description: "Approve and monitor nonlocal maintenance"
+        policies_required:
+          - remote-access-policy
+          - hardware-and-software-maintenance-policy
+      MA-5:
+        name: "Maintenance Personnel"
+        description: "Establish maintenance personnel authorization"
+        policies_required:
+          - vendor-access-policy
+          - personnel-security-policy
+      MA-6:
+        name: "Timely Maintenance"
+        description: "Obtain timely maintenance support"
+        policies_required:
+          - hardware-and-software-maintenance-policy
+
+  MP:
+    name: "Media Protection"
+    controls:
+      MP-1:
+        name: "Policy and Procedures"
+        description: "Develop media protection policy"
+        policies_required:
+          - removable-media-policy
+          - data-protection-policy
+      MP-2:
+        name: "Media Access"
+        description: "Restrict access to media"
+        policies_required:
+          - removable-media-policy
+          - access-control-policy
+      MP-3:
+        name: "Media Marking"
+        description: "Mark media with required markings"
+        policies_required:
+          - data-marking-policy
+          - data-classification-policy
+      MP-4:
+        name: "Media Storage"
+        description: "Control and protect media storage"
+        policies_required:
+          - removable-media-policy
+          - physical-security-policy
+      MP-5:
+        name: "Media Transport"
+        description: "Protect media during transport"
+        policies_required:
+          - removable-media-policy
+      MP-6:
+        name: "Media Sanitization"
+        description: "Sanitize media before disposal"
+        policies_required:
+          - disposal-policy
+      MP-7:
+        name: "Media Use"
+        description: "Restrict use of removable media"
+        policies_required:
+          - removable-media-policy
+          - acceptable-use-policy
+
+  PE:
+    name: "Physical and Environmental Protection"
+    controls:
+      PE-1:
+        name: "Policy and Procedures"
+        description: "Develop physical and environmental protection policy"
+        policies_required:
+          - physical-security-policy
+      PE-2:
+        name: "Physical Access Authorizations"
+        description: "Develop and maintain authorization lists"
+        policies_required:
+          - physical-access-policy
+      PE-3:
+        name: "Physical Access Control"
+        description: "Enforce physical access authorizations"
+        policies_required:
+          - physical-access-policy
+          - physical-security-policy
+      PE-4:
+        name: "Access Control for Transmission"
+        description: "Control physical access to transmission lines"
+        policies_required:
+          - physical-security-policy
+      PE-5:
+        name: "Access Control for Output Devices"
+        description: "Control physical access to output devices"
+        policies_required:
+          - physical-security-policy
+      PE-6:
+        name: "Monitoring Physical Access"
+        description: "Monitor physical access"
+        policies_required:
+          - physical-security-policy
+          - security-monitoring-policy
+      PE-8:
+        name: "Visitor Access Records"
+        description: "Maintain visitor access records"
+        policies_required:
+          - physical-access-policy
+      PE-9:
+        name: "Power Equipment and Cabling"
+        description: "Protect power equipment and cabling"
+        policies_required:
+          - physical-security-policy
+      PE-10:
+        name: "Emergency Shutoff"
+        description: "Provide emergency shutoff capability"
+        policies_required:
+          - facility-security-plan
+      PE-11:
+        name: "Emergency Power"
+        description: "Provide emergency power capability"
+        policies_required:
+          - business-continuity-policy
+      PE-12:
+        name: "Emergency Lighting"
+        description: "Employ emergency lighting"
+        policies_required:
+          - facility-security-plan
+      PE-13:
+        name: "Fire Protection"
+        description: "Employ fire detection and suppression"
+        policies_required:
+          - facility-security-plan
+      PE-14:
+        name: "Environmental Controls"
+        description: "Maintain environmental controls"
+        policies_required:
+          - physical-security-policy
+      PE-15:
+        name: "Water Damage Protection"
+        description: "Protect from water damage"
+        policies_required:
+          - physical-security-policy
+      PE-16:
+        name: "Delivery and Removal"
+        description: "Control delivery and removal"
+        policies_required:
+          - asset-management-policy
+          - physical-security-policy
+      PE-17:
+        name: "Alternate Work Site"
+        description: "Employ controls at alternate work sites"
+        policies_required:
+          - remote-access-policy
+          - physical-security-policy
+      PE-18:
+        name: "Location of System Components"
+        description: "Position system components to minimize damage"
+        policies_required:
+          - physical-security-policy
+
+  PL:
+    name: "Planning"
+    controls:
+      PL-1:
+        name: "Policy and Procedures"
+        description: "Develop planning policy"
+        policies_required:
+          - information-security-policy
+      PL-2:
+        name: "System Security and Privacy Plans"
+        description: "Develop and implement security and privacy plans"
+        policies_required:
+          - cybersecurity-framework-policy
+          - information-security-policy
+      PL-4:
+        name: "Rules of Behavior"
+        description: "Establish rules of behavior"
+        policies_required:
+          - acceptable-use-policy
+      PL-8:
+        name: "Security and Privacy Architectures"
+        description: "Develop security and privacy architectures"
+        policies_required:
+          - cybersecurity-framework-policy
+      PL-9:
+        name: "Central Management"
+        description: "Centrally manage security and privacy controls"
+        policies_required:
+          - it-governance-policy
+      PL-10:
+        name: "Baseline Selection"
+        description: "Select controls from baselines"
+        policies_required:
+          - cybersecurity-framework-policy
+      PL-11:
+        name: "Baseline Tailoring"
+        description: "Tailor control baselines"
+        policies_required:
+          - risk-management-policy
+
+  PM:
+    name: "Program Management"
+    controls:
+      PM-1:
+        name: "Information Security Program Plan"
+        description: "Develop and disseminate security program plan"
+        policies_required:
+          - cybersecurity-framework-policy
+          - information-security-policy
+      PM-2:
+        name: "Information Security Program Leadership Role"
+        description: "Appoint senior information security officer"
+        policies_required:
+          - it-governance-policy
+      PM-3:
+        name: "Information Security and Privacy Resources"
+        description: "Ensure resources for security and privacy programs"
+        policies_required:
+          - it-governance-policy
+      PM-4:
+        name: "Plan of Action and Milestones Process"
+        description: "Implement plan of action and milestones process"
+        policies_required:
+          - risk-management-policy
+      PM-5:
+        name: "System Inventory"
+        description: "Develop and maintain system inventory"
+        policies_required:
+          - asset-management-policy
+      PM-6:
+        name: "Measures of Performance"
+        description: "Develop and monitor performance measures"
+        policies_required:
+          - security-controls-review-policy
+      PM-7:
+        name: "Enterprise Architecture"
+        description: "Develop enterprise architecture"
+        policies_required:
+          - it-governance-policy
+      PM-8:
+        name: "Critical Infrastructure Plan"
+        description: "Address critical infrastructure protection"
+        policies_required:
+          - business-continuity-policy
+      PM-9:
+        name: "Risk Management Strategy"
+        description: "Develop and implement risk management strategy"
+        policies_required:
+          - risk-management-policy
+      PM-10:
+        name: "Authorization Process"
+        description: "Manage authorization process"
+        policies_required:
+          - compliance-policy
+      PM-11:
+        name: "Mission and Business Process Definition"
+        description: "Define mission and business processes"
+        policies_required:
+          - context-and-alignment-policy
+      PM-12:
+        name: "Insider Threat Program"
+        description: "Implement insider threat program"
+        policies_required:
+          - insider-threat-policy
+      PM-13:
+        name: "Security and Privacy Workforce"
+        description: "Establish security and privacy workforce program"
+        policies_required:
+          - staffing-policy
+          - security-awareness-and-training-policy
+      PM-14:
+        name: "Testing, Training, and Monitoring"
+        description: "Implement testing, training, and monitoring strategy"
+        policies_required:
+          - security-controls-review-policy
+      PM-15:
+        name: "Security and Privacy Groups and Associations"
+        description: "Establish contacts with security groups"
+        policies_required:
+          - information-sharing-policy
+      PM-16:
+        name: "Threat Awareness Program"
+        description: "Implement threat awareness program"
+        policies_required:
+          - security-awareness-and-training-policy
+      PM-17:
+        name: "Protecting Controlled Unclassified Information"
+        description: "Implement CUI protection"
+        policies_required:
+          - data-classification-policy
+          - data-protection-policy
+
+  PS:
+    name: "Personnel Security"
+    controls:
+      PS-1:
+        name: "Policy and Procedures"
+        description: "Develop personnel security policy"
+        policies_required:
+          - personnel-security-policy
+      PS-2:
+        name: "Position Risk Designation"
+        description: "Assign risk designation to positions"
+        policies_required:
+          - personnel-security-policy
+      PS-3:
+        name: "Personnel Screening"
+        description: "Screen individuals"
+        policies_required:
+          - personnel-security-policy
+          - staffing-policy
+      PS-4:
+        name: "Personnel Termination"
+        description: "Implement termination procedures"
+        policies_required:
+          - personnel-security-policy
+          - account-management-policy
+      PS-5:
+        name: "Personnel Transfer"
+        description: "Implement transfer procedures"
+        policies_required:
+          - personnel-security-policy
+      PS-6:
+        name: "Access Agreements"
+        description: "Require access agreements"
+        policies_required:
+          - acceptable-use-policy
+          - agreement-non-disclosure-agreement
+      PS-7:
+        name: "External Personnel Security"
+        description: "Establish personnel security for external providers"
+        policies_required:
+          - third-party-service-providers-policy
+          - vendor-access-policy
+      PS-8:
+        name: "Personnel Sanctions"
+        description: "Employ sanctions process"
+        policies_required:
+          - reporting-violations-policy
+          - personnel-security-policy
+      PS-9:
+        name: "Position Descriptions"
+        description: "Incorporate security and privacy requirements in position descriptions"
+        policies_required:
+          - staffing-policy
+
+  RA:
+    name: "Risk Assessment"
+    controls:
+      RA-1:
+        name: "Policy and Procedures"
+        description: "Develop risk assessment policy"
+        policies_required:
+          - risk-assessment-policy
+      RA-2:
+        name: "Security Categorization"
+        description: "Categorize system and information"
+        policies_required:
+          - data-classification-policy
+      RA-3:
+        name: "Risk Assessment"
+        description: "Conduct risk assessment"
+        policies_required:
+          - risk-assessment-policy
+          - risk-management-policy
+      RA-5:
+        name: "Vulnerability Monitoring and Scanning"
+        description: "Monitor and scan for vulnerabilities"
+        policies_required:
+          - vulnerability-and-penetration-testing-policy
+          - patch-management-policy
+      RA-7:
+        name: "Risk Response"
+        description: "Respond to risk assessment findings"
+        policies_required:
+          - risk-management-policy
+      RA-9:
+        name: "Criticality Analysis"
+        description: "Identify critical system components"
+        policies_required:
+          - business-impact-analysis
+          - risk-assessment-policy
+
+  SA:
+    name: "System and Services Acquisition"
+    controls:
+      SA-1:
+        name: "Policy and Procedures"
+        description: "Develop acquisition policy"
+        policies_required:
+          - acquistion-and-procurement-policy
+      SA-2:
+        name: "Allocation of Resources"
+        description: "Determine and allocate security resources"
+        policies_required:
+          - it-governance-policy
+      SA-3:
+        name: "System Development Life Cycle"
+        description: "Manage system using SDLC"
+        policies_required:
+          - secure-software-development-lifecycle-policy
+      SA-4:
+        name: "Acquisition Process"
+        description: "Include security requirements in acquisition"
+        policies_required:
+          - acquistion-and-procurement-policy
+          - vendor-risk-management-policy
+      SA-5:
+        name: "System Documentation"
+        description: "Obtain and protect system documentation"
+        policies_required:
+          - documentation-policy
+      SA-8:
+        name: "Security and Privacy Engineering Principles"
+        description: "Apply security engineering principles"
+        policies_required:
+          - secure-software-development-lifecycle-policy
+      SA-9:
+        name: "External System Services"
+        description: "Require external providers to comply with security requirements"
+        policies_required:
+          - third-party-service-providers-policy
+          - cloud-service-provider-policy
+      SA-10:
+        name: "Developer Configuration Management"
+        description: "Require developer configuration management"
+        policies_required:
+          - software-development-policy
+      SA-11:
+        name: "Developer Testing and Evaluation"
+        description: "Require developer security testing"
+        policies_required:
+          - secure-software-development-lifecycle-policy
+      SA-15:
+        name: "Development Process, Standards, and Tools"
+        description: "Require documented development processes"
+        policies_required:
+          - software-development-policy
+      SA-22:
+        name: "Unsupported System Components"
+        description: "Replace unsupported system components"
+        policies_required:
+          - hardware-and-software-maintenance-policy
+
+  SC:
+    name: "System and Communications Protection"
+    controls:
+      SC-1:
+        name: "Policy and Procedures"
+        description: "Develop system and communications protection policy"
+        policies_required:
+          - network-security-policy
+      SC-2:
+        name: "Separation of System and User Functionality"
+        description: "Separate user from system management functionality"
+        policies_required:
+          - access-control-policy
+      SC-4:
+        name: "Information in Shared System Resources"
+        description: "Prevent information from persisting in shared resources"
+        policies_required:
+          - data-protection-policy
+      SC-5:
+        name: "Denial-of-Service Protection"
+        description: "Protect against denial-of-service attacks"
+        policies_required:
+          - network-security-policy
+      SC-7:
+        name: "Boundary Protection"
+        description: "Monitor and control communications at boundaries"
+        policies_required:
+          - firewall-policy
+          - network-security-policy
+      SC-8:
+        name: "Transmission Confidentiality and Integrity"
+        description: "Protect transmitted information"
+        policies_required:
+          - encryption-policy
+          - network-security-policy
+      SC-10:
+        name: "Network Disconnect"
+        description: "Terminate network connections"
+        policies_required:
+          - network-security-policy
+      SC-12:
+        name: "Cryptographic Key Establishment and Management"
+        description: "Establish and manage cryptographic keys"
+        policies_required:
+          - key-management-policy
+          - encryption-policy
+      SC-13:
+        name: "Cryptographic Protection"
+        description: "Implement cryptographic mechanisms"
+        policies_required:
+          - encryption-policy
+      SC-15:
+        name: "Collaborative Computing Devices and Applications"
+        description: "Prohibit remote activation of collaborative devices"
+        policies_required:
+          - workstation-security-policy
+      SC-17:
+        name: "Public Key Infrastructure Certificates"
+        description: "Issue PKI certificates"
+        policies_required:
+          - key-management-policy
+      SC-18:
+        name: "Mobile Code"
+        description: "Define acceptable mobile code"
+        policies_required:
+          - software-development-policy
+      SC-20:
+        name: "Secure Name/Address Resolution Service"
+        description: "Provide name/address resolution service"
+        policies_required:
+          - network-security-policy
+      SC-21:
+        name: "Secure Name/Address Resolution Service (Recursive)"
+        description: "Request and perform data origin authentication"
+        policies_required:
+          - network-security-policy
+      SC-22:
+        name: "Architecture and Provisioning"
+        description: "Employ architectural designs"
+        policies_required:
+          - network-documentation-policy
+      SC-23:
+        name: "Session Authenticity"
+        description: "Protect session authenticity"
+        policies_required:
+          - network-security-policy
+      SC-28:
+        name: "Protection of Information at Rest"
+        description: "Protect information at rest"
+        policies_required:
+          - encryption-policy
+          - data-protection-policy
+      SC-39:
+        name: "Process Isolation"
+        description: "Maintain separate execution domains"
+        policies_required:
+          - network-security-policy
+
+  SI:
+    name: "System and Information Integrity"
+    controls:
+      SI-1:
+        name: "Policy and Procedures"
+        description: "Develop system and information integrity policy"
+        policies_required:
+          - data-integrity-policy
+      SI-2:
+        name: "Flaw Remediation"
+        description: "Identify and remediate system flaws"
+        policies_required:
+          - patch-management-policy
+          - vulnerability-and-penetration-testing-policy
+      SI-3:
+        name: "Malicious Code Protection"
+        description: "Implement malicious code protection"
+        policies_required:
+          - anti-malware-policy
+      SI-4:
+        name: "System Monitoring"
+        description: "Monitor system to detect attacks"
+        policies_required:
+          - security-monitoring-policy
+          - intrusion-dectection-policy
+      SI-5:
+        name: "Security Alerts, Advisories, and Directives"
+        description: "Receive and respond to security alerts"
+        policies_required:
+          - vulnerability-and-penetration-testing-policy
+      SI-6:
+        name: "Security and Privacy Function Verification"
+        description: "Verify security functions"
+        policies_required:
+          - security-controls-review-policy
+      SI-7:
+        name: "Software, Firmware, and Information Integrity"
+        description: "Employ integrity verification"
+        policies_required:
+          - data-integrity-policy
+          - configuration-management-policy
+      SI-8:
+        name: "Spam Protection"
+        description: "Employ spam protection"
+        policies_required:
+          - e-mail-policy
+      SI-10:
+        name: "Information Input Validation"
+        description: "Check information for accuracy"
+        policies_required:
+          - data-integrity-policy
+      SI-11:
+        name: "Error Handling"
+        description: "Generate error messages that provide information"
+        policies_required:
+          - secure-software-development-lifecycle-policy
+      SI-12:
+        name: "Information Management and Retention"
+        description: "Manage and retain information"
+        policies_required:
+          - data-retention-policy
+      SI-16:
+        name: "Memory Protection"
+        description: "Implement memory protection"
+        policies_required:
+          - secure-software-development-lifecycle-policy
+
+  SR:
+    name: "Supply Chain Risk Management"
+    controls:
+      SR-1:
+        name: "Policy and Procedures"
+        description: "Develop supply chain risk management policy"
+        policies_required:
+          - supply-chain-security-policy
+          - vendor-risk-management-policy
+      SR-2:
+        name: "Supply Chain Risk Management Plan"
+        description: "Develop supply chain risk management plan"
+        policies_required:
+          - supply-chain-security-policy
+      SR-3:
+        name: "Supply Chain Controls and Processes"
+        description: "Employ supply chain controls"
+        policies_required:
+          - supply-chain-security-policy
+          - acquistion-and-procurement-policy
+      SR-4:
+        name: "Provenance"
+        description: "Document and monitor provenance"
+        policies_required:
+          - software-supply-chain-policy
+          - sbom-management-policy
+      SR-5:
+        name: "Acquisition Strategies, Tools, and Methods"
+        description: "Employ acquisition strategies"
+        policies_required:
+          - acquistion-and-procurement-policy
+      SR-6:
+        name: "Supplier Assessments and Reviews"
+        description: "Assess and review suppliers"
+        policies_required:
+          - vendor-risk-management-policy
+          - third-party-service-providers-policy
+      SR-7:
+        name: "Supply Chain Operations Security"
+        description: "Employ OPSEC for supply chain"
+        policies_required:
+          - supply-chain-security-policy
+      SR-8:
+        name: "Notification Agreements"
+        description: "Establish notification agreements"
+        policies_required:
+          - third-party-service-providers-policy
+      SR-9:
+        name: "Tamper Resistance and Detection"
+        description: "Employ tamper protection"
+        policies_required:
+          - physical-security-policy
+      SR-10:
+        name: "Inspection of Systems or Components"
+        description: "Inspect systems or components"
+        policies_required:
+          - supply-chain-security-policy
+      SR-11:
+        name: "Component Authenticity"
+        description: "Develop anti-counterfeit policy"
+        policies_required:
+          - supply-chain-security-policy
+          - acquistion-and-procurement-policy
+      SR-12:
+        name: "Component Disposal"
+        description: "Dispose of components"
+        policies_required:
+          - disposal-policy
+
+  # Policy to control mapping (reverse lookup)
+  policy_mapping:
+    access-control-policy: [AC-1, AC-2, AC-3, AC-5, AC-6, AC-7, AC-11, AC-12, AC-14, CM-5, MP-2, SC-2, AU-9]
+    account-management-policy: [AC-2, IA-4, PS-4]
+    user-access-management-policy: [AC-2]
+    logical-access-controls-policy: [AC-3]
+    network-security-policy: [AC-4, AC-18, CA-9, IA-3, SC-1, SC-5, SC-7, SC-10, SC-20, SC-21, SC-22, SC-23, SC-39]
+    data-classification-policy: [AC-4, AC-21, IR-9, MP-3, PM-17, RA-2]
+    user-privilege-policy: [AC-5, AC-6]
+    privileged-access-management-policy: [AC-6]
+    password-policy: [AC-7, IA-5]
+    acceptable-use-policy: [AC-8, CM-11, MP-7, PL-4, PS-6]
+    workstation-security-policy: [AC-11, SC-15]
+    remote-access-policy: [AC-17, MA-4, PE-17]
+    vpn-policy: [AC-17]
+    wireless-security-policy: [AC-18]
+    mobile-device-policy: [AC-19]
+    bring-your-own-device-and-technology-policy: [AC-19]
+    third-party-service-providers-policy: [AC-20, CA-3, IA-8, PS-7, SA-9, SR-6, SR-8]
+    cloud-service-provider-policy: [AC-20, SA-9]
+    web-site-privacy-policy: [AC-22]
+    information-sharing-policy: [AC-21, CA-3, PM-15]
+    security-awareness-and-training-policy: [AT-1, AT-2, AT-3, CP-3, IR-2, PM-13, PM-16]
+    security-awareness-and-training-plan: [AT-2]
+    documentation-policy: [AT-4, SA-5]
+    audit-policy: [AU-1, AU-6, AU-7]
+    logging-policy: [AU-1, AU-2, AU-3, AU-4, AU-5, AU-8, AU-9, AU-11, AU-12]
+    audit-trails-policy: [AU-2, AU-3, AU-10, AU-12]
+    security-monitoring-policy: [AU-6, CA-7, IR-5, PE-6, SI-4]
+    data-retention-policy: [AU-11, SI-12]
+    compliance-policy: [CA-1, CA-6, PM-10]
+    security-controls-review-policy: [CA-1, CA-2, PM-6, PM-14, SI-6]
+    security-self-assessment-policy: [CA-2]
+    risk-management-policy: [CA-5, PL-11, PM-4, PM-9, RA-3, RA-7]
+    change-management-policy: [CA-6, CM-3, CM-4, CM-5]
+    change-management-procedure: [CM-3]
+    vulnerability-and-penetration-testing-policy: [CA-7, CA-8, RA-5, SI-2, SI-5]
+    configuration-management-policy: [CM-1, CM-2, CM-6, CM-7, CM-9, SI-7]
+    configuration-management-procedure: [CM-2]
+    asset-management-policy: [CM-8, PE-16, PM-5]
+    software-licensing-policy: [CM-10]
+    approved-application-policy: [CM-10, CM-11]
+    business-continuity-policy: [CP-1, CP-2, CP-3, CP-4, CP-6, CP-8, PE-11, PM-8]
+    business-continuity-disaster-recovery-plan: [CP-2, CP-7, CP-10]
+    backup-policy: [CP-6, CP-9]
+    backup-procedure: [CP-9]
+    incident-response-plan: [CP-10, IR-8]
+    identification-and-authentication-policy: [IA-1, IA-2, IA-12]
+    multi-factor-authentication-policy: [IA-2]
+    key-management-policy: [IA-5, SC-12, SC-17]
+    encryption-policy: [IA-7, SC-8, SC-12, SC-13, SC-28]
+    vendor-access-policy: [IA-8, MA-5, PS-7]
+    personnel-security-policy: [IA-12, MA-5, PS-1, PS-2, PS-3, PS-4, PS-5, PS-8]
+    incident-response-policy: [AU-5, IR-1, IR-2, IR-3, IR-4, IR-5, IR-6, IR-7, IR-9]
+    reporting-violations-policy: [IR-6, PS-8]
+    hardware-and-software-maintenance-policy: [MA-1, MA-2, MA-3, MA-4, MA-6, SA-22]
+    removable-media-policy: [MP-1, MP-2, MP-4, MP-5, MP-7]
+    data-protection-policy: [MP-1, PM-17, SC-4, SC-28]
+    data-marking-policy: [MP-3]
+    physical-security-policy: [MP-4, PE-1, PE-3, PE-4, PE-5, PE-14, PE-15, PE-16, PE-17, PE-18, SR-9]
+    disposal-policy: [MP-6, SR-12]
+    physical-access-policy: [PE-2, PE-3, PE-8]
+    facility-security-plan: [PE-10, PE-12, PE-13]
+    information-security-policy: [AC-1, PL-1, PL-2, PM-1]
+    cybersecurity-framework-policy: [PL-2, PL-8, PL-10, PM-1]
+    it-governance-policy: [PL-9, PM-2, PM-3, PM-7, SA-2]
+    context-and-alignment-policy: [PM-11]
+    insider-threat-policy: [PM-12]
+    staffing-policy: [PM-13, PS-3, PS-9]
+    risk-assessment-policy: [RA-1, RA-3, RA-9]
+    business-impact-analysis: [RA-9]
+    acquistion-and-procurement-policy: [SA-1, SA-4, SR-3, SR-5, SR-11]
+    secure-software-development-lifecycle-policy: [SA-3, SA-8, SA-11, SI-11, SI-16]
+    vendor-risk-management-policy: [SA-4, SR-1, SR-6]
+    software-development-policy: [SA-10, SA-15, SC-18]
+    firewall-policy: [SC-7]
+    intrusion-dectection-policy: [SI-4]
+    data-integrity-policy: [SI-1, SI-7, SI-10]
+    patch-management-policy: [RA-5, SI-2]
+    anti-malware-policy: [SI-3]
+    e-mail-policy: [SI-8]
+    supply-chain-security-policy: [SR-1, SR-2, SR-3, SR-7, SR-10, SR-11]
+    software-supply-chain-policy: [SR-4]
+    sbom-management-policy: [SR-4]
+    network-documentation-policy: [SC-22]
+    agreement-non-disclosure-agreement: [PS-6]

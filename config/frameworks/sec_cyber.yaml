@@ -1,0 +1,147 @@
+# SEC Cybersecurity Rules
+# Securities and Exchange Commission Cybersecurity Risk Management, Strategy, Governance, and Incident Disclosure
+# 17 CFR 229, 232, 239, 240, 249
+
+framework:
+  id: sec_cyber
+  name: SEC Cybersecurity Rules
+  version: "2023"
+  release_date: 2023-07-26
+  effective_date: 2023-12-18
+  authority: U.S. Securities and Exchange Commission
+  url: https://www.sec.gov/rules/final/2023/33-11216.pdf
+
+# SEC Cyber Requirements for public companies
+requirements:
+
+  # Incident Disclosure (Form 8-K Item 1.05)
+  incident_disclosure:
+    name: Incident Disclosure
+    description: Material cybersecurity incident disclosure requirements
+
+    controls:
+      "8-K.1.05.a":
+        name: Material Incident Determination
+        description: Determine materiality of cybersecurity incidents
+        policies_required:
+          - incident-response-policy
+          - risk-assessment-policy
+        policies_recommended:
+          - executive-cybersecurity-governance-policy
+
+      "8-K.1.05.b":
+        name: Four Business Day Disclosure
+        description: Disclose material incidents within four business days
+        policies_required:
+          - incident-response-policy
+          - incident-response-plan
+        policies_recommended:
+          - business-continuity-communications-plan
+
+      "8-K.1.05.c":
+        name: Incident Description
+        description: Describe nature, scope, timing of incident
+        policies_required:
+          - incident-response-policy
+          - documentation-policy
+        policies_recommended:
+          - logging-policy
+
+      "8-K.1.05.d":
+        name: Material Impact Assessment
+        description: Describe material impact or reasonably likely impact
+        policies_required:
+          - incident-response-policy
+          - risk-assessment-policy
+        policies_recommended:
+          - business-impact-analysis
+
+  # Annual Disclosure (Form 10-K Item 106)
+  annual_disclosure:
+    name: Annual Disclosure
+    description: Annual cybersecurity disclosure requirements
+
+    controls:
+      "10-K.106.b.1":
+        name: Risk Management Processes
+        description: Describe processes for assessing, identifying, managing cyber risks
+        policies_required:
+          - risk-management-policy
+          - risk-assessment-policy
+        policies_recommended:
+          - cybersecurity-policy
+
+      "10-K.106.b.2":
+        name: Third-Party Risk Management
+        description: Describe oversight of third-party service provider risks
+        policies_required:
+          - third-party-service-providers-policy
+          - vendor-access-policy
+        policies_recommended:
+          - supply-chain-security-policy
+
+      "10-K.106.b.3":
+        name: Previous Incident Impact
+        description: Describe if previous incidents materially affected strategy
+        policies_required:
+          - incident-response-policy
+          - risk-management-policy
+        policies_recommended:
+          - documentation-policy
+
+      "10-K.106.b.4":
+        name: Risk Integration
+        description: Describe how cyber risks integrated into overall risk management
+        policies_required:
+          - risk-management-policy
+          - it-governance-policy
+        policies_recommended:
+          - executive-cybersecurity-governance-policy
+
+  # Governance Disclosure
+  governance_disclosure:
+    name: Governance Disclosure
+    description: Board and management cybersecurity governance disclosure
+
+    controls:
+      "10-K.106.c.1":
+        name: Board Oversight
+        description: Describe board oversight of cybersecurity risks
+        policies_required:
+          - board-cyber-oversight-policy
+          - executive-cybersecurity-governance-policy
+        policies_recommended:
+          - it-governance-policy
+
+      "10-K.106.c.2":
+        name: Management Role
+        description: Describe management's role in assessing and managing cyber risks
+        policies_required:
+          - executive-cybersecurity-governance-policy
+          - information-security-policy
+        policies_recommended:
+          - risk-management-policy
+
+      "10-K.106.c.2.i":
+        name: Responsible Persons
+        description: Identify positions responsible for cyber risk management
+        policies_required:
+          - information-security-policy
+          - executive-cybersecurity-governance-policy
+        policies_recommended:
+          - personnel-security-policy
+
+      "10-K.106.c.2.ii":
+        name: Expertise and Experience
+        description: Describe relevant expertise and experience
+        policies_required:
+          - personnel-security-policy
+          - staffing-policy
+        policies_recommended:
+          - security-awareness-and-training-policy
+
+summary:
+  total_controls: 12
+  incident_disclosure: 4
+  annual_disclosure: 4
+  governance_disclosure: 4

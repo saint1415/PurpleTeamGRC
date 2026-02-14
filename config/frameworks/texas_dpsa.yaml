@@ -1,0 +1,232 @@
+# Texas Data Privacy and Security Act (TDPSA)
+# Texas Business & Commerce Code, Chapter 541
+# Effective: July 1, 2024
+
+framework:
+  id: texas_dpsa
+  name: Texas Data Privacy and Security Act
+  abbreviation: TDPSA
+  version: "2023"
+  jurisdiction: Texas
+  effective_date: "2024-07-01"
+  regulatory_body: Texas Attorney General
+
+  description: |
+    The TDPSA provides Texas consumers with rights over their personal data
+    and imposes data protection obligations on businesses. Notably, it has
+    no revenue or data volume thresholds - applying to all businesses except
+    small businesses as defined by the SBA.
+
+  applicability:
+    scope:
+      - Conducts business in Texas
+      - OR produces products/services consumed by Texas residents
+      - OR is not a small business under SBA standards
+    exemptions:
+      - Small businesses (SBA definition)
+      - State agencies and political subdivisions
+      - Financial institutions subject to GLBA
+      - HIPAA covered entities
+      - Nonprofits
+      - Higher education institutions
+      - Electric utilities (ERCOT region)
+
+  # Consumer Rights
+  consumer_rights:
+    - id: right_confirm
+      name: Right to Confirm
+      description: Confirm whether controller is processing personal data
+      policies_required:
+        - data-subject-rights-policy
+        - privacy-policy
+
+    - id: right_access
+      name: Right to Access
+      description: Access personal data being processed
+      policies_required:
+        - data-subject-rights-policy
+
+    - id: right_correct
+      name: Right to Correction
+      description: Correct inaccuracies in personal data
+      policies_required:
+        - data-subject-rights-policy
+        - data-quality-policy
+
+    - id: right_delete
+      name: Right to Deletion
+      description: Delete personal data provided or obtained
+      policies_required:
+        - data-subject-rights-policy
+        - data-retention-policy
+        - secure-disposal-policy
+
+    - id: right_portability
+      name: Right to Data Portability
+      description: Obtain personal data in portable, readily usable format
+      policies_required:
+        - data-subject-rights-policy
+        - data-portability-policy
+
+    - id: right_opt_out_sale
+      name: Right to Opt Out of Sale
+      description: Opt out of sale of personal data
+      policies_required:
+        - opt-out-policy
+        - data-sale-policy
+
+    - id: right_opt_out_targeted
+      name: Right to Opt Out of Targeted Advertising
+      description: Opt out of processing for targeted advertising
+      policies_required:
+        - opt-out-policy
+        - advertising-policy
+
+    - id: right_opt_out_profiling
+      name: Right to Opt Out of Profiling
+      description: Opt out of profiling producing legal/significant effects
+      policies_required:
+        - opt-out-policy
+        - automated-decision-making-policy
+
+  # Controller Obligations
+  controller_obligations:
+    - id: purpose_limitation
+      name: Purpose Limitation
+      description: Limit data collection to what is adequate, relevant, reasonably necessary
+      policies_required:
+        - purpose-limitation-policy
+        - data-minimization-policy
+
+    - id: secondary_use
+      name: Secondary Use Restriction
+      description: Cannot process for incompatible purposes without consent
+      policies_required:
+        - consent-management-policy
+        - purpose-limitation-policy
+
+    - id: data_security
+      name: Data Security
+      description: Implement reasonable administrative, technical, physical safeguards
+      policies_required:
+        - information-security-policy
+        - data-protection-policy
+        - physical-security-policy
+
+    - id: nondiscrimination
+      name: Non-Discrimination
+      description: Not discriminate against consumers exercising rights
+      policies_required:
+        - data-subject-rights-policy
+
+    - id: sensitive_data
+      name: Sensitive Data
+      description: Obtain consent before processing sensitive data
+      categories:
+        - Racial or ethnic origin
+        - Religious beliefs
+        - Mental or physical health diagnosis
+        - Sexuality
+        - Citizenship or immigration status
+        - Genetic or biometric data
+        - Data of known child
+        - Precise geolocation data
+      policies_required:
+        - sensitive-data-policy
+        - consent-management-policy
+
+    - id: transparency
+      name: Transparency Requirements
+      description: Provide clear and accessible privacy notice
+      notice_contents:
+        - Categories of personal data processed
+        - Purpose of processing
+        - Consumer rights information
+        - Categories of third parties with access
+        - Contact information for controller
+        - Whether data is sold
+      policies_required:
+        - privacy-notice-policy
+        - privacy-policy
+
+  # Data Protection Assessments
+  protection_assessments:
+    required_for:
+      - Targeted advertising processing
+      - Sale of personal data
+      - Profiling with legal/significant effects
+      - Sensitive data processing
+      - Processing with heightened risk of harm
+    policies_required:
+      - data-protection-impact-assessment-policy
+      - risk-assessment-policy
+
+  # Processor Requirements
+  processor_obligations:
+    - id: proc_1
+      name: Follow Instructions
+      description: Adhere to controller instructions
+      policies_required:
+        - data-processing-agreement-policy
+    - id: proc_2
+      name: Consumer Request Assistance
+      description: Assist with consumer request responses
+      policies_required:
+        - data-subject-rights-policy
+    - id: proc_3
+      name: DPIA Information
+      description: Provide information for DPIA
+      policies_required:
+        - data-protection-impact-assessment-policy
+    - id: proc_4
+      name: Controller Audits
+      description: Allow controller audits
+      policies_required:
+        - audit-and-assurance-policy
+    - id: proc_5
+      name: Subprocessor Management
+      description: Engage subprocessors with notice and contract
+      policies_required:
+        - subprocessor-policy
+        - vendor-management-policy
+
+  # Universal Opt-Out
+  universal_opt_out:
+    effective_date: "2025-01-01"
+    description: Must recognize opt-out preference signals for sale and targeted advertising
+    policies_required:
+      - opt-out-policy
+      - privacy-preference-policy
+
+  # Policy Mapping Summary
+  policy_mapping:
+    required:
+      - privacy-policy
+      - privacy-notice-policy
+      - data-subject-rights-policy
+      - information-security-policy
+      - data-protection-policy
+      - consent-management-policy
+      - sensitive-data-policy
+      - opt-out-policy
+      - data-processing-agreement-policy
+      - data-protection-impact-assessment-policy
+
+    recommended:
+      - data-minimization-policy
+      - data-retention-policy
+      - encryption-policy
+      - access-control-policy
+      - incident-response-policy
+
+  enforcement:
+    enforcement_authority: Texas Attorney General
+    cure_period: 30 days
+    penalties: Up to $7,500 per violation
+    private_right_of_action: No
+
+  sources:
+    - url: https://capitol.texas.gov/BillLookup/History.aspx?LegSess=88R&Bill=HB4
+      type: statute
+    - url: https://www.texasattorneygeneral.gov/
+      type: regulatory

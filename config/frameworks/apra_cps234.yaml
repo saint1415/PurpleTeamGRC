@@ -1,0 +1,206 @@
+# APRA CPS 234 - Information Security
+# Australian Prudential Regulation Authority
+# Effective: July 1, 2019
+
+framework:
+  id: apra_cps234
+  name: APRA CPS 234 Information Security
+  full_name: Prudential Standard CPS 234 Information Security
+  version: "2019"
+  jurisdiction: Australia
+  sector: Financial Services
+  effective_date: "2019-07-01"
+  regulatory_body: Australian Prudential Regulation Authority (APRA)
+
+  description: |
+    CPS 234 sets out requirements for APRA-regulated entities to maintain
+    information security capability commensurate with the size and extent
+    of threats to their information assets, and to implement controls to
+    protect those assets.
+
+  applicability:
+    entities:
+      - Authorized deposit-taking institutions (ADIs/banks)
+      - General insurers
+      - Life insurers
+      - Private health insurers
+      - Registrable superannuation entities (RSE)
+
+  # Core Requirements
+  requirements:
+    - id: cps234_16
+      name: Roles and Responsibilities
+      description: Clearly define information security-related roles
+      paragraph: "16"
+      policies_required:
+        - information-security-policy
+        - cybersecurity-roles-responsibilities
+        - it-governance-policy
+
+    - id: cps234_17
+      name: Board Responsibility
+      description: Board maintains oversight of information security
+      paragraph: "17"
+      policies_required:
+        - it-governance-policy
+        - executive-cybersecurity-governance-policy
+        - board-reporting-policy
+
+    - id: cps234_18
+      name: Information Security Capability
+      description: Maintain capability commensurate with threats
+      paragraph: "18"
+      policies_required:
+        - information-security-policy
+        - security-operations-policy
+        - security-architecture-policy
+
+    - id: cps234_19
+      name: Policy Framework
+      description: Maintain information security policy framework
+      paragraph: "19"
+      policies_required:
+        - information-security-policy
+        - policy-management-policy
+        - standards-and-procedures-policy
+
+    - id: cps234_20
+      name: Information Asset Identification
+      description: Classify and manage information assets
+      paragraph: "20"
+      policies_required:
+        - asset-management-policy
+        - data-classification-policy
+        - information-asset-register-policy
+
+    - id: cps234_21
+      name: Information Asset Controls
+      description: Implement controls protecting information assets
+      paragraph: "21"
+      policies_required:
+        - access-control-policy
+        - encryption-policy
+        - data-protection-policy
+        - network-security-policy
+
+    - id: cps234_22
+      name: Incident Detection
+      description: Implement mechanisms to detect incidents
+      paragraph: "22"
+      policies_required:
+        - security-monitoring-policy
+        - logging-and-auditing-policy
+        - intrusion-detection-policy
+
+    - id: cps234_23
+      name: Incident Response
+      description: Maintain incident management capability
+      paragraph: "23"
+      policies_required:
+        - incident-response-policy
+        - security-incident-handling-policy
+        - escalation-policy
+
+    - id: cps234_24
+      name: Testing Program
+      description: Systematic testing of control effectiveness
+      paragraph: "24"
+      policies_required:
+        - security-testing-policy
+        - vulnerability-management-policy
+        - penetration-testing-policy
+
+    - id: cps234_25
+      name: Testing by Internal Audit
+      description: Internal audit assurance of controls
+      paragraph: "25"
+      policies_required:
+        - internal-audit-policy
+        - audit-and-assurance-policy
+
+    - id: cps234_26
+      name: Related Parties
+      description: Assess information security of related parties
+      paragraph: "26"
+      policies_required:
+        - vendor-management-policy
+        - third-party-risk-policy
+
+    - id: cps234_27
+      name: Third Party Assessment
+      description: Evaluate third party information security
+      paragraph: "27"
+      policies_required:
+        - vendor-risk-assessment-policy
+        - due-diligence-policy
+        - supply-chain-security-policy
+
+    - id: cps234_28
+      name: Third Party Minimum Controls
+      description: Contractual requirements for third parties
+      paragraph: "28"
+      policies_required:
+        - vendor-contract-policy
+        - service-level-agreement-policy
+
+    - id: cps234_29
+      name: APRA Notification
+      description: Notify APRA of material incidents and control weaknesses
+      paragraph: "29"
+      notification_timeline: 72 hours for incidents, 10 business days for weaknesses
+      policies_required:
+        - incident-notification-policy
+        - regulatory-reporting-policy
+
+  # Policy Mapping Summary
+  policy_mapping:
+    governance:
+      - information-security-policy
+      - it-governance-policy
+      - cybersecurity-roles-responsibilities
+      - executive-cybersecurity-governance-policy
+      - policy-management-policy
+
+    asset_management:
+      - asset-management-policy
+      - data-classification-policy
+
+    protection:
+      - access-control-policy
+      - encryption-policy
+      - data-protection-policy
+      - network-security-policy
+
+    detection_response:
+      - security-monitoring-policy
+      - logging-and-auditing-policy
+      - incident-response-policy
+      - security-incident-handling-policy
+
+    testing:
+      - security-testing-policy
+      - vulnerability-management-policy
+      - penetration-testing-policy
+      - internal-audit-policy
+
+    third_party:
+      - vendor-management-policy
+      - third-party-risk-policy
+      - vendor-contract-policy
+      - supply-chain-security-policy
+
+    notification:
+      - incident-notification-policy
+      - regulatory-reporting-policy
+
+  related_standards:
+    - CPG 234: Practice Guide for CPS 234
+    - CPS 231: Outsourcing
+    - CPS 232: Business Continuity Management
+    - CPS 220: Risk Management
+
+  sources:
+    - url: https://www.apra.gov.au/sites/default/files/cps_234_july_2019_for_public_release.pdf
+      type: official
+    - url: https://www.apra.gov.au/information-security
+      type: regulatory

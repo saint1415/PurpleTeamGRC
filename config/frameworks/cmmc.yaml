@@ -1,0 +1,795 @@
+framework:
+  id: cmmc
+  name: Cybersecurity Maturity Model Certification (CMMC) 2.0
+  version: "2.0"
+  release_date: 2021-11-04
+  description: |
+    CMMC 2.0 is a comprehensive framework that measures a contractor's cybersecurity
+    maturity to protect Federal Contract Information (FCI) and Controlled Unclassified
+    Information (CUI) within the Defense Industrial Base (DIB).
+
+  sources:
+    - url: https://dodcio.defense.gov/CMMC/
+      type: webpage
+      check_interval: weekly
+    - url: https://www.acq.osd.mil/cmmc/
+      type: webpage
+      check_interval: weekly
+
+  # CMMC 2.0 Levels
+  levels:
+    Level1:
+      name: Foundational
+      description: Basic safeguarding of FCI (17 practices from FAR 52.204-21)
+      practice_count: 17
+      assessment: Self-assessment
+    Level2:
+      name: Advanced
+      description: Protection of CUI (110 practices aligned with NIST SP 800-171)
+      practice_count: 110
+      assessment: Third-party assessment or self-assessment
+    Level3:
+      name: Expert
+      description: Enhanced protection of CUI (110+ practices with additional requirements)
+      practice_count: 134
+      assessment: Government-led assessment
+
+  # Domains and Practices
+  domains:
+    AC:
+      name: Access Control
+      practices:
+        AC.L1-3.1.1:
+          name: Authorized Access Control
+          level: [Level1, Level2, Level3]
+          description: Limit system access to authorized users, processes, or devices
+          policies_required:
+            - access-control-policy
+            - user-access-management-policy
+        AC.L1-3.1.2:
+          name: Transaction & Function Control
+          level: [Level1, Level2, Level3]
+          description: Limit system access to the types of transactions and functions
+          policies_required:
+            - access-control-policy
+        AC.L1-3.1.20:
+          name: External Connections
+          level: [Level1, Level2, Level3]
+          description: Verify and control/limit connections to external systems
+          policies_required:
+            - network-security-policy
+            - third-party-access-policy
+        AC.L1-3.1.22:
+          name: Control Public Information
+          level: [Level1, Level2, Level3]
+          description: Control information posted on publicly accessible systems
+          policies_required:
+            - information-security-policy
+            - acceptable-use-policy
+        AC.L2-3.1.3:
+          name: Control CUI Flow
+          level: [Level2, Level3]
+          description: Control the flow of CUI in accordance with approved authorizations
+          policies_required:
+            - data-classification-policy
+            - network-security-policy
+        AC.L2-3.1.4:
+          name: Separation of Duties
+          level: [Level2, Level3]
+          description: Separate the duties of individuals to reduce malicious activity risk
+          policies_required:
+            - segregation-of-duties-policy
+            - access-control-policy
+        AC.L2-3.1.5:
+          name: Least Privilege
+          level: [Level2, Level3]
+          description: Employ the principle of least privilege
+          policies_required:
+            - access-control-policy
+            - privileged-access-management-policy
+        AC.L2-3.1.6:
+          name: Non-Privileged Account Use
+          level: [Level2, Level3]
+          description: Use non-privileged accounts when accessing non-security functions
+          policies_required:
+            - privileged-access-management-policy
+        AC.L2-3.1.7:
+          name: Privileged Functions
+          level: [Level2, Level3]
+          description: Prevent non-privileged users from executing privileged functions
+          policies_required:
+            - privileged-access-management-policy
+        AC.L2-3.1.8:
+          name: Unsuccessful Logon Attempts
+          level: [Level2, Level3]
+          description: Limit unsuccessful logon attempts
+          policies_required:
+            - access-control-policy
+            - password-policy
+        AC.L2-3.1.9:
+          name: Privacy & Security Notices
+          level: [Level2, Level3]
+          description: Provide privacy and security notices
+          policies_required:
+            - acceptable-use-policy
+        AC.L2-3.1.10:
+          name: Session Lock
+          level: [Level2, Level3]
+          description: Use session lock with pattern-hiding displays
+          policies_required:
+            - endpoint-security-policy
+        AC.L2-3.1.11:
+          name: Session Termination
+          level: [Level2, Level3]
+          description: Terminate sessions after defined conditions
+          policies_required:
+            - access-control-policy
+        AC.L2-3.1.12:
+          name: Control Remote Access
+          level: [Level2, Level3]
+          description: Monitor and control remote access sessions
+          policies_required:
+            - remote-access-policy
+        AC.L2-3.1.13:
+          name: Remote Access Confidentiality
+          level: [Level2, Level3]
+          description: Employ cryptographic mechanisms for remote access
+          policies_required:
+            - remote-access-policy
+            - encryption-policy
+        AC.L2-3.1.14:
+          name: Remote Access Routing
+          level: [Level2, Level3]
+          description: Route remote access via managed access control points
+          policies_required:
+            - remote-access-policy
+            - network-security-policy
+        AC.L2-3.1.15:
+          name: Privileged Remote Access
+          level: [Level2, Level3]
+          description: Authorize remote execution of privileged commands
+          policies_required:
+            - privileged-access-management-policy
+            - remote-access-policy
+        AC.L2-3.1.16:
+          name: Wireless Access Authorization
+          level: [Level2, Level3]
+          description: Authorize wireless access prior to connection
+          policies_required:
+            - wireless-security-policy
+        AC.L2-3.1.17:
+          name: Wireless Access Protection
+          level: [Level2, Level3]
+          description: Protect wireless access using authentication and encryption
+          policies_required:
+            - wireless-security-policy
+            - encryption-policy
+        AC.L2-3.1.18:
+          name: Mobile Device Connection
+          level: [Level2, Level3]
+          description: Control connection of mobile devices
+          policies_required:
+            - mobile-device-policy
+        AC.L2-3.1.19:
+          name: Encrypt CUI on Mobile
+          level: [Level2, Level3]
+          description: Encrypt CUI on mobile devices and platforms
+          policies_required:
+            - mobile-device-policy
+            - encryption-policy
+        AC.L2-3.1.21:
+          name: Portable Storage Use
+          level: [Level2, Level3]
+          description: Limit use of portable storage devices
+          policies_required:
+            - removable-media-policy
+
+    AT:
+      name: Awareness and Training
+      practices:
+        AT.L2-3.2.1:
+          name: Role-Based Risk Awareness
+          level: [Level2, Level3]
+          description: Ensure personnel are aware of security risks
+          policies_required:
+            - security-awareness-training-policy
+        AT.L2-3.2.2:
+          name: Role-Based Training
+          level: [Level2, Level3]
+          description: Ensure personnel are trained to carry out duties
+          policies_required:
+            - security-awareness-training-policy
+        AT.L2-3.2.3:
+          name: Insider Threat Awareness
+          level: [Level2, Level3]
+          description: Provide awareness training on insider threats
+          policies_required:
+            - security-awareness-training-policy
+            - insider-threat-policy
+
+    AU:
+      name: Audit and Accountability
+      practices:
+        AU.L2-3.3.1:
+          name: System Auditing
+          level: [Level2, Level3]
+          description: Create and retain audit logs and records
+          policies_required:
+            - audit-trails-policy
+        AU.L2-3.3.2:
+          name: User Accountability
+          level: [Level2, Level3]
+          description: Ensure actions can be traced to individual users
+          policies_required:
+            - audit-trails-policy
+            - access-control-policy
+        AU.L2-3.3.3:
+          name: Event Review
+          level: [Level2, Level3]
+          description: Review and update logged events
+          policies_required:
+            - audit-policy
+        AU.L2-3.3.4:
+          name: Audit Failure Alerting
+          level: [Level2, Level3]
+          description: Alert in event of audit logging process failure
+          policies_required:
+            - audit-trails-policy
+        AU.L2-3.3.5:
+          name: Audit Reduction
+          level: [Level2, Level3]
+          description: Correlate audit record review, analysis, and reporting
+          policies_required:
+            - audit-policy
+        AU.L2-3.3.6:
+          name: Audit Record Reduction
+          level: [Level2, Level3]
+          description: Provide audit record reduction and report generation
+          policies_required:
+            - audit-trails-policy
+        AU.L2-3.3.7:
+          name: Authoritative Time Source
+          level: [Level2, Level3]
+          description: Provide a system capability that compares and synchronizes clocks
+          policies_required:
+            - configuration-management-policy
+        AU.L2-3.3.8:
+          name: Audit Protection
+          level: [Level2, Level3]
+          description: Protect audit information and tools from unauthorized access
+          policies_required:
+            - audit-trails-policy
+            - access-control-policy
+        AU.L2-3.3.9:
+          name: Audit Management
+          level: [Level2, Level3]
+          description: Limit management of audit logging to privileged users
+          policies_required:
+            - audit-trails-policy
+            - privileged-access-management-policy
+
+    CM:
+      name: Configuration Management
+      practices:
+        CM.L2-3.4.1:
+          name: System Baselining
+          level: [Level2, Level3]
+          description: Establish and maintain baseline configurations
+          policies_required:
+            - configuration-management-policy
+        CM.L2-3.4.2:
+          name: Security Configuration Enforcement
+          level: [Level2, Level3]
+          description: Establish and enforce security configuration settings
+          policies_required:
+            - configuration-management-policy
+        CM.L2-3.4.3:
+          name: System Change Management
+          level: [Level2, Level3]
+          description: Track, review, approve/disapprove, and log changes
+          policies_required:
+            - change-management-policy
+        CM.L2-3.4.4:
+          name: Security Impact Analysis
+          level: [Level2, Level3]
+          description: Analyze security impact of changes prior to implementation
+          policies_required:
+            - change-management-policy
+        CM.L2-3.4.5:
+          name: Access Restrictions for Change
+          level: [Level2, Level3]
+          description: Define and enforce access restrictions for change
+          policies_required:
+            - change-management-policy
+            - access-control-policy
+        CM.L2-3.4.6:
+          name: Least Functionality
+          level: [Level2, Level3]
+          description: Employ principle of least functionality
+          policies_required:
+            - configuration-management-policy
+        CM.L2-3.4.7:
+          name: Nonessential Functionality
+          level: [Level2, Level3]
+          description: Restrict, disable, or prevent use of nonessential capabilities
+          policies_required:
+            - configuration-management-policy
+        CM.L2-3.4.8:
+          name: Application Execution Policy
+          level: [Level2, Level3]
+          description: Apply deny-by-exception policy to prevent unauthorized software
+          policies_required:
+            - software-installation-policy
+        CM.L2-3.4.9:
+          name: User-Installed Software
+          level: [Level2, Level3]
+          description: Control and monitor user-installed software
+          policies_required:
+            - software-installation-policy
+
+    IA:
+      name: Identification and Authentication
+      practices:
+        IA.L1-3.5.1:
+          name: Identification
+          level: [Level1, Level2, Level3]
+          description: Identify system users, processes, or devices
+          policies_required:
+            - identity-management-policy
+        IA.L1-3.5.2:
+          name: Authentication
+          level: [Level1, Level2, Level3]
+          description: Authenticate identities before allowing access
+          policies_required:
+            - authentication-policy
+        IA.L2-3.5.3:
+          name: Multifactor Authentication
+          level: [Level2, Level3]
+          description: Use multifactor authentication for local and network access
+          policies_required:
+            - authentication-policy
+        IA.L2-3.5.4:
+          name: Replay-Resistant Authentication
+          level: [Level2, Level3]
+          description: Employ replay-resistant authentication mechanisms
+          policies_required:
+            - authentication-policy
+        IA.L2-3.5.5:
+          name: Identifier Reuse
+          level: [Level2, Level3]
+          description: Prevent reuse of identifiers for a defined period
+          policies_required:
+            - identity-management-policy
+        IA.L2-3.5.6:
+          name: Identifier Handling
+          level: [Level2, Level3]
+          description: Disable identifiers after period of inactivity
+          policies_required:
+            - identity-management-policy
+            - access-control-policy
+        IA.L2-3.5.7:
+          name: Password Complexity
+          level: [Level2, Level3]
+          description: Enforce minimum password complexity
+          policies_required:
+            - password-policy
+        IA.L2-3.5.8:
+          name: Password Reuse
+          level: [Level2, Level3]
+          description: Prohibit password reuse for specified generations
+          policies_required:
+            - password-policy
+        IA.L2-3.5.9:
+          name: Temporary Passwords
+          level: [Level2, Level3]
+          description: Allow temporary password use for system logons with immediate change
+          policies_required:
+            - password-policy
+        IA.L2-3.5.10:
+          name: Cryptographically-Protected Passwords
+          level: [Level2, Level3]
+          description: Store and transmit only cryptographically-protected passwords
+          policies_required:
+            - password-policy
+            - encryption-policy
+        IA.L2-3.5.11:
+          name: Obscure Feedback
+          level: [Level2, Level3]
+          description: Obscure feedback of authentication information
+          policies_required:
+            - authentication-policy
+
+    IR:
+      name: Incident Response
+      practices:
+        IR.L2-3.6.1:
+          name: Incident Handling
+          level: [Level2, Level3]
+          description: Establish an operational incident-handling capability
+          policies_required:
+            - incident-response-policy
+        IR.L2-3.6.2:
+          name: Incident Reporting
+          level: [Level2, Level3]
+          description: Track, document, and report incidents to officials
+          policies_required:
+            - incident-response-policy
+        IR.L2-3.6.3:
+          name: Incident Response Testing
+          level: [Level2, Level3]
+          description: Test the organizational incident response capability
+          policies_required:
+            - incident-response-policy
+
+    MA:
+      name: Maintenance
+      practices:
+        MA.L2-3.7.1:
+          name: Perform Maintenance
+          level: [Level2, Level3]
+          description: Perform maintenance on organizational systems
+          policies_required:
+            - system-maintenance-policy
+        MA.L2-3.7.2:
+          name: System Maintenance Control
+          level: [Level2, Level3]
+          description: Provide controls on tools and equipment used for maintenance
+          policies_required:
+            - system-maintenance-policy
+        MA.L2-3.7.3:
+          name: Equipment Sanitization
+          level: [Level2, Level3]
+          description: Ensure equipment is sanitized before removal for off-site maintenance
+          policies_required:
+            - system-maintenance-policy
+            - media-handling-policy
+        MA.L2-3.7.4:
+          name: Media Inspection
+          level: [Level2, Level3]
+          description: Check media containing diagnostic programs for malicious code
+          policies_required:
+            - system-maintenance-policy
+            - anti-malware-policy
+        MA.L2-3.7.5:
+          name: Nonlocal Maintenance
+          level: [Level2, Level3]
+          description: Require MFA to establish nonlocal maintenance sessions
+          policies_required:
+            - system-maintenance-policy
+            - remote-access-policy
+        MA.L2-3.7.6:
+          name: Maintenance Personnel
+          level: [Level2, Level3]
+          description: Supervise maintenance activities of personnel without required access
+          policies_required:
+            - system-maintenance-policy
+            - personnel-security-policy
+
+    MP:
+      name: Media Protection
+      practices:
+        MP.L1-3.8.3:
+          name: Media Disposal
+          level: [Level1, Level2, Level3]
+          description: Sanitize or destroy media containing FCI before disposal
+          policies_required:
+            - media-handling-policy
+            - data-retention-policy
+        MP.L2-3.8.1:
+          name: Media Protection
+          level: [Level2, Level3]
+          description: Protect system media containing CUI
+          policies_required:
+            - media-handling-policy
+        MP.L2-3.8.2:
+          name: Media Access
+          level: [Level2, Level3]
+          description: Limit access to CUI on system media
+          policies_required:
+            - media-handling-policy
+            - access-control-policy
+        MP.L2-3.8.4:
+          name: Media Markings
+          level: [Level2, Level3]
+          description: Mark media with necessary CUI markings and distribution limitations
+          policies_required:
+            - media-handling-policy
+            - data-classification-policy
+        MP.L2-3.8.5:
+          name: Media Accountability
+          level: [Level2, Level3]
+          description: Control access to media containing CUI and maintain accountability
+          policies_required:
+            - media-handling-policy
+        MP.L2-3.8.6:
+          name: Portable Storage Encryption
+          level: [Level2, Level3]
+          description: Implement cryptographic mechanisms to protect CUI on portable storage
+          policies_required:
+            - encryption-policy
+            - removable-media-policy
+        MP.L2-3.8.7:
+          name: Removable Media
+          level: [Level2, Level3]
+          description: Control use of removable media
+          policies_required:
+            - removable-media-policy
+        MP.L2-3.8.8:
+          name: Shared Media
+          level: [Level2, Level3]
+          description: Prohibit use of portable storage devices with no identifiable owner
+          policies_required:
+            - removable-media-policy
+        MP.L2-3.8.9:
+          name: Protect Backups
+          level: [Level2, Level3]
+          description: Protect the confidentiality of backup CUI at storage locations
+          policies_required:
+            - backup-policy
+            - encryption-policy
+
+    PE:
+      name: Physical Protection
+      practices:
+        PE.L1-3.10.1:
+          name: Limit Physical Access
+          level: [Level1, Level2, Level3]
+          description: Limit physical access to organizational systems and equipment
+          policies_required:
+            - physical-security-policy
+        PE.L1-3.10.3:
+          name: Escort Visitors
+          level: [Level1, Level2, Level3]
+          description: Escort visitors and monitor visitor activity
+          policies_required:
+            - physical-security-policy
+        PE.L1-3.10.4:
+          name: Physical Access Logs
+          level: [Level1, Level2, Level3]
+          description: Maintain audit logs of physical access
+          policies_required:
+            - physical-security-policy
+        PE.L1-3.10.5:
+          name: Manage Physical Access
+          level: [Level1, Level2, Level3]
+          description: Control and manage physical access devices
+          policies_required:
+            - physical-security-policy
+        PE.L2-3.10.2:
+          name: Monitor Facility
+          level: [Level2, Level3]
+          description: Protect and monitor the physical facility and support infrastructure
+          policies_required:
+            - physical-security-policy
+        PE.L2-3.10.6:
+          name: Alternative Work Sites
+          level: [Level2, Level3]
+          description: Enforce safeguarding measures for CUI at alternative work sites
+          policies_required:
+            - remote-work-policy
+            - physical-security-policy
+
+    PS:
+      name: Personnel Security
+      practices:
+        PS.L2-3.9.1:
+          name: Screen Individuals
+          level: [Level2, Level3]
+          description: Screen individuals prior to authorizing access to CUI systems
+          policies_required:
+            - personnel-security-policy
+            - background-check-policy
+        PS.L2-3.9.2:
+          name: Personnel Actions
+          level: [Level2, Level3]
+          description: Ensure CUI is protected during personnel actions
+          policies_required:
+            - termination-policy
+            - personnel-security-policy
+
+    RA:
+      name: Risk Assessment
+      practices:
+        RA.L2-3.11.1:
+          name: Risk Assessments
+          level: [Level2, Level3]
+          description: Periodically assess the risk to operations and assets
+          policies_required:
+            - risk-assessment-policy
+        RA.L2-3.11.2:
+          name: Vulnerability Scan
+          level: [Level2, Level3]
+          description: Scan for vulnerabilities periodically and when new vulnerabilities are identified
+          policies_required:
+            - vulnerability-management-policy
+        RA.L2-3.11.3:
+          name: Vulnerability Remediation
+          level: [Level2, Level3]
+          description: Remediate vulnerabilities in accordance with risk assessments
+          policies_required:
+            - vulnerability-management-policy
+            - patch-management-policy
+
+    CA:
+      name: Security Assessment
+      practices:
+        CA.L2-3.12.1:
+          name: Security Control Assessment
+          level: [Level2, Level3]
+          description: Periodically assess security controls to determine effectiveness
+          policies_required:
+            - security-assessment-policy
+        CA.L2-3.12.2:
+          name: Plan of Action
+          level: [Level2, Level3]
+          description: Develop and implement plans of action to correct deficiencies
+          policies_required:
+            - vulnerability-management-policy
+        CA.L2-3.12.3:
+          name: Security Control Monitoring
+          level: [Level2, Level3]
+          description: Monitor security controls on an ongoing basis
+          policies_required:
+            - security-monitoring-policy
+            - continuous-monitoring-policy
+        CA.L2-3.12.4:
+          name: System Security Plan
+          level: [Level2, Level3]
+          description: Develop, document, and periodically update system security plans
+          policies_required:
+            - information-security-policy
+
+    SC:
+      name: System and Communications Protection
+      practices:
+        SC.L1-3.13.1:
+          name: Boundary Protection
+          level: [Level1, Level2, Level3]
+          description: Monitor, control, and protect communications at external boundaries
+          policies_required:
+            - network-security-policy
+            - firewall-policy
+        SC.L1-3.13.5:
+          name: Public-Access System Separation
+          level: [Level1, Level2, Level3]
+          description: Implement subnetworks for publicly accessible system components
+          policies_required:
+            - network-security-policy
+        SC.L2-3.13.2:
+          name: Security Engineering
+          level: [Level2, Level3]
+          description: Employ architectural designs and software development techniques
+          policies_required:
+            - software-development-policy
+            - network-security-policy
+        SC.L2-3.13.3:
+          name: Role Separation
+          level: [Level2, Level3]
+          description: Separate user functionality from system management functionality
+          policies_required:
+            - access-control-policy
+            - network-security-policy
+        SC.L2-3.13.4:
+          name: Shared Resource Control
+          level: [Level2, Level3]
+          description: Prevent unauthorized and unintended information transfer
+          policies_required:
+            - data-classification-policy
+        SC.L2-3.13.6:
+          name: Network Communication by Exception
+          level: [Level2, Level3]
+          description: Deny network communications traffic by default
+          policies_required:
+            - network-security-policy
+            - firewall-policy
+        SC.L2-3.13.7:
+          name: Split Tunneling
+          level: [Level2, Level3]
+          description: Prevent remote devices from establishing split tunneling
+          policies_required:
+            - vpn-policy
+            - remote-access-policy
+        SC.L2-3.13.8:
+          name: Data in Transit
+          level: [Level2, Level3]
+          description: Implement cryptographic mechanisms to prevent unauthorized disclosure
+          policies_required:
+            - encryption-policy
+        SC.L2-3.13.9:
+          name: Connections Termination
+          level: [Level2, Level3]
+          description: Terminate network connections at end of sessions or after inactivity
+          policies_required:
+            - network-security-policy
+        SC.L2-3.13.10:
+          name: Key Management
+          level: [Level2, Level3]
+          description: Establish and manage cryptographic keys
+          policies_required:
+            - key-management-policy
+            - encryption-policy
+        SC.L2-3.13.11:
+          name: CUI Encryption
+          level: [Level2, Level3]
+          description: Employ FIPS-validated cryptography when protecting CUI
+          policies_required:
+            - encryption-policy
+        SC.L2-3.13.12:
+          name: Collaborative Device Control
+          level: [Level2, Level3]
+          description: Prohibit remote activation of collaborative computing devices
+          policies_required:
+            - acceptable-use-policy
+        SC.L2-3.13.13:
+          name: Mobile Code
+          level: [Level2, Level3]
+          description: Control and monitor the use of mobile code
+          policies_required:
+            - software-installation-policy
+        SC.L2-3.13.14:
+          name: Voice over Internet Protocol
+          level: [Level2, Level3]
+          description: Control and monitor the use of VoIP technologies
+          policies_required:
+            - network-security-policy
+        SC.L2-3.13.15:
+          name: Communications Authenticity
+          level: [Level2, Level3]
+          description: Protect authenticity of communications sessions
+          policies_required:
+            - encryption-policy
+            - authentication-policy
+        SC.L2-3.13.16:
+          name: Data at Rest
+          level: [Level2, Level3]
+          description: Protect confidentiality of CUI at rest
+          policies_required:
+            - encryption-policy
+
+    SI:
+      name: System and Information Integrity
+      practices:
+        SI.L1-3.14.1:
+          name: Flaw Remediation
+          level: [Level1, Level2, Level3]
+          description: Identify, report, and correct system flaws in a timely manner
+          policies_required:
+            - patch-management-policy
+            - vulnerability-management-policy
+        SI.L1-3.14.2:
+          name: Malicious Code Protection
+          level: [Level1, Level2, Level3]
+          description: Provide protection from malicious code at appropriate locations
+          policies_required:
+            - anti-malware-policy
+        SI.L1-3.14.4:
+          name: Update Malicious Code Protection
+          level: [Level1, Level2, Level3]
+          description: Update malicious code protection mechanisms when new releases available
+          policies_required:
+            - anti-malware-policy
+        SI.L1-3.14.5:
+          name: System & File Scanning
+          level: [Level1, Level2, Level3]
+          description: Perform periodic and real-time scans for malicious code
+          policies_required:
+            - anti-malware-policy
+        SI.L2-3.14.3:
+          name: Security Alerts & Advisories
+          level: [Level2, Level3]
+          description: Monitor system security alerts and advisories and take action
+          policies_required:
+            - vulnerability-management-policy
+        SI.L2-3.14.6:
+          name: Monitor Communications for Attacks
+          level: [Level2, Level3]
+          description: Monitor organizational systems to detect attacks and indicators
+          policies_required:
+            - security-monitoring-policy
+            - intrusion-detection-policy
+        SI.L2-3.14.7:
+          name: Identify Unauthorized Use
+          level: [Level2, Level3]
+          description: Identify unauthorized use of organizational systems
+          policies_required:
+            - security-monitoring-policy

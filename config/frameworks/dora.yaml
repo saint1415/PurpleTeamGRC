@@ -1,0 +1,266 @@
+# DORA - Digital Operational Resilience Act
+# EU Regulation 2022/2554 for financial sector ICT risk management
+# Effective: January 17, 2025
+
+framework:
+  id: dora
+  name: Digital Operational Resilience Act (DORA)
+  version: "2022/2554"
+  jurisdiction: European Union
+  sector: Financial Services
+  effective_date: "2025-01-17"
+  regulatory_body: European Banking Authority (EBA), ESMA, EIOPA
+
+  description: |
+    DORA establishes uniform requirements for the security of network and
+    information systems of financial entities and critical third parties
+    providing ICT-related services to them.
+
+  applicability:
+    sectors:
+      - Banking
+      - Insurance
+      - Investment firms
+      - Payment institutions
+      - Crypto-asset service providers
+      - ICT third-party service providers (critical)
+
+  # Chapter-based structure
+  chapters:
+    - id: chapter_i
+      name: General Provisions
+      articles:
+        - id: art_1
+          name: Subject Matter
+          description: Scope and requirements for digital operational resilience
+
+        - id: art_2
+          name: Scope
+          description: Financial entities covered by DORA
+          policies_required:
+            - cybersecurity-framework-policy
+            - it-governance-policy
+
+    - id: chapter_ii
+      name: ICT Risk Management
+      articles:
+        - id: art_5
+          name: Governance and Organisation
+          description: ICT risk management framework governance
+          policies_required:
+            - it-governance-policy
+            - risk-management-policy
+            - cybersecurity-roles-responsibilities
+          policies_recommended:
+            - executive-cybersecurity-governance-policy
+
+        - id: art_6
+          name: ICT Risk Management Framework
+          description: Strategies, policies, procedures, ICT protocols
+          policies_required:
+            - risk-management-policy
+            - information-security-policy
+            - asset-management-policy
+            - network-security-policy
+
+        - id: art_7
+          name: ICT Systems, Protocols, and Tools
+          description: ICT systems resilience, capacity, performance
+          policies_required:
+            - network-security-policy
+            - system-hardening-policy
+            - change-management-policy
+            - capacity-management-policy
+
+        - id: art_8
+          name: Identification
+          description: Identify, classify, document ICT-supported business functions
+          policies_required:
+            - asset-management-policy
+            - data-classification-policy
+            - business-impact-analysis-policy
+
+        - id: art_9
+          name: Protection and Prevention
+          description: ICT security policies for data/systems protection
+          policies_required:
+            - access-control-policy
+            - encryption-policy
+            - data-protection-policy
+            - malware-protection-policy
+            - network-security-policy
+
+        - id: art_10
+          name: Detection
+          description: Mechanisms to detect anomalous activities
+          policies_required:
+            - security-monitoring-policy
+            - logging-and-auditing-policy
+            - intrusion-detection-policy
+
+        - id: art_11
+          name: Response and Recovery
+          description: ICT business continuity policy
+          policies_required:
+            - incident-response-policy
+            - business-continuity-policy
+            - disaster-recovery-policy
+            - backup-policy
+
+        - id: art_12
+          name: Backup Policies and Procedures
+          description: Backup, restoration, recovery policies
+          policies_required:
+            - backup-policy
+            - data-recovery-policy
+
+        - id: art_13
+          name: Learning and Evolving
+          description: Post-incident reviews and improvement
+          policies_required:
+            - incident-response-policy
+            - lessons-learned-policy
+            - continuous-improvement-policy
+
+        - id: art_14
+          name: Communication
+          description: Crisis communication policies
+          policies_required:
+            - communication-policy
+            - incident-communication-policy
+            - crisis-management-policy
+
+    - id: chapter_iii
+      name: ICT-Related Incident Management
+      articles:
+        - id: art_17
+          name: ICT-Related Incident Management Process
+          description: Incident classification and management
+          policies_required:
+            - incident-response-policy
+            - incident-classification-policy
+            - security-incident-handling-policy
+
+        - id: art_18
+          name: Classification of ICT-Related Incidents
+          description: Incident impact assessment criteria
+          policies_required:
+            - incident-classification-policy
+
+        - id: art_19
+          name: Reporting of Major ICT-Related Incidents
+          description: Notification to competent authorities
+          policies_required:
+            - incident-notification-policy
+            - regulatory-reporting-policy
+
+    - id: chapter_iv
+      name: Digital Operational Resilience Testing
+      articles:
+        - id: art_24
+          name: General Requirements for Testing
+          description: Digital resilience testing programme
+          policies_required:
+            - security-testing-policy
+            - penetration-testing-policy
+            - vulnerability-management-policy
+
+        - id: art_25
+          name: Testing of ICT Tools and Systems
+          description: Vulnerability assessments and testing
+          policies_required:
+            - vulnerability-management-policy
+            - security-testing-policy
+
+        - id: art_26
+          name: Threat-Led Penetration Testing
+          description: TLPT requirements for significant entities
+          policies_required:
+            - penetration-testing-policy
+            - red-team-policy
+
+    - id: chapter_v
+      name: ICT Third-Party Risk Management
+      articles:
+        - id: art_28
+          name: General Principles
+          description: Managing ICT third-party risk
+          policies_required:
+            - vendor-management-policy
+            - third-party-risk-policy
+            - supply-chain-security-policy
+
+        - id: art_29
+          name: Preliminary Assessment
+          description: Risk assessment before ICT contracts
+          policies_required:
+            - vendor-risk-assessment-policy
+            - due-diligence-policy
+
+        - id: art_30
+          name: Key Contractual Provisions
+          description: ICT service contract requirements
+          policies_required:
+            - vendor-contract-policy
+            - service-level-agreement-policy
+
+    - id: chapter_vi
+      name: Information Sharing Arrangements
+      articles:
+        - id: art_45
+          name: Information Sharing Arrangements on Cyber Threats
+          description: Sharing threat intelligence
+          policies_required:
+            - threat-intelligence-policy
+            - information-sharing-policy
+
+  # Policy mapping summary
+  policy_mapping:
+    governance:
+      - it-governance-policy
+      - cybersecurity-framework-policy
+      - risk-management-policy
+      - executive-cybersecurity-governance-policy
+
+    risk_management:
+      - risk-management-policy
+      - information-security-policy
+      - asset-management-policy
+      - data-classification-policy
+
+    protection:
+      - access-control-policy
+      - encryption-policy
+      - network-security-policy
+      - malware-protection-policy
+      - system-hardening-policy
+
+    detection:
+      - security-monitoring-policy
+      - logging-and-auditing-policy
+      - intrusion-detection-policy
+
+    response_recovery:
+      - incident-response-policy
+      - business-continuity-policy
+      - disaster-recovery-policy
+      - backup-policy
+      - crisis-management-policy
+
+    testing:
+      - security-testing-policy
+      - penetration-testing-policy
+      - vulnerability-management-policy
+
+    third_party:
+      - vendor-management-policy
+      - third-party-risk-policy
+      - supply-chain-security-policy
+
+  sources:
+    - url: https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX:32022R2554
+      type: official
+    - url: https://www.eba.europa.eu/regulation-and-policy/digital-operational-resilience
+      type: regulatory
+    - url: https://www.esma.europa.eu/dora
+      type: regulatory

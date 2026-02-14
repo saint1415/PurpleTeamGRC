@@ -1,0 +1,1010 @@
+# NIST Cybersecurity Framework 2.0
+# Released: February 26, 2024
+# https://www.nist.gov/cyberframework
+
+framework:
+  id: nist_csf_2.0
+  name: NIST Cybersecurity Framework 2.0
+  version: "2.0"
+  release_date: 2024-02-26
+  authority: National Institute of Standards and Technology
+  url: https://www.nist.gov/cyberframework
+
+  # Monitoring sources for updates
+  sources:
+    - url: https://csrc.nist.gov/news
+      type: rss
+    - url: https://www.nist.gov/cyberframework
+      type: webpage
+
+# CSF 2.0 Functions and Categories
+functions:
+
+  # ============================================
+  # GOVERN (GV) - New in CSF 2.0
+  # ============================================
+  GV:
+    name: Govern
+    description: Establish and monitor the organization's cybersecurity risk management strategy, expectations, and policy
+
+    categories:
+      GV.OC:
+        name: Organizational Context
+        description: The circumstances — mission, stakeholder expectations, dependencies, and legal, regulatory, and contractual requirements — surrounding the organization's cybersecurity risk management decisions are understood
+
+        subcategories:
+          GV.OC-01:
+            description: The organizational mission is understood and informs cybersecurity risk management
+            policies_required:
+              - context-and-alignment-policy
+              - cybersecurity-framework-policy
+            policies_recommended:
+              - it-governance-policy
+
+          GV.OC-02:
+            description: Internal and external stakeholders are understood, and their needs and expectations regarding cybersecurity risk management are understood and considered
+            policies_required:
+              - context-and-alignment-policy
+            policies_recommended:
+              - third-party-service-providers-policy
+
+          GV.OC-03:
+            description: Legal, regulatory, and contractual requirements regarding cybersecurity — including privacy and civil liberties obligations — are understood and managed
+            policies_required:
+              - compliance-policy
+              - data-privacy-policy
+            policies_recommended:
+              - gdpr-eu-privacy-and-data-protection-policy
+              - hipaa-and-hitech-policy
+              - pci-policy
+
+          GV.OC-04:
+            description: Critical objectives, capabilities, and services that external stakeholders depend on or expect from the organization are understood and communicated
+            policies_required:
+              - business-continuity-policy
+            policies_recommended:
+              - context-and-alignment-policy
+
+          GV.OC-05:
+            description: Outcomes, capabilities, and services that the organization depends on are understood and communicated
+            policies_required:
+              - third-party-service-providers-policy
+              - supply-chain-security-policy
+            policies_recommended:
+              - vendor-access-policy
+
+      GV.RM:
+        name: Risk Management Strategy
+        description: The organization's priorities, constraints, risk tolerance and appetite statements, and assumptions are established, communicated, and used to support operational risk decisions
+
+        subcategories:
+          GV.RM-01:
+            description: Risk management objectives are established and agreed to by organizational stakeholders
+            policies_required:
+              - risk-management-policy
+            policies_recommended:
+              - executive-cybersecurity-governance-policy
+
+          GV.RM-02:
+            description: Risk appetite and risk tolerance statements are established, communicated, and maintained
+            policies_required:
+              - risk-management-policy
+              - risk-assessment-policy
+            policies_recommended: []
+
+          GV.RM-03:
+            description: Cybersecurity risk management activities and outcomes are included in enterprise risk management processes
+            policies_required:
+              - risk-management-policy
+              - it-governance-policy
+            policies_recommended:
+              - executive-cybersecurity-governance-policy
+
+          GV.RM-04:
+            description: Strategic direction that describes appropriate risk response options is established and communicated
+            policies_required:
+              - risk-management-policy
+            policies_recommended:
+              - incident-response-policy
+
+          GV.RM-05:
+            description: Lines of communication across the organization are established for cybersecurity risks, including risks from suppliers and other third parties
+            policies_required:
+              - risk-management-policy
+              - third-party-service-providers-policy
+            policies_recommended:
+              - ciso-reporting-policy
+
+          GV.RM-06:
+            description: A standardized method for calculating, documenting, categorizing, and prioritizing cybersecurity risks is established and communicated
+            policies_required:
+              - risk-assessment-policy
+            policies_recommended:
+              - risk-management-policy
+
+          GV.RM-07:
+            description: Strategic opportunities (i.e., positive risks) are characterized and are included in organizational cybersecurity risk discussions
+            policies_required:
+              - risk-management-policy
+            policies_recommended: []
+
+      GV.RR:
+        name: Roles, Responsibilities, and Authorities
+        description: Cybersecurity roles, responsibilities, and authorities to foster accountability, performance assessment, and continuous improvement are established and communicated
+
+        subcategories:
+          GV.RR-01:
+            description: Organizational leadership is responsible and accountable for cybersecurity risk and fosters a culture that is risk-aware, ethical, and continually improving
+            policies_required:
+              - executive-cybersecurity-governance-policy
+              - it-governance-policy
+            policies_recommended:
+              - ethics-policy
+              - board-cyber-oversight-policy
+
+          GV.RR-02:
+            description: Roles, responsibilities, and authorities related to cybersecurity risk management are established, communicated, understood, and enforced
+            policies_required:
+              - information-security-policy
+              - cybersecurity-policy
+            policies_recommended:
+              - personnel-security-policy
+
+          GV.RR-03:
+            description: Adequate resources are allocated commensurate with the cybersecurity risk strategy, roles, responsibilities, and policies
+            policies_required:
+              - it-governance-policy
+            policies_recommended:
+              - executive-cybersecurity-governance-policy
+
+          GV.RR-04:
+            description: Cybersecurity is included in human resources practices
+            policies_required:
+              - personnel-security-policy
+              - staffing-policy
+            policies_recommended:
+              - security-awareness-and-training-policy
+
+      GV.PO:
+        name: Policy
+        description: Organizational cybersecurity policy is established, communicated, and enforced
+
+        subcategories:
+          GV.PO-01:
+            description: Policy for managing cybersecurity risks is established based on organizational context, cybersecurity strategy, and priorities and is communicated and enforced
+            policies_required:
+              - cybersecurity-policy
+              - information-security-policy
+            policies_recommended:
+              - security-policy
+
+          GV.PO-02:
+            description: Policy for managing cybersecurity risks is reviewed, updated, communicated, and enforced to reflect changes in requirements, threats, technology, and organizational mission
+            policies_required:
+              - documentation-policy
+              - security-controls-review-policy
+            policies_recommended:
+              - change-management-policy
+
+      GV.OV:
+        name: Oversight
+        description: Results of organization-wide cybersecurity risk management activities and performance are used to inform, improve, and adjust the risk management strategy
+
+        subcategories:
+          GV.OV-01:
+            description: Cybersecurity risk management strategy outcomes are reviewed to inform and adjust strategy and direction
+            policies_required:
+              - risk-management-policy
+              - security-controls-review-policy
+            policies_recommended:
+              - ciso-reporting-policy
+
+          GV.OV-02:
+            description: The cybersecurity risk management strategy is reviewed and adjusted to ensure coverage of organizational requirements and risks
+            policies_required:
+              - risk-management-policy
+            policies_recommended:
+              - executive-cybersecurity-governance-policy
+
+          GV.OV-03:
+            description: Organizational cybersecurity risk management performance is evaluated and reviewed for adjustments needed
+            policies_required:
+              - audit-policy
+              - security-self-assessment-policy
+            policies_recommended:
+              - risk-assessment-policy
+
+      GV.SC:
+        name: Cybersecurity Supply Chain Risk Management
+        description: Cyber supply chain risk management processes are identified, established, managed, monitored, and improved by organizational stakeholders
+
+        subcategories:
+          GV.SC-01:
+            description: A cybersecurity supply chain risk management program, strategy, objectives, policies, and processes are established and agreed to by organizational stakeholders
+            policies_required:
+              - supply-chain-security-policy
+              - third-party-service-providers-policy
+            policies_recommended:
+              - software-supply-chain-policy
+
+          GV.SC-02:
+            description: Cybersecurity roles and responsibilities for suppliers, customers, and partners are established, communicated, and coordinated internally and externally
+            policies_required:
+              - third-party-service-providers-policy
+              - vendor-access-policy
+            policies_recommended:
+              - outsourcing-policy
+
+          GV.SC-03:
+            description: Cybersecurity supply chain risk management is integrated into cybersecurity and enterprise risk management, risk assessment, and improvement processes
+            policies_required:
+              - supply-chain-security-policy
+              - risk-management-policy
+            policies_recommended:
+              - risk-assessment-policy
+
+          GV.SC-04:
+            description: Suppliers are known and prioritized by criticality
+            policies_required:
+              - third-party-service-providers-policy
+            policies_recommended:
+              - supply-chain-security-policy
+
+          GV.SC-05:
+            description: Requirements to address cybersecurity risks in supply chains are established, prioritized, and integrated into contracts and other agreements with suppliers and other relevant third parties
+            policies_required:
+              - third-party-service-providers-policy
+              - acquistion-and-procurement-policy
+            policies_recommended:
+              - agreement-non-disclosure-agreement
+
+          GV.SC-06:
+            description: Planning and due diligence are performed to reduce risks before entering into formal supplier or other third-party relationships
+            policies_required:
+              - third-party-service-providers-policy
+              - risk-assessment-policy
+            policies_recommended:
+              - acquistion-and-procurement-policy
+
+          GV.SC-07:
+            description: The risks posed by a supplier, their products and services, and other third parties are understood, recorded, prioritized, assessed, responded to, and monitored over the course of the relationship
+            policies_required:
+              - third-party-service-providers-policy
+              - risk-management-policy
+            policies_recommended:
+              - supply-chain-security-policy
+
+          GV.SC-08:
+            description: Relevant suppliers and other third parties are included in incident planning, response, and recovery activities
+            policies_required:
+              - incident-response-policy
+              - third-party-service-providers-policy
+            policies_recommended:
+              - incident-response-plan
+
+          GV.SC-09:
+            description: Supply chain security practices are integrated into cybersecurity and enterprise risk management programs, and their performance is monitored throughout the technology product and service life cycle
+            policies_required:
+              - supply-chain-security-policy
+              - sbom-management-policy
+            policies_recommended:
+              - software-supply-chain-policy
+
+          GV.SC-10:
+            description: Cybersecurity supply chain risk management plans include provisions for activities that occur after the conclusion of a partnership or service agreement
+            policies_required:
+              - third-party-service-providers-policy
+              - disposal-policy
+            policies_recommended:
+              - data-retention-policy
+
+  # ============================================
+  # IDENTIFY (ID)
+  # ============================================
+  ID:
+    name: Identify
+    description: Help determine the current cybersecurity risk to the organization
+
+    categories:
+      ID.AM:
+        name: Asset Management
+        description: The data, personnel, devices, systems, and facilities that enable the organization to achieve business purposes are identified and managed consistent with their relative importance to organizational objectives and the organization's risk strategy
+
+        subcategories:
+          ID.AM-01:
+            description: Inventories of hardware managed by the organization are maintained
+            policies_required:
+              - asset-management-policy
+              - configuration-management-policy
+            policies_recommended: []
+
+          ID.AM-02:
+            description: Inventories of software, services, and systems managed by the organization are maintained
+            policies_required:
+              - asset-management-policy
+              - configuration-management-policy
+              - sbom-management-policy
+            policies_recommended:
+              - approved-application-policy
+
+          ID.AM-03:
+            description: Representations of the organization's authorized network communication and internal and external network data flows are maintained
+            policies_required:
+              - network-documentation-policy
+              - network-security-policy
+            policies_recommended:
+              - network-configuration-policy
+
+          ID.AM-04:
+            description: Inventories of services provided by suppliers are maintained
+            policies_required:
+              - third-party-service-providers-policy
+              - cloud-service-provider-policy
+            policies_recommended:
+              - supply-chain-security-policy
+
+          ID.AM-05:
+            description: Assets are prioritized based on classification, criticality, resources, and impact to the mission
+            policies_required:
+              - asset-management-policy
+              - data-classification-policy
+            policies_recommended:
+              - risk-assessment-policy
+
+          ID.AM-07:
+            description: Inventories of data and corresponding metadata for designated data types are maintained
+            policies_required:
+              - data-classification-policy
+              - data-retention-policy
+            policies_recommended:
+              - data-privacy-policy
+
+          ID.AM-08:
+            description: Systems, hardware, software, services, and data are managed throughout their life cycles
+            policies_required:
+              - asset-management-policy
+              - configuration-management-policy
+              - disposal-policy
+            policies_recommended:
+              - change-management-policy
+
+      ID.RA:
+        name: Risk Assessment
+        description: The organization understands the cybersecurity risk to organizational operations, organizational assets, and individuals
+
+        subcategories:
+          ID.RA-01:
+            description: Vulnerabilities in assets are identified, validated, and recorded
+            policies_required:
+              - vulnerability-and-penetration-testing-policy
+              - security-monitoring-policy
+            policies_recommended:
+              - vulnerability-disclosure-policy
+
+          ID.RA-02:
+            description: Cyber threat intelligence is received from information sharing forums and sources
+            policies_required:
+              - security-monitoring-policy
+            policies_recommended:
+              - risk-assessment-policy
+
+          ID.RA-03:
+            description: Internal and external threats to the organization are identified and recorded
+            policies_required:
+              - risk-assessment-policy
+              - insider-threat-policy
+            policies_recommended:
+              - security-monitoring-policy
+
+          ID.RA-04:
+            description: Potential impacts and likelihoods of threats exploiting vulnerabilities are identified and recorded
+            policies_required:
+              - risk-assessment-policy
+            policies_recommended:
+              - business-impact-analysis
+
+          ID.RA-05:
+            description: Threats, vulnerabilities, likelihoods, and impacts are used to understand inherent risk and inform risk response prioritization
+            policies_required:
+              - risk-assessment-policy
+              - risk-management-policy
+            policies_recommended: []
+
+          ID.RA-06:
+            description: Risk responses are chosen, prioritized, planned, tracked, and communicated
+            policies_required:
+              - risk-management-policy
+            policies_recommended:
+              - risk-assessment-policy
+
+          ID.RA-07:
+            description: Changes and exceptions are managed, assessed for risk impact, recorded, and tracked
+            policies_required:
+              - change-management-policy
+              - risk-assessment-policy
+            policies_recommended: []
+
+          ID.RA-08:
+            description: Processes for receiving, analyzing, and responding to vulnerability disclosures are established
+            policies_required:
+              - vulnerability-disclosure-policy
+              - vulnerability-and-penetration-testing-policy
+            policies_recommended:
+              - bug-bounty-policy
+
+          ID.RA-09:
+            description: The authenticity and integrity of hardware and software are assessed prior to acquisition and use
+            policies_required:
+              - supply-chain-security-policy
+              - software-supply-chain-policy
+            policies_recommended:
+              - sbom-management-policy
+
+          ID.RA-10:
+            description: Critical suppliers are assessed prior to acquisition
+            policies_required:
+              - third-party-service-providers-policy
+              - supply-chain-security-policy
+            policies_recommended:
+              - risk-assessment-policy
+
+      ID.IM:
+        name: Improvement
+        description: Improvements to organizational cybersecurity risk management processes, procedures, and activities are identified across all CSF Functions
+
+        subcategories:
+          ID.IM-01:
+            description: Improvements are identified from evaluations
+            policies_required:
+              - security-controls-review-policy
+              - audit-policy
+            policies_recommended:
+              - security-self-assessment-policy
+
+          ID.IM-02:
+            description: Improvements are identified from security tests and exercises, including those done in coordination with suppliers and relevant third parties
+            policies_required:
+              - vulnerability-and-penetration-testing-policy
+              - security-self-assessment-policy
+            policies_recommended:
+              - incident-response-plan
+
+          ID.IM-03:
+            description: Improvements are identified from execution of operational processes, procedures, and activities
+            policies_required:
+              - problem-management-policy
+              - security-controls-review-policy
+            policies_recommended:
+              - change-management-policy
+
+          ID.IM-04:
+            description: Incident response plans and other cybersecurity plans that affect operations are established, communicated, maintained, and improved
+            policies_required:
+              - incident-response-policy
+              - incident-response-plan
+            policies_recommended:
+              - business-continuity-policy
+
+  # ============================================
+  # PROTECT (PR)
+  # ============================================
+  PR:
+    name: Protect
+    description: Use safeguards to prevent or reduce cybersecurity risk
+
+    categories:
+      PR.AA:
+        name: Identity Management, Authentication, and Access Control
+        description: Access to physical and logical assets is limited to authorized users, services, and hardware and managed commensurate with the assessed risk of unauthorized access
+
+        subcategories:
+          PR.AA-01:
+            description: Identities and credentials for authorized users, services, and hardware are managed by the organization
+            policies_required:
+              - access-control-policy
+              - account-management-policy
+              - identity-governance-policy
+            policies_recommended:
+              - password-policy
+
+          PR.AA-02:
+            description: Identities are proofed and bound to credentials based on the context of interactions
+            policies_required:
+              - identification-and-authentication-policy
+              - account-management-policy
+            policies_recommended:
+              - personnel-security-policy
+
+          PR.AA-03:
+            description: Users, services, and hardware are authenticated
+            policies_required:
+              - identification-and-authentication-policy
+              - password-policy
+            policies_recommended:
+              - access-control-policy
+
+          PR.AA-04:
+            description: Identity assertions are protected, conveyed, and verified
+            policies_required:
+              - identification-and-authentication-policy
+            policies_recommended:
+              - api-security-policy
+
+          PR.AA-05:
+            description: Access permissions, entitlements, and authorizations are defined in a policy, managed, enforced, and reviewed, and incorporate the principles of least privilege and separation of duties
+            policies_required:
+              - access-control-policy
+              - user-privilege-policy
+              - logical-access-controls-policy
+            policies_recommended:
+              - privileged-access-management-policy
+
+          PR.AA-06:
+            description: Physical access to assets is managed, monitored, and enforced commensurate with risk
+            policies_required:
+              - physical-access-policy
+              - physical-security-policy
+            policies_recommended:
+              - facility-security-plan
+
+      PR.AT:
+        name: Awareness and Training
+        description: The organization's personnel are provided with cybersecurity awareness and training so that they can perform their cybersecurity-related tasks
+
+        subcategories:
+          PR.AT-01:
+            description: Personnel are provided with awareness and training so that they possess the knowledge and skills to perform general tasks with cybersecurity risks in mind
+            policies_required:
+              - security-awareness-and-training-policy
+            policies_recommended:
+              - security-awareness-and-training-plan
+
+          PR.AT-02:
+            description: Individuals in specialized roles are provided with awareness and training so that they possess the knowledge and skills to perform relevant tasks with cybersecurity risks in mind
+            policies_required:
+              - security-awareness-and-training-policy
+            policies_recommended:
+              - personnel-security-policy
+
+      PR.DS:
+        name: Data Security
+        description: Data are managed consistent with the organization's risk strategy to protect the confidentiality, integrity, and availability of information
+
+        subcategories:
+          PR.DS-01:
+            description: The confidentiality, integrity, and availability of data-at-rest are protected
+            policies_required:
+              - data-classification-policy
+              - encryption-policy
+              - database-security-policy
+            policies_recommended:
+              - data-protection-policy
+
+          PR.DS-02:
+            description: The confidentiality, integrity, and availability of data-in-transit are protected
+            policies_required:
+              - encryption-policy
+              - network-security-policy
+            policies_recommended:
+              - vpn-policy
+
+          PR.DS-10:
+            description: The confidentiality, integrity, and availability of data-in-use are protected
+            policies_required:
+              - data-classification-policy
+              - encryption-policy
+            policies_recommended:
+              - workstation-security-policy
+
+          PR.DS-11:
+            description: Backups of data are created, protected, maintained, and tested
+            policies_required:
+              - backup-policy
+              - backup-procedure
+            policies_recommended:
+              - backup-plan
+
+      PR.PS:
+        name: Platform Security
+        description: The hardware, software, and services of physical and virtual platforms are managed consistent with the organization's risk strategy to protect their confidentiality, integrity, and availability
+
+        subcategories:
+          PR.PS-01:
+            description: Configuration management practices are established and applied
+            policies_required:
+              - configuration-management-policy
+              - configuration-management-procedure
+            policies_recommended:
+              - configuration-management-plan
+
+          PR.PS-02:
+            description: Software is maintained, replaced, and removed commensurate with risk
+            policies_required:
+              - patch-management-policy
+              - software-licensing-policy
+            policies_recommended:
+              - approved-application-policy
+
+          PR.PS-03:
+            description: Hardware is maintained, replaced, and removed commensurate with risk
+            policies_required:
+              - hardware-and-software-maintenance-policy
+              - disposal-policy
+            policies_recommended:
+              - asset-management-policy
+
+          PR.PS-04:
+            description: Log records are generated and made available for continuous monitoring
+            policies_required:
+              - logging-policy
+              - audit-trails-policy
+            policies_recommended:
+              - security-monitoring-policy
+
+          PR.PS-05:
+            description: Installation and execution of unauthorized software are prevented
+            policies_required:
+              - approved-application-policy
+              - workstation-security-policy
+            policies_recommended:
+              - anti-malware-policy
+
+          PR.PS-06:
+            description: Secure software development practices are integrated, and their performance is monitored throughout the software development life cycle
+            policies_required:
+              - secure-software-development-lifecycle-policy
+              - software-development-policy
+            policies_recommended:
+              - devsecops-policy
+
+      PR.IR:
+        name: Technology Infrastructure Resilience
+        description: Security architectures are managed with the organization's risk strategy to protect asset confidentiality, integrity, and availability, and organizational resilience
+
+        subcategories:
+          PR.IR-01:
+            description: Networks and environments are protected from unauthorized logical access and usage
+            policies_required:
+              - network-security-policy
+              - firewall-policy
+              - access-control-policy
+            policies_recommended:
+              - zero-trust-architecture-policy
+
+          PR.IR-02:
+            description: The organization's technology assets are protected from environmental threats
+            policies_required:
+              - physical-security-policy
+              - facility-security-plan
+            policies_recommended:
+              - business-continuity-policy
+
+          PR.IR-03:
+            description: Mechanisms are implemented to achieve resilience requirements in normal and adverse situations
+            policies_required:
+              - business-continuity-policy
+              - resilience-policy
+            policies_recommended:
+              - backup-policy
+
+          PR.IR-04:
+            description: Adequate resource capacity to ensure availability is maintained
+            policies_required:
+              - capacity-and-utilization-policy
+            policies_recommended:
+              - business-continuity-policy
+
+  # ============================================
+  # DETECT (DE)
+  # ============================================
+  DE:
+    name: Detect
+    description: Find and analyze possible cybersecurity attacks and compromises
+
+    categories:
+      DE.CM:
+        name: Continuous Monitoring
+        description: Assets are monitored to find anomalies, indicators of compromise, and other potentially adverse events
+
+        subcategories:
+          DE.CM-01:
+            description: Networks and network services are monitored to find potentially adverse events
+            policies_required:
+              - security-monitoring-policy
+              - intrusion-dectection-policy
+            policies_recommended:
+              - network-security-policy
+
+          DE.CM-02:
+            description: The physical environment is monitored to find potentially adverse events
+            policies_required:
+              - physical-security-policy
+              - security-monitoring-policy
+            policies_recommended:
+              - facility-security-plan
+
+          DE.CM-03:
+            description: Personnel activity and technology usage are monitored to find potentially adverse events
+            policies_required:
+              - security-monitoring-policy
+              - logging-policy
+              - insider-threat-policy
+            policies_recommended:
+              - user-behavior-analytics-policy
+
+          DE.CM-06:
+            description: External service provider activities and services are monitored to find potentially adverse events
+            policies_required:
+              - third-party-service-providers-policy
+              - security-monitoring-policy
+            policies_recommended:
+              - cloud-service-provider-policy
+
+          DE.CM-09:
+            description: Computing hardware and software, runtime environments, and their data are monitored to find potentially adverse events
+            policies_required:
+              - security-monitoring-policy
+              - anti-malware-policy
+            policies_recommended:
+              - logging-policy
+
+      DE.AE:
+        name: Adverse Event Analysis
+        description: Anomalies, indicators of compromise, and other potentially adverse events are analyzed to characterize the events and detect cybersecurity incidents
+
+        subcategories:
+          DE.AE-02:
+            description: Potentially adverse events are analyzed to better understand associated activities
+            policies_required:
+              - incident-response-policy
+              - security-monitoring-policy
+            policies_recommended:
+              - logging-policy
+
+          DE.AE-03:
+            description: Information is correlated from multiple sources
+            policies_required:
+              - security-monitoring-policy
+              - logging-policy
+            policies_recommended:
+              - audit-trails-policy
+
+          DE.AE-04:
+            description: The estimated impact and scope of adverse events are understood
+            policies_required:
+              - incident-response-policy
+              - risk-assessment-policy
+            policies_recommended:
+              - business-impact-analysis
+
+          DE.AE-06:
+            description: Information on adverse events is provided to authorized staff and tools
+            policies_required:
+              - incident-response-policy
+            policies_recommended:
+              - security-monitoring-policy
+
+          DE.AE-07:
+            description: Cyber threat intelligence and other contextual information are integrated into the analysis
+            policies_required:
+              - security-monitoring-policy
+            policies_recommended:
+              - risk-assessment-policy
+
+          DE.AE-08:
+            description: Incidents are declared when adverse events meet the defined incident criteria
+            policies_required:
+              - incident-response-policy
+              - incident-response-plan
+            policies_recommended: []
+
+  # ============================================
+  # RESPOND (RS)
+  # ============================================
+  RS:
+    name: Respond
+    description: Take action regarding a detected cybersecurity incident
+
+    categories:
+      RS.MA:
+        name: Incident Management
+        description: Responses to detected cybersecurity incidents are managed
+
+        subcategories:
+          RS.MA-01:
+            description: The incident response plan is executed in coordination with relevant third parties once an incident is declared
+            policies_required:
+              - incident-response-plan
+              - incident-response-policy
+            policies_recommended:
+              - third-party-service-providers-policy
+
+          RS.MA-02:
+            description: Incident reports are triaged and validated
+            policies_required:
+              - incident-response-policy
+            policies_recommended:
+              - incident-response-plan
+
+          RS.MA-03:
+            description: Incidents are categorized and prioritized
+            policies_required:
+              - incident-response-policy
+            policies_recommended:
+              - risk-assessment-policy
+
+          RS.MA-04:
+            description: Incidents are escalated or elevated as needed
+            policies_required:
+              - incident-response-policy
+            policies_recommended:
+              - ciso-reporting-policy
+
+          RS.MA-05:
+            description: The criteria for initiating incident recovery are applied
+            policies_required:
+              - incident-response-policy
+              - business-continuity-policy
+            policies_recommended:
+              - incident-response-plan
+
+      RS.AN:
+        name: Incident Analysis
+        description: Investigations are conducted to ensure effective response and support forensics and recovery activities
+
+        subcategories:
+          RS.AN-03:
+            description: Analysis is performed to establish what has taken place during an incident and the root cause of the incident
+            policies_required:
+              - incident-response-policy
+              - logging-policy
+            policies_recommended:
+              - audit-trails-policy
+
+          RS.AN-06:
+            description: Actions performed during an investigation are recorded, and the records' integrity and provenance are preserved
+            policies_required:
+              - logging-policy
+              - incident-response-policy
+            policies_recommended:
+              - audit-trails-policy
+
+          RS.AN-07:
+            description: Incident data and metadata are collected, and their integrity and provenance are preserved
+            policies_required:
+              - incident-response-policy
+              - logging-policy
+            policies_recommended:
+              - data-retention-policy
+
+          RS.AN-08:
+            description: An incident's magnitude is estimated and validated
+            policies_required:
+              - incident-response-policy
+            policies_recommended:
+              - business-impact-analysis
+
+      RS.CO:
+        name: Incident Response Reporting and Communication
+        description: Response activities are coordinated with internal and external stakeholders as required by laws, regulations, or policies
+
+        subcategories:
+          RS.CO-02:
+            description: Internal and external stakeholders are notified of incidents
+            policies_required:
+              - incident-response-policy
+              - business-continuity-communications-plan
+            policies_recommended: []
+
+          RS.CO-03:
+            description: Information is shared with designated internal and external stakeholders
+            policies_required:
+              - incident-response-policy
+            policies_recommended:
+              - mass-communication-policy
+
+      RS.MI:
+        name: Incident Mitigation
+        description: Activities are performed to prevent expansion of an event and mitigate its effects
+
+        subcategories:
+          RS.MI-01:
+            description: Incidents are contained
+            policies_required:
+              - incident-response-policy
+              - incident-response-plan
+            policies_recommended: []
+
+          RS.MI-02:
+            description: Incidents are eradicated
+            policies_required:
+              - incident-response-policy
+            policies_recommended:
+              - anti-malware-policy
+
+  # ============================================
+  # RECOVER (RC)
+  # ============================================
+  RC:
+    name: Recover
+    description: Restore assets and operations that were impacted by a cybersecurity incident
+
+    categories:
+      RC.RP:
+        name: Incident Recovery Plan Execution
+        description: Restoration activities are performed to ensure operational availability of systems and services affected by cybersecurity incidents
+
+        subcategories:
+          RC.RP-01:
+            description: The recovery portion of the incident response plan is executed once initiated from the incident response process
+            policies_required:
+              - incident-response-plan
+              - business-continuity-disaster-recovery-plan
+            policies_recommended:
+              - backup-policy
+
+          RC.RP-02:
+            description: Recovery actions are selected, scoped, prioritized, and performed
+            policies_required:
+              - business-continuity-policy
+              - incident-response-policy
+            policies_recommended:
+              - business-continuity-disaster-recovery-plan
+
+          RC.RP-03:
+            description: The integrity of backups and other restoration assets is verified before using them for restoration
+            policies_required:
+              - backup-policy
+              - backup-procedure
+            policies_recommended:
+              - data-integrity-policy
+
+          RC.RP-04:
+            description: Critical mission functions and cybersecurity risk management are considered to establish post-incident operational norms
+            policies_required:
+              - business-continuity-policy
+              - risk-management-policy
+            policies_recommended:
+              - business-continuity-business-resumption-plan
+
+          RC.RP-05:
+            description: The integrity of restored assets is verified, systems and services are restored, and normal operating status is confirmed
+            policies_required:
+              - business-continuity-policy
+              - configuration-management-policy
+            policies_recommended:
+              - backup-policy
+
+          RC.RP-06:
+            description: The end of incident recovery is declared based on criteria, and incident-related documentation is completed
+            policies_required:
+              - incident-response-policy
+            policies_recommended:
+              - documentation-policy
+
+      RC.CO:
+        name: Incident Recovery Communication
+        description: Restoration activities are coordinated with internal and external parties
+
+        subcategories:
+          RC.CO-03:
+            description: Recovery activities and progress in restoring operational capabilities are communicated to designated internal and external stakeholders
+            policies_required:
+              - business-continuity-communications-plan
+              - incident-response-policy
+            policies_recommended:
+              - mass-communication-policy
+
+          RC.CO-04:
+            description: Public updates on incident recovery are shared using approved methods and messaging
+            policies_required:
+              - business-continuity-communications-plan
+            policies_recommended:
+              - mass-communication-policy
+
+# Summary statistics
+summary:
+  functions: 6
+  categories: 22
+  subcategories: 106
+  total_policy_mappings: 400+

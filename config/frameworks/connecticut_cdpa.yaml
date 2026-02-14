@@ -1,0 +1,225 @@
+# Connecticut Data Privacy Act (CTDPA)
+# Public Act No. 22-15
+# Effective: July 1, 2023
+
+framework:
+  id: connecticut_cdpa
+  name: Connecticut Data Privacy Act
+  abbreviation: CTDPA
+  version: "2022"
+  jurisdiction: Connecticut
+  effective_date: "2023-07-01"
+  regulatory_body: Connecticut Attorney General
+
+  description: |
+    The CTDPA provides Connecticut consumers with rights over their personal data
+    and requires businesses meeting certain thresholds to implement data protection
+    practices. Similar to Virginia and Colorado laws.
+
+  applicability:
+    thresholds:
+      - Conducts business in Connecticut OR produces products/services targeted to Connecticut residents
+      - AND controls or processes personal data of 100,000+ Connecticut consumers (excluding payment transactions only)
+      - OR controls or processes data of 25,000+ consumers AND derives 25%+ revenue from sale of personal data
+    exemptions:
+      - HIPAA covered entities and business associates
+      - Financial institutions subject to GLBA
+      - Nonprofits
+      - Higher education institutions
+      - State and local government entities
+      - Certain employment and HR data
+      - Insurance institutions subject to Connecticut insurance laws
+
+  # Consumer Rights
+  consumer_rights:
+    - id: right_access
+      name: Right to Access
+      description: Confirm processing and access personal data
+      policies_required:
+        - data-subject-rights-policy
+        - privacy-policy
+
+    - id: right_correct
+      name: Right to Correction
+      description: Correct inaccuracies in personal data
+      policies_required:
+        - data-subject-rights-policy
+        - data-quality-policy
+
+    - id: right_delete
+      name: Right to Deletion
+      description: Delete personal data
+      policies_required:
+        - data-subject-rights-policy
+        - data-retention-policy
+        - secure-disposal-policy
+
+    - id: right_portability
+      name: Right to Data Portability
+      description: Obtain data in portable, readily usable format
+      policies_required:
+        - data-subject-rights-policy
+        - data-portability-policy
+
+    - id: right_opt_out
+      name: Right to Opt Out
+      description: Opt out of sale, targeted advertising, or profiling
+      policies_required:
+        - opt-out-policy
+        - data-sale-policy
+        - advertising-policy
+
+    - id: right_appeal
+      name: Right to Appeal
+      description: Appeal controller's decision on rights request
+      policies_required:
+        - data-subject-rights-policy
+        - appeals-policy
+
+  # Controller Obligations
+  controller_obligations:
+    - id: purpose_limitation
+      name: Purpose Limitation
+      description: Limit collection to adequate, relevant, reasonably necessary data
+      policies_required:
+        - purpose-limitation-policy
+        - data-minimization-policy
+        - data-collection-policy
+
+    - id: secondary_use
+      name: Secondary Use Consent
+      description: Obtain consent before processing for incompatible purposes
+      policies_required:
+        - consent-management-policy
+
+    - id: data_security
+      name: Data Security
+      description: Establish, implement, maintain reasonable security practices
+      policies_required:
+        - information-security-policy
+        - data-protection-policy
+        - encryption-policy
+
+    - id: nondiscrimination
+      name: Non-Discrimination
+      description: Cannot discriminate against consumers exercising rights
+      policies_required:
+        - data-subject-rights-policy
+
+    - id: sensitive_data
+      name: Sensitive Data
+      description: Obtain opt-in consent before processing sensitive data
+      categories:
+        - Racial or ethnic origin
+        - Religious beliefs
+        - Mental or physical health condition or diagnosis
+        - Sex life or sexual orientation
+        - Citizenship or immigration status
+        - Genetic data
+        - Biometric data for identification
+        - Personal data of known child
+        - Precise geolocation data
+      policies_required:
+        - sensitive-data-policy
+        - consent-management-policy
+
+    - id: transparency
+      name: Transparency
+      description: Provide reasonably accessible, clear privacy notice
+      notice_requirements:
+        - Categories of personal data processed
+        - Purposes of processing
+        - How to exercise consumer rights and appeal
+        - Categories of data shared with third parties
+        - Categories of third parties with access
+        - Active email or online mechanism for contact
+      policies_required:
+        - privacy-notice-policy
+        - privacy-policy
+
+  # Data Protection Assessments
+  protection_assessments:
+    required_for:
+      - Targeted advertising
+      - Sale of personal data
+      - Profiling with risk of unfair treatment, financial/physical injury, privacy intrusion
+      - Processing of sensitive data
+      - Processing with heightened risk of harm
+    retention: Minimum 3 years
+    policies_required:
+      - data-protection-impact-assessment-policy
+      - risk-assessment-policy
+
+  # Processor Requirements
+  processor_obligations:
+    - id: proc_1
+      name: Follow Instructions
+      description: Follow controller's documented instructions
+      policies_required:
+        - data-processing-agreement-policy
+    - id: proc_2
+      name: Consumer Rights Assistance
+      description: Assist with consumer rights requests
+      policies_required:
+        - data-subject-rights-policy
+    - id: proc_3
+      name: DPA Information
+      description: Make information available for DPAs
+      policies_required:
+        - vendor-management-policy
+    - id: proc_4
+      name: Subprocessor Contracts
+      description: Engage subprocessors with contract
+      policies_required:
+        - subprocessor-policy
+    - id: proc_5
+      name: Controller Audits
+      description: Allow controller audits or assessments
+      policies_required:
+        - audit-and-assurance-policy
+
+  # Universal Opt-Out Mechanism
+  universal_opt_out:
+    effective_date: "2025-01-01"
+    description: Must recognize and honor opt-out preference signals
+    requirements:
+      - Clearly disclose signal processing in privacy policy
+      - Cannot discriminate based on signal use
+    policies_required:
+      - opt-out-policy
+      - privacy-preference-policy
+
+  # Policy Mapping Summary
+  policy_mapping:
+    required:
+      - privacy-policy
+      - privacy-notice-policy
+      - data-subject-rights-policy
+      - information-security-policy
+      - data-protection-policy
+      - consent-management-policy
+      - sensitive-data-policy
+      - opt-out-policy
+      - data-processing-agreement-policy
+      - data-protection-impact-assessment-policy
+      - appeals-policy
+
+    recommended:
+      - data-minimization-policy
+      - data-retention-policy
+      - encryption-policy
+      - access-control-policy
+      - incident-response-policy
+      - vendor-management-policy
+
+  enforcement:
+    enforcement_authority: Connecticut Attorney General
+    cure_period: 60 days (until December 31, 2024)
+    penalties: Up to $5,000 per willful violation
+    private_right_of_action: No
+
+  sources:
+    - url: https://portal.ct.gov/AG/Sections/Privacy/The-Connecticut-Data-Privacy-Act
+      type: regulatory
+    - url: https://www.cga.ct.gov/2022/ACT/PA/PDF/2022PA-00015-R00SB-00006-PA.PDF
+      type: statute

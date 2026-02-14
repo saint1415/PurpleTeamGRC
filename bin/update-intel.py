@@ -7,12 +7,14 @@ Run this on a connected machine, then copy the USB to an airgapped system.
 
 Usage:
     python3 bin/update-intel.py                   # Incremental update (default)
-    python3 bin/update-intel.py --full             # Full NVD bulk download (250K+ CVEs)
+    python3 bin/update-intel.py --full             # Full NVD bulk download + all intel feeds
     python3 bin/update-intel.py --incremental      # Only new/modified since last run
     python3 bin/update-intel.py --year 2024        # Download a specific year
     python3 bin/update-intel.py --kev-only         # Just CISA KEV catalog
     python3 bin/update-intel.py --nvd-only         # Just NVD CVE cache (incremental)
     python3 bin/update-intel.py --epss-only        # Just EPSS scores
+    python3 bin/update-intel.py --feeds            # Update all intel feeds (ExploitDB, OSV, etc.)
+    python3 bin/update-intel.py --feeds-only       # Only update intel feeds, skip NVD/KEV/EPSS
     python3 bin/update-intel.py --status           # Show cache status
 """
 
@@ -303,6 +305,30 @@ def update_epss():
     return True
 
 
+def update_feeds():
+    """Update all multi-source intel feeds (ExploitDB, OSV, GitHub, CISA, MITRE, abuse.ch)."""
+    try:
+        from intel_feeds import IntelFeedManager
+    except ImportError:
+        print("  Intel Feeds: SKIPPED (intel_feeds module not found)")
+        return False
+
+    print("[FEEDS] Updating multi-source intelligence feeds...")
+    print("  Sources: ExploitDB, OSV, GitHub Advisories, CISA Alerts, MITRE ATT&CK, abuse.ch")
+    print()
+
+    try:
+        mgr = IntelFeedManager()
+        results = mgr.update_all()
+        total = results.get('_total', 0)
+        elapsed = results.get('_elapsed_seconds', 0)
+        print("  Intel Feeds: {:,} total records in {:.0f}s".format(total, elapsed))
+        return True
+    except Exception as e:
+        print("  Intel Feeds: FAILED ({})".format(e))
+        return False
+
+
 def show_status():
     """Show current cache status."""
     from threat_intel import get_threat_intel
@@ -339,6 +365,33 @@ def show_status():
         print()
         print("  NVD: module not available")
 
+    # Intel Feeds status
+    try:
+        from intel_feeds import IntelFeedManager
+        mgr = IntelFeedManager()
+        stats = mgr.get_stats()
+        print()
+        print("  Intel Feeds (intel_feeds.db):")
+        for table in ['exploitdb', 'osv_vulns', 'github_advisories',
+                       'cisa_alerts', 'mitre_attack', 'threat_indicators']:
+            count = stats.get(table, 0)
+            print("    {}: {:,}".format(table, count))
+        db_mb = stats.get('_db_size_mb', 0)
+        if db_mb:
+            print("    DB size: {:.1f} MB".format(db_mb))
+        meta = stats.get('_meta', {})
+        if meta:
+            print("    Last updates:")
+            for feed_name, info in sorted(meta.items()):
+                last = info.get('last_updated', 'never')
+                print("      {}: {}".format(feed_name, last))
+    except ImportError:
+        print()
+        print("  Intel Feeds: module not available")
+    except Exception as e:
+        print()
+        print("  Intel Feeds: error reading stats ({})".format(e))
+
 
 def main():
     parser = argparse.ArgumentParser(
@@ -355,6 +408,10 @@ def main():
                        help='Only update NVD CVE cache')
     parser.add_argument('--epss-only', action='store_true',
                        help='Only update EPSS scores')
+    parser.add_argument('--feeds', action='store_true',
+                       help='Also update all intel feeds (ExploitDB, OSV, GitHub, CISA, MITRE, abuse.ch)')
+    parser.add_argument('--feeds-only', action='store_true',
+                       help='Only update intel feeds, skip NVD/KEV/EPSS')
     parser.add_argument('--status', action='store_true',
                        help='Show current cache status')
     parser.add_argument('--api-key', type=str,
@@ -377,17 +434,25 @@ def main():
 
     start = time.time()
 
+    # Handle --feeds-only: just update intel feeds and exit
+    if args.feeds_only:
+        update_feeds()
     # Handle new bulk download modes
-    if args.full:
+    elif args.full:
         update_kev()
         update_nvd_full()
         update_epss()
+        update_feeds()
     elif args.year:
         update_nvd_year(args.year)
+        if args.feeds:
+            update_feeds()
     elif args.incremental:
         update_kev()
         update_nvd_incremental()
         update_epss()
+        if args.feeds:
+            update_feeds()
     else:
         # Default behavior: incremental if we have existing data, else legacy
         specific = args.kev_only or args.nvd_only or args.epss_only
@@ -403,6 +468,11 @@ def main():
 
         if args.epss_only or not specific:
             update_epss()
+
+        # --feeds flag: also run intel feeds after standard updates
+        if args.feeds or (not specific):
+            if args.feeds:
+                update_feeds()
 
     elapsed = time.time() - start
 
