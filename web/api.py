@@ -197,6 +197,11 @@ class PurpleTeamAPI:
         if not self.auth.authenticate(path, api_key):
             return json_response(self.auth.get_auth_error_response(), 401)
 
+        # --- Tier enforcement ---------------------------------------------
+        tier_block = self._check_tier_limit(method, path, body)
+        if tier_block:
+            return tier_block
+
         # --- Dashboard ----------------------------------------------------
         if method == 'GET' and path == '/':
             return html_response(generate_dashboard_html())
@@ -213,6 +218,100 @@ class PurpleTeamAPI:
                     return error_response(str(exc), 500)
 
         return error_response(f"Not found: {method} {path}", 404)
+
+    # ---- tier enforcement helper ----------------------------------------
+
+    def _check_tier_limit(self, method: str, path: str,
+                          body: Optional[Dict]) -> Optional[Tuple[bytes, int, str]]:
+        """Return an error response if the request violates a tier limit,
+        or None if allowed.  Mirrors Burp Suite's approach: core workflow
+        is always available, but automation / depth / reporting are gated."""
+        if not get_license_manager:
+            return None  # module not loaded, no enforcement
+
+        lm = get_license_manager()
+        tier = lm.get_tier()
+        if tier in ("pro", "enterprise"):
+            return None  # paid tiers have no restrictions
+
+        # -- Schedules: community cannot create/update schedules -----------
+        if path.startswith('/api/v1/schedules') and method in ('POST', 'PUT'):
+            return json_response({
+                'error': True,
+                'message': lm.get_upgrade_message('scheduled_scans'),
+                'upgrade_required': 'pro',
+                'feature': 'scheduled_scans',
+            }, 403)
+
+        # -- Scans: enforce depth and target count -------------------------
+        if path == '/api/v1/scans' and method == 'POST' and body:
+            metadata = body.get('metadata', {})
+            depth = metadata.get('depth', body.get('scan_type', 'standard'))
+            if depth == 'deep' and not lm.check_scan_depth('deep'):
+                return json_response({
+                    'error': True,
+                    'message': lm.get_upgrade_message('scan_depths'),
+                    'upgrade_required': 'pro',
+                    'feature': 'scan_depths',
+                }, 403)
+            targets = body.get('targets', [])
+            if isinstance(targets, str):
+                targets = [targets]
+            if not lm.check_targets_count(len(targets)):
+                return json_response({
+                    'error': True,
+                    'message': lm.get_upgrade_message('max_targets_per_scan'),
+                    'upgrade_required': 'pro',
+                    'feature': 'max_targets_per_scan',
+                }, 403)
+
+        # -- Notifications: community limited to email + webhook -----------
+        if path == '/api/v1/notifications/channels' and method == 'POST' and body:
+            chan_type = body.get('channel_type', '')
+            if not lm.check_feature_item('notifications', chan_type):
+                return json_response({
+                    'error': True,
+                    'message': lm.get_upgrade_message('notifications'),
+                    'upgrade_required': 'pro',
+                    'feature': 'notifications',
+                }, 403)
+
+        # -- Export: community limited to CSV + JSON -----------------------
+        if path == '/api/v1/export' and method == 'POST' and body:
+            formats = body.get('formats', [])
+            if isinstance(formats, list):
+                for fmt in formats:
+                    if not lm.check_feature_item('export_formats', fmt):
+                        return json_response({
+                            'error': True,
+                            'message': lm.get_upgrade_message('export_formats'),
+                            'upgrade_required': 'pro',
+                            'feature': 'export_formats',
+                        }, 403)
+
+        # -- AI: daily query quota -----------------------------------------
+        if path.startswith('/api/v1/ai/') and method == 'POST':
+            # Summarize is a Pro-only feature
+            if '/summarize/' in path and not lm.check_limit('ai_scan_summary'):
+                return json_response({
+                    'error': True,
+                    'message': lm.get_upgrade_message('ai_scan_summary'),
+                    'upgrade_required': 'pro',
+                    'feature': 'ai_scan_summary',
+                }, 403)
+            # All other AI POST endpoints count against quota
+            if path != '/api/v1/ai/status' and not lm.check_ai_quota():
+                return json_response({
+                    'error': True,
+                    'message': lm.get_upgrade_message('ai_queries_per_day'),
+                    'upgrade_required': 'pro',
+                    'feature': 'ai_queries_per_day',
+                }, 403)
+            # Increment counter (do it here so it counts even on failure)
+            if path != '/api/v1/ai/status':
+                lm.increment_ai_usage()
+
+        return None  # allowed
 
     # =====================================================================
     # Route handlers
@@ -293,6 +392,9 @@ class PurpleTeamAPI:
 
         # -- Scanners (metadata) -------------------------------------------
         self._get('/api/v1/scanners', self._list_scanners)
+
+        # -- License / Tier ------------------------------------------------
+        self._get('/api/v1/license', self._license_info)
 
         # -- AI Engine -----------------------------------------------------
         self._post('/api/v1/ai/analyze', self._ai_analyze)
@@ -1159,6 +1261,21 @@ class PurpleTeamAPI:
             return json_response({'answer': result})
         except Exception as e:
             return error_response(str(e), 500)
+
+    # ------------------------------------------------------------------
+    # License / Tier
+    # ------------------------------------------------------------------
+
+    def _license_info(self, **kw) -> Tuple[bytes, int, str]:
+        if not get_license_manager:
+            return json_response({'tier': 'community', 'limits': {}})
+        lm = get_license_manager()
+        return json_response({
+            'tier': lm.get_tier(),
+            'label': lm.get_tier_label(),
+            'limits': lm.get_limits(),
+            'license': lm.get_license_info(),
+        })
 
     def _ai_status(self, **kw) -> Tuple[bytes, int, str]:
         if not get_ai_engine:

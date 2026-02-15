@@ -430,6 +430,62 @@ tr:hover td { background: rgba(108,99,255,0.06); }
 .status-failed { background: rgba(255,71,87,0.15); color: var(--critical); }
 .status-pending { background: rgba(255,165,2,0.15); color: var(--medium); }
 
+/* Upgrade banner */
+.upgrade-banner {
+    display: none;
+    background: linear-gradient(135deg, #1a1040 0%, #2d1b69 100%);
+    border: 1px solid var(--accent-dim);
+    border-radius: var(--radius);
+    padding: 14px 20px;
+    margin-bottom: 16px;
+    font-size: 0.85rem;
+    color: var(--text);
+    align-items: center;
+    gap: 12px;
+}
+.upgrade-banner.visible { display: flex; }
+.upgrade-banner .ub-icon {
+    font-size: 1.4rem; flex-shrink: 0;
+}
+.upgrade-banner .ub-text { flex: 1; }
+.upgrade-banner .ub-text strong { color: var(--accent); }
+.upgrade-banner .ub-dismiss {
+    background: none; border: none; color: var(--text-muted);
+    cursor: pointer; font-size: 1.1rem; padding: 4px;
+}
+.upgrade-banner .ub-dismiss:hover { color: var(--text); }
+.tier-badge {
+    display: inline-block; padding: 2px 8px;
+    border-radius: 10px; font-size: 0.68rem; font-weight: 700;
+    text-transform: uppercase; letter-spacing: 0.5px;
+}
+.tier-community { background: rgba(108,99,255,0.15); color: var(--accent); }
+.tier-pro { background: rgba(255,165,2,0.15); color: var(--medium); }
+.tier-enterprise { background: rgba(38,222,129,0.15); color: var(--resolved); }
+
+/* Pro-gated overlay */
+.pro-gate {
+    position: relative;
+}
+.pro-gate-overlay {
+    display: none;
+    position: absolute; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(26,26,46,0.85);
+    border-radius: var(--radius);
+    z-index: 10;
+    align-items: center; justify-content: center;
+    flex-direction: column; gap: 8px;
+    font-size: 0.85rem; color: var(--text-muted);
+    text-align: center; padding: 20px;
+}
+.pro-gate-overlay .pro-gate-label {
+    background: var(--accent-dim); color: #fff;
+    padding: 4px 12px; border-radius: 10px;
+    font-size: 0.72rem; font-weight: 700;
+    text-transform: uppercase;
+}
+.community-tier .pro-gate-overlay { display: flex; }
+
 /* Footer */
 .footer {
     text-align: center; padding: 20px;
@@ -462,8 +518,18 @@ tr:hover td { background: rgba(108,99,255,0.06); }
         </div>
         <div class="header-right">
             <div><span class="status-dot" id="health-dot"></span> <span id="health-status">Connecting...</span></div>
+            <div><span class="tier-badge tier-community" id="tier-badge">community</span></div>
             <div id="last-updated">--</div>
         </div>
+    </div>
+
+    <!-- Upgrade Banner (shown for community tier) -->
+    <div class="upgrade-banner" id="upgrade-banner">
+        <span class="ub-icon">&#9889;</span>
+        <div class="ub-text" id="upgrade-banner-text">
+            You're using <strong>PurpleTeam Community</strong>. Upgrade to <strong>Pro</strong> for deep scans, scheduled automation, full reporting, unlimited AI, and all 15 scanners.
+        </div>
+        <button class="ub-dismiss" onclick="this.parentElement.classList.remove('visible')" title="Dismiss">&times;</button>
     </div>
 
     <!-- Tab Navigation -->
@@ -615,7 +681,11 @@ tr:hover td { background: rgba(108,99,255,0.06); }
     <div class="tab-page" id="page-schedules">
         <div class="grid grid-2">
             <!-- Create Schedule -->
-            <div class="card">
+            <div class="card pro-gate" style="position:relative">
+                <div class="pro-gate-overlay">
+                    <span class="pro-gate-label">Pro Feature</span>
+                    <div>Scheduled scans require a Pro license.<br>Automate recurring security assessments.</div>
+                </div>
                 <div class="card-header"><span class="card-title">Create Schedule</span></div>
                 <div class="form-group">
                     <label>Schedule Name</label>
@@ -1612,7 +1682,66 @@ tr:hover td { background: rgba(108,99,255,0.06); }
         else if (activeTab === 'notifications') loadNotifications();
     }
 
+    // =====================================================================
+    // LICENSE / TIER AWARENESS
+    // =====================================================================
+    var currentTier = 'community';
+
+    function loadLicenseInfo() {
+        fetchAPI('/license').then(function(data) {
+            if (!data) return;
+            currentTier = data.tier || 'community';
+            var badge = $('tier-badge');
+            badge.textContent = data.label || currentTier;
+            badge.className = 'tier-badge tier-' + currentTier;
+
+            // Show upgrade banner for community
+            if (currentTier === 'community') {
+                $('upgrade-banner').classList.add('visible');
+                document.getElementById('app').classList.add('community-tier');
+            } else {
+                $('upgrade-banner').classList.remove('visible');
+                document.getElementById('app').classList.remove('community-tier');
+            }
+
+            // Gate the "deep" scan depth option
+            if (currentTier === 'community') {
+                var depthSel = $('sc-depth');
+                if (depthSel) {
+                    for (var i = 0; i < depthSel.options.length; i++) {
+                        if (depthSel.options[i].value === 'deep') {
+                            depthSel.options[i].textContent = 'Deep (Pro)';
+                            depthSel.options[i].disabled = true;
+                        }
+                    }
+                }
+                var schedDepth = $('sched-depth');
+                if (schedDepth) {
+                    for (var j = 0; j < schedDepth.options.length; j++) {
+                        if (schedDepth.options[j].value === 'deep') {
+                            schedDepth.options[j].textContent = 'Deep (Pro)';
+                            schedDepth.options[j].disabled = true;
+                        }
+                    }
+                }
+            }
+        });
+    }
+
+    // Handle 403 upgrade-required responses from API
+    var origFetchAPI = fetchAPI;
+    fetchAPI = function(endpoint, opts) {
+        return origFetchAPI(endpoint, opts).then(function(data) {
+            if (data && data.upgrade_required) {
+                showToast(data.message || 'This feature requires an upgrade', 'error');
+                return null;
+            }
+            return data;
+        });
+    };
+
     // Init
+    loadLicenseInfo();
     loadOverview();
     tabLoaded.overview = true;
     setInterval(refreshActiveTab, REFRESH_INTERVAL);

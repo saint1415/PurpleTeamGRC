@@ -28,51 +28,103 @@ logger = logging.getLogger("purpleteam.licensing")
 # Tier definitions
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Tier philosophy  (modelled after Burp Suite Community vs Pro)
+#
+# Community is genuinely useful for hands-on manual work:
+#   - Run any scanner, see findings, remediate -- no paywall on core workflow
+#   - But: depth limited to quick/standard, deep scans are Pro only
+#   - But: scans are throttled (artificial delay between checks)
+#   - But: no automation (schedules, alert routing, API bulk ops)
+#   - But: export limited to CSV/JSON (no HTML reports, PDF, SARIF, etc.)
+#   - But: AI limited to 10 queries/day (enough to try it, not enough to rely on)
+#   - But: scan history retained 30 days only (Pro: unlimited)
+#   - But: no advanced scanners (credential, asm, sbom, container, openvas)
+#
+# The natural upgrade trigger: "I ran a scan, found issues, now I need to
+# produce a client report / schedule recurring scans / go deeper."
+# ---------------------------------------------------------------------------
+
 TIERS = {
     "community": {
         "label": "Community",
-        "max_targets": 5,
-        "max_users": 1,
-        "scanners": ["network", "vulnerability", "web", "ssl"],
-        "notifications": ["email", "webhook"],
-        "compliance_frameworks": 3,
-        "export_formats": ["csv", "json"],
-        "ai_queries_per_day": 10,
-        "scheduled_scans": False,
-        "api_rate_limit": 100,         # requests per hour
-        "alert_routing": False,
+        # ---- Scanning ----
+        "scanners": [                           # core manual scanners only
+            "network", "vulnerability", "web", "ssl",
+            "windows", "linux", "compliance",
+        ],
+        "scan_depths": ["quick", "standard"],   # no "deep" scans
+        "scan_throttle_ms": 500,                # 500ms delay between checks
+        "max_targets_per_scan": 16,             # /24 is fine, /16 needs Pro
+        "scan_history_days": 30,                # findings older than 30d purged
+        # ---- Automation ----
+        "scheduled_scans": False,               # like Burp: no automation
+        "alert_routing": False,                 # no digest / severity routing
+        # ---- Reporting ----
+        "export_formats": ["csv", "json"],      # no HTML, PDF, SARIF, XML, etc.
+        "compliance_frameworks": 3,             # pick any 3
+        # ---- Notifications ----
+        "notifications": ["email", "webhook"],  # no SMS, no Slack/Teams
         "sms_notifications": False,
+        # ---- AI ----
+        "ai_queries_per_day": 10,               # enough to try, not rely
+        "ai_scan_summary": False,               # can't auto-summarise scans
+        # ---- Platform ----
+        "max_users": 1,
+        "api_rate_limit": 100,                  # requests per hour
+        "save_projects": False,                 # temporary sessions only
     },
     "pro": {
         "label": "Pro",
-        "max_targets": None,           # unlimited
-        "max_users": 10,
-        "scanners": "all",
-        "notifications": "all",
-        "compliance_frameworks": None,  # unlimited
-        "export_formats": "all",
-        "ai_queries_per_day": None,    # unlimited
+        # ---- Scanning ----
+        "scanners": "all",                      # all 15 scanners
+        "scan_depths": "all",                   # quick / standard / deep
+        "scan_throttle_ms": 0,                  # full speed
+        "max_targets_per_scan": None,           # unlimited
+        "scan_history_days": None,              # unlimited retention
+        # ---- Automation ----
         "scheduled_scans": True,
-        "api_rate_limit": 10000,
-        "alert_routing": True,
+        "alert_routing": True,                  # severity routing + digests
+        # ---- Reporting ----
+        "export_formats": "all",                # CSV, JSON, HTML, PDF, SARIF, XML, NIST, ...
+        "compliance_frameworks": None,          # unlimited
+        # ---- Notifications ----
+        "notifications": "all",                 # email, Slack, Teams, webhook, syslog, SMS
         "sms_notifications": True,
+        # ---- AI ----
+        "ai_queries_per_day": None,             # unlimited
+        "ai_scan_summary": True,
+        # ---- Platform ----
+        "max_users": 25,
+        "api_rate_limit": 10000,
+        "save_projects": True,
     },
     "enterprise": {
         "label": "Enterprise",
-        "max_targets": None,
-        "max_users": None,
+        # Everything in Pro, plus:
         "scanners": "all",
-        "notifications": "all",
-        "compliance_frameworks": None,
-        "export_formats": "all",
-        "ai_queries_per_day": None,
+        "scan_depths": "all",
+        "scan_throttle_ms": 0,
+        "max_targets_per_scan": None,
+        "scan_history_days": None,
         "scheduled_scans": True,
-        "api_rate_limit": None,        # unlimited
         "alert_routing": True,
+        "export_formats": "all",
+        "compliance_frameworks": None,
+        "notifications": "all",
         "sms_notifications": True,
-        "sso": True,
-        "rbac": True,
-        "custom_branding": True,
+        "ai_queries_per_day": None,
+        "ai_scan_summary": True,
+        "max_users": None,                      # unlimited
+        "api_rate_limit": None,                 # unlimited
+        "save_projects": True,
+        # ---- Enterprise-only ----
+        "sso": True,                            # SAML / OIDC
+        "rbac": True,                           # role-based access control
+        "custom_branding": True,                # white-label dashboard
+        "multi_tenant": True,                   # tenant isolation
+        "audit_log_export": True,               # SIEM integration
+        "priority_support": True,
     },
 }
 
@@ -229,16 +281,86 @@ class LicenseManager:
             if k != today:
                 del self._ai_query_counts[k]
 
+    def check_scan_depth(self, depth: str) -> bool:
+        """Check if a scan depth (quick/standard/deep) is allowed."""
+        limits = self.get_limits()
+        allowed = limits.get("scan_depths", ["quick", "standard"])
+        if allowed == "all":
+            return True
+        return depth in allowed
+
+    def get_scan_throttle_ms(self) -> int:
+        """Return the inter-check delay in ms (0 = full speed)."""
+        return self.get_limits().get("scan_throttle_ms", 500)
+
+    def check_targets_count(self, count: int) -> bool:
+        """Check if the number of targets per scan is within limits."""
+        cap = self.get_limits().get("max_targets_per_scan")
+        if cap is None:
+            return True
+        return count <= cap
+
     def get_upgrade_message(self, feature: str) -> str:
         """Return a user-friendly upgrade prompt for a blocked feature."""
         messages = {
-            "max_targets": "You've reached the 5-target limit. Upgrade to Pro for unlimited targets.",
-            "scheduled_scans": "Scheduled scans are a Pro feature. Upgrade to unlock automated scanning.",
-            "sms_notifications": "SMS notifications require a Pro license.",
-            "alert_routing": "Alert routing rules are available in Pro and Enterprise tiers.",
-            "ai_queries_per_day": "You've reached the daily AI query limit (10). Upgrade to Pro for unlimited queries.",
-            "scanners": "This scanner requires a Pro license. Community includes: network, vulnerability, web, ssl.",
-            "export_formats": "This export format requires a Pro license. Community includes: CSV, JSON.",
+            "scan_depths": (
+                "Deep scans are a Pro feature. Community includes quick "
+                "and standard depth. Upgrade to unlock deep scanning."
+            ),
+            "scan_throttle_ms": (
+                "Community scans run at reduced speed. "
+                "Upgrade to Pro for full-speed scanning."
+            ),
+            "max_targets_per_scan": (
+                "Community is limited to 16 targets per scan. "
+                "Upgrade to Pro for unlimited targets."
+            ),
+            "scan_history_days": (
+                "Community retains scan history for 30 days. "
+                "Upgrade to Pro for unlimited retention."
+            ),
+            "scheduled_scans": (
+                "Scheduled scans are a Pro feature. "
+                "Upgrade to automate recurring security assessments."
+            ),
+            "alert_routing": (
+                "Alert routing and digest rules require Pro. "
+                "Community sends all alerts to all channels."
+            ),
+            "export_formats": (
+                "This export format requires Pro. Community "
+                "includes CSV and JSON. Upgrade for HTML, PDF, "
+                "SARIF, XML, and compliance-specific formats."
+            ),
+            "notifications": (
+                "Slack, Teams, and SMS notifications require Pro. "
+                "Community includes email and webhook."
+            ),
+            "sms_notifications": (
+                "SMS/text notifications require a Pro license."
+            ),
+            "ai_queries_per_day": (
+                "You've reached the daily AI limit (10 queries). "
+                "Upgrade to Pro for unlimited AI analysis."
+            ),
+            "ai_scan_summary": (
+                "AI scan summaries are a Pro feature. "
+                "Upgrade to auto-generate executive reports."
+            ),
+            "scanners": (
+                "This scanner requires Pro. Community includes: "
+                "network, vulnerability, web, SSL, Windows, Linux, "
+                "and compliance. Upgrade for credential, ASM, SBOM, "
+                "container, AD, cloud, and OpenVAS scanners."
+            ),
+            "save_projects": (
+                "Saving and resuming projects requires Pro. "
+                "Community sessions are temporary."
+            ),
+            "compliance_frameworks": (
+                "Community supports 3 compliance frameworks. "
+                "Upgrade to Pro for unlimited frameworks."
+            ),
         }
         return messages.get(feature,
                             f"This feature requires an upgrade. Current tier: {self.get_tier_label()}")
