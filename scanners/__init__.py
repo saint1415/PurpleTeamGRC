@@ -39,6 +39,11 @@ try:
 except ImportError:
     SBOMScanner = None
 
+try:
+    from .malware_scanner import MalwareScanner
+except ImportError:
+    MalwareScanner = None
+
 __all__ = [
     'BaseScanner',
     'NetworkScanner',
@@ -52,4 +57,5 @@ __all__ = [
     'CloudScanner',
     'ContainerScanner',
     'SBOMScanner',
+    'MalwareScanner',
 ]

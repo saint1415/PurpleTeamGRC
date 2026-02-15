@@ -33,12 +33,18 @@ sys.path.insert(0, str(PROJECT_ROOT / 'lib'))
 
 OLLAMA_BASE_URL = "http://localhost:11434"
 
-# Default models to pull
+# Default models to pull (practical for most hardware: 8-16GB VRAM)
 DEFAULT_MODELS = [
     'mistral:7b',
     'codellama:7b',
     'llama3.2:3b',
 ]
+
+# Step 3.5 Flash: 196B MoE, 11B active params, 111.5GB GGUF Q4
+# Requires 120GB+ VRAM (DGX-Spark, Mac Studio M4 Max 128GB, multi-GPU)
+# For most users, use the cloud API instead: export STEPFUN_API_KEY=...
+STEP35_GGUF_URL = "https://huggingface.co/stepfun-ai/Step-3.5-Flash-GGUF-Q4_K_S"
+STEP35_GGUF_SIZE_GB = 111.5
 
 # Custom Modelfile name for the security-tuned model
 CUSTOM_MODEL_NAME = 'purpleteam-security'
@@ -284,6 +290,179 @@ def save_config(models_available: list, custom_model: str, test_results: dict):
     return config
 
 
+def get_system_memory_gb() -> float:
+    """Return total system RAM in GB (best-effort, cross-platform)."""
+    try:
+        import psutil
+        return psutil.virtual_memory().total / (1024 ** 3)
+    except ImportError:
+        pass
+    # Fallback: read /proc/meminfo on Linux
+    try:
+        with open('/proc/meminfo') as f:
+            for line in f:
+                if line.startswith('MemTotal'):
+                    kb = int(line.split()[1])
+                    return kb / (1024 ** 2)
+    except (OSError, ValueError):
+        pass
+    # Fallback: Windows wmic
+    try:
+        import subprocess
+        out = subprocess.check_output(
+            ['wmic', 'ComputerSystem', 'get', 'TotalPhysicalMemory'],
+            text=True, timeout=10,
+        )
+        for line in out.strip().split('\n'):
+            line = line.strip()
+            if line.isdigit():
+                return int(line) / (1024 ** 3)
+    except Exception:
+        pass
+    return 0.0
+
+
+def download_step35_gguf() -> bool:
+    """
+    Download Step 3.5 Flash GGUF Q4_K_S from HuggingFace and register
+    it with Ollama as 'step-3.5-flash'.
+
+    The model is 111.5 GB and requires 120GB+ VRAM for inference.
+    For most users, using the cloud API (STEPFUN_API_KEY) is recommended.
+    """
+    ram_gb = get_system_memory_gb()
+    print(f"\n  System RAM detected: {ram_gb:.0f} GB")
+
+    if ram_gb < 100:
+        print(f"  WARNING: Step 3.5 Flash needs ~120 GB memory for inference.")
+        print(f"  Your system has {ram_gb:.0f} GB. The download will proceed but")
+        print(f"  inference may fail or be extremely slow with heavy swapping.")
+        print(f"  Consider using the cloud API instead: export STEPFUN_API_KEY=...")
+        print()
+
+    models_dir = DATA_DIR / 'models'
+    models_dir.mkdir(parents=True, exist_ok=True)
+    gguf_path = models_dir / 'step3.5_flash_Q4_K_S.gguf'
+
+    if gguf_path.exists():
+        size_gb = gguf_path.stat().st_size / (1024 ** 3)
+        if size_gb > 100:
+            print(f"  Step 3.5 Flash GGUF already downloaded ({size_gb:.1f} GB)")
+            print(f"  Path: {gguf_path}")
+            return _register_step35_with_ollama(gguf_path)
+        else:
+            print(f"  Incomplete download found ({size_gb:.1f} GB), re-downloading...")
+
+    # Download from HuggingFace using urllib (stdlib)
+    hf_url = (
+        "https://huggingface.co/stepfun-ai/Step-3.5-Flash-GGUF-Q4_K_S/"
+        "resolve/main/step3.5_flash_Q4_K_S.gguf"
+    )
+
+    print(f"  Downloading Step 3.5 Flash GGUF Q4_K_S (~111.5 GB)...")
+    print(f"  Source: {hf_url}")
+    print(f"  Destination: {gguf_path}")
+    print(f"  This will take a long time. Use Ctrl+C to cancel.")
+    print()
+
+    try:
+        req = urllib.request.Request(hf_url, headers={'User-Agent': 'PurpleTeamGRC/1.0'})
+        with urllib.request.urlopen(req, timeout=30) as resp:
+            total = int(resp.headers.get('Content-Length', 0))
+            downloaded = 0
+            chunk_size = 8 * 1024 * 1024  # 8MB chunks
+
+            with open(gguf_path, 'wb') as f:
+                while True:
+                    chunk = resp.read(chunk_size)
+                    if not chunk:
+                        break
+                    f.write(chunk)
+                    downloaded += len(chunk)
+                    if total > 0:
+                        pct = downloaded * 100 // total
+                        gb_done = downloaded / (1024 ** 3)
+                        gb_total = total / (1024 ** 3)
+                        print(
+                            f"\r  Progress: {pct}% ({gb_done:.1f}/{gb_total:.1f} GB)",
+                            end='', flush=True,
+                        )
+                    else:
+                        gb_done = downloaded / (1024 ** 3)
+                        print(f"\r  Downloaded: {gb_done:.1f} GB", end='', flush=True)
+
+        print(f"\n  Download complete: {gguf_path}")
+        return _register_step35_with_ollama(gguf_path)
+
+    except KeyboardInterrupt:
+        print(f"\n  Download cancelled by user.")
+        if gguf_path.exists():
+            print(f"  Partial download kept at: {gguf_path}")
+            print(f"  Re-run with --step35 to resume (if server supports range requests).")
+        return False
+    except Exception as exc:
+        print(f"\n  Download failed: {exc}")
+        return False
+
+
+def _register_step35_with_ollama(gguf_path) -> bool:
+    """Create an Ollama model from the downloaded GGUF file."""
+    print(f"\n  Registering Step 3.5 Flash with Ollama...")
+
+    modelfile_content = (
+        f"FROM {gguf_path}\n"
+        "SYSTEM \"You are a senior cybersecurity analyst for the Purple Team "
+        "GRC Platform. Analyze vulnerabilities, prioritize findings by risk, "
+        "and provide actionable remediation guidance. When asked for structured "
+        "output, respond in JSON format.\"\n"
+        "PARAMETER temperature 0.3\n"
+        "PARAMETER num_predict 2048\n"
+        "PARAMETER num_ctx 16384\n"
+    )
+
+    url = f"{OLLAMA_BASE_URL}/api/create"
+    payload = json.dumps({
+        'name': 'step-3.5-flash',
+        'modelfile': modelfile_content,
+        'stream': True,
+    }).encode('utf-8')
+
+    req = urllib.request.Request(
+        url,
+        data=payload,
+        headers={
+            'Content-Type': 'application/json',
+            'User-Agent': 'PurpleTeamGRC/1.0',
+        },
+        method='POST',
+    )
+
+    try:
+        with urllib.request.urlopen(req, timeout=600) as resp:
+            for line in resp:
+                if not line.strip():
+                    continue
+                try:
+                    obj = json.loads(line.decode('utf-8'))
+                    status = obj.get('status', '')
+                    if status:
+                        print(f"  {status}")
+                    if obj.get('error'):
+                        print(f"  ERROR: {obj['error']}")
+                        return False
+                except json.JSONDecodeError:
+                    continue
+
+        print(f"  Model 'step-3.5-flash' registered with Ollama successfully.")
+        return True
+
+    except Exception as exc:
+        print(f"  Failed to register with Ollama: {exc}")
+        print(f"  You can still use the GGUF file directly with llama.cpp:")
+        print(f"    ./llama-cli -m {gguf_path} -c 16384 -b 2048 -ub 2048 -fa on")
+        return False
+
+
 def print_install_instructions():
     """Print Ollama installation instructions for the user."""
     print("  Ollama is NOT running at http://localhost:11434")
@@ -336,6 +515,11 @@ def main():
         '--test-only', action='store_true',
         help='Only test model availability, do not download or configure',
     )
+    parser.add_argument(
+        '--step35', action='store_true',
+        help='Download Step 3.5 Flash GGUF (111.5GB, needs 120GB+ VRAM). '
+             'For most users, set STEPFUN_API_KEY instead.',
+    )
 
     args = parser.parse_args()
     models_to_pull = args.models or DEFAULT_MODELS
@@ -369,6 +553,19 @@ def main():
         print(f"\n  Results: {passed}/{len(test_results)} models responding")
         save_config(installed, CUSTOM_MODEL_NAME, test_results)
         sys.exit(0 if passed > 0 else 1)
+
+    # -------------------------------------------------------------------
+    # Step 1b: Download Step 3.5 Flash GGUF (optional)
+    # -------------------------------------------------------------------
+    if args.step35:
+        print(f"\n[1b] Downloading Step 3.5 Flash (111.5 GB GGUF)...")
+        step35_ok = download_step35_gguf()
+        if step35_ok:
+            installed = get_installed_models()
+            print(f"  Updated model list: {len(installed)} model(s)")
+        else:
+            print("  Step 3.5 Flash download/registration failed.")
+            print("  Continuing with standard models...")
 
     # -------------------------------------------------------------------
     # Step 2: Pull models
@@ -461,6 +658,15 @@ def main():
 
     print("  The AI engine will auto-detect these models at runtime.")
     print("  For air-gapped transfer, copy the Ollama models directory to the target.")
+    print()
+    print("  Alternative cloud backends (no Ollama needed):")
+    print("    export STEPFUN_API_KEY=...    # Step 3.5 Flash cloud API (recommended)")
+    print("    export ANTHROPIC_API_KEY=...  # Anthropic Claude")
+    print("    export GEMINI_API_KEY=...     # Google Gemini 2.5 Flash (fast, free tier)")
+    print("    export OPENAI_API_KEY=...     # OpenAI GPT-4")
+    print()
+    print("  To download Step 3.5 Flash for offline use (111.5 GB, needs 120GB+ VRAM):")
+    print("    python bin/setup-ai.py --step35")
     print()
 
 

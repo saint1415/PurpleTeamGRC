@@ -756,8 +756,7 @@ Systems Thinking Security Assessment
             elif choice == '1':
                 self.run_scanner('compliance_scanner')
             elif choice == '2':
-                tui.info("Running malware detection...")
-                # TODO: Integrate yara, clamav
+                self.run_scanner('malware_scanner')
             else:
                 tui.warning("Feature coming soon...")
                 safe_input(f"\n{C.DIM}Press Enter to continue...{C.RESET}")

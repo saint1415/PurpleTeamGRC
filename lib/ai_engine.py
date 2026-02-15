@@ -3,10 +3,12 @@
 Purple Team GRC Platform - AI Engine
 
 Unified AI backend that auto-detects the best available provider:
-  1. Local Ollama instance  (air-gapped friendly, full data stays local)
-  2. Anthropic Claude API   (via ANTHROPIC_API_KEY env var)
-  3. OpenAI-compatible API  (via OPENAI_API_KEY env var)
-  4. Template fallback      (pure-Python, always available, no LLM needed)
+  1. Local Ollama instance   (air-gapped friendly, full data stays local)
+  2. Step 3.5 Flash          (via STEPFUN_API_KEY -- 196B MoE, 11B active, fast)
+  3. Anthropic Claude API    (via ANTHROPIC_API_KEY env var)
+  4. Google Gemini API       (via GEMINI_API_KEY env var -- fast & cheap)
+  5. OpenAI-compatible API   (via OPENAI_API_KEY env var)
+  6. Template fallback       (pure-Python, always available, no LLM needed)
 
 All LLM-generated output is tagged for human review.
 Only stdlib imports are used for HTTP calls (urllib).
@@ -86,11 +88,14 @@ else:
 AI_DISCLAIMER = "\n--- AI-Generated - Verify Before Acting ---\n"
 
 OLLAMA_BASE_URL = "http://localhost:11434"
+STEPFUN_API_URL = "https://api.stepfun.ai/v1/chat/completions"
 ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+GEMINI_API_URL = "https://generativelanguage.googleapis.com/v1beta/models"
 OPENAI_API_URL = "https://api.openai.com/v1/chat/completions"
 
 # Model preference order when scanning Ollama for available models
 _OLLAMA_MODEL_PREFERENCE = [
+    'step-3.5-flash', 'purpleteam-security',
     'llama3.2', 'llama3.1', 'llama3', 'mistral', 'codellama',
     'mixtral', 'phi3', 'gemma2', 'deepseek-coder', 'qwen2',
 ]
@@ -155,19 +160,31 @@ class AIEngine:
         except Exception:
             pass
 
-        # 2. Anthropic
+        # 2. StepFun Step 3.5 Flash (196B MoE, 11B active, fast agentic model)
+        if os.environ.get('STEPFUN_API_KEY'):
+            self.backend = 'stepfun'
+            self.model_name = 'step-3.5-flash'
+            return
+
+        # 3. Anthropic
         if os.environ.get('ANTHROPIC_API_KEY'):
             self.backend = 'anthropic'
             self.model_name = 'claude-sonnet-4-20250514'
             return
 
-        # 3. OpenAI
+        # 4. Google Gemini (fast, cheap, generous free tier)
+        if os.environ.get('GEMINI_API_KEY'):
+            self.backend = 'gemini'
+            self.model_name = 'gemini-2.5-flash'
+            return
+
+        # 5. OpenAI
         if os.environ.get('OPENAI_API_KEY'):
             self.backend = 'openai'
             self.model_name = 'gpt-4'
             return
 
-        # 4. Fallback
+        # 6. Fallback
         self.backend = 'template'
         self.model_name = None
 
@@ -264,6 +281,119 @@ class AIEngine:
         texts = [b.get('text', '') for b in content_blocks if b.get('type') == 'text']
         return '\n'.join(texts).strip()
 
+    def _call_stepfun(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """POST to StepFun Step 3.5 Flash API (OpenAI-compatible format).
+
+        Step 3.5 Flash: 196B-parameter sparse MoE with 11B active params.
+        Excels at coding (86.4% LiveCodeBench), math, agent tasks, and
+        tool use.  100-350 tok/s throughput via Multi-Token Prediction.
+
+        Providers:
+          - StepFun direct: STEPFUN_API_KEY + https://api.stepfun.ai/v1
+          - OpenRouter:     OPENROUTER_API_KEY (free tier available)
+        """
+        # Support OpenRouter as fallback provider
+        api_key = os.environ.get('STEPFUN_API_KEY', '')
+        url = STEPFUN_API_URL
+        model = self.model_name or 'step-3.5-flash'
+
+        if not api_key and os.environ.get('OPENROUTER_API_KEY'):
+            api_key = os.environ['OPENROUTER_API_KEY']
+            url = 'https://openrouter.ai/api/v1/chat/completions'
+            model = 'stepfun/step-3.5-flash'
+
+        if not api_key:
+            raise ValueError("STEPFUN_API_KEY (or OPENROUTER_API_KEY) not set")
+
+        messages: List[Dict[str, str]] = []
+        if system_prompt:
+            messages.append({'role': 'system', 'content': system_prompt})
+        messages.append({'role': 'user', 'content': prompt})
+
+        payload = {
+            'model': model,
+            'messages': messages,
+            'temperature': 0.3,
+            'max_tokens': 2048,
+        }
+
+        ctx = ssl.create_default_context()
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'Authorization': f'Bearer {api_key}',
+                'User-Agent': 'PurpleTeamGRC/1.0',
+            },
+            method='POST',
+        )
+
+        with urllib.request.urlopen(req, timeout=90, context=ctx) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+
+        choices = result.get('choices', [])
+        if choices:
+            return choices[0].get('message', {}).get('content', '').strip()
+        return ''
+
+    def _call_gemini(self, prompt: str, system_prompt: Optional[str] = None) -> str:
+        """POST to the Google Gemini generateContent endpoint (stdlib only).
+
+        Uses the v1beta REST API with an API key query parameter.
+        Supports Gemini 2.5 Flash (fast, 1M context, free tier: 500 req/day).
+        """
+        api_key = os.environ.get('GEMINI_API_KEY', '')
+        if not api_key:
+            raise ValueError("GEMINI_API_KEY environment variable is not set")
+
+        model = self.model_name or 'gemini-2.5-flash'
+        url = f"{GEMINI_API_URL}/{model}:generateContent?key={api_key}"
+
+        # Build Gemini-format request
+        contents: List[Dict] = []
+        if system_prompt:
+            contents.append({
+                'role': 'user',
+                'parts': [{'text': f"[System Instructions]\n{system_prompt}\n\n[User Query]\n{prompt}"}],
+            })
+        else:
+            contents.append({
+                'role': 'user',
+                'parts': [{'text': prompt}],
+            })
+
+        payload = {
+            'contents': contents,
+            'generationConfig': {
+                'temperature': 0.3,
+                'maxOutputTokens': 2048,
+            },
+        }
+
+        ctx = ssl.create_default_context()
+        req = urllib.request.Request(
+            url,
+            data=json.dumps(payload).encode('utf-8'),
+            headers={
+                'Content-Type': 'application/json',
+                'User-Agent': 'PurpleTeamGRC/1.0',
+            },
+            method='POST',
+        )
+
+        with urllib.request.urlopen(req, timeout=90, context=ctx) as resp:
+            result = json.loads(resp.read().decode('utf-8'))
+
+        # Parse Gemini response format
+        candidates = result.get('candidates', [])
+        if candidates:
+            content = candidates[0].get('content', {})
+            parts = content.get('parts', [])
+            texts = [p.get('text', '') for p in parts if 'text' in p]
+            return '\n'.join(texts).strip()
+        return ''
+
     def _call_openai(self, prompt: str, system_prompt: Optional[str] = None) -> str:
         """POST to an OpenAI-compatible chat completions endpoint."""
         api_key = os.environ.get('OPENAI_API_KEY', '')
@@ -306,8 +436,12 @@ class AIEngine:
         """Route to the detected backend and return the raw text response."""
         if self.backend == 'ollama':
             return self._call_ollama(prompt, system_prompt)
+        elif self.backend == 'stepfun':
+            return self._call_stepfun(prompt, system_prompt)
         elif self.backend == 'anthropic':
             return self._call_anthropic(prompt, system_prompt)
+        elif self.backend == 'gemini':
+            return self._call_gemini(prompt, system_prompt)
         elif self.backend == 'openai':
             return self._call_openai(prompt, system_prompt)
         return ''
@@ -720,9 +854,11 @@ class AIEngine:
 
         lines.extend([
             "To enable AI-powered answers, configure one of:",
-            "  1. Install Ollama locally (http://localhost:11434)",
-            "  2. Set ANTHROPIC_API_KEY environment variable",
-            "  3. Set OPENAI_API_KEY environment variable",
+            "  1. Install Ollama locally with Step 3.5 Flash (air-gapped, recommended)",
+            "  2. Set STEPFUN_API_KEY for Step 3.5 Flash cloud API",
+            "  3. Set ANTHROPIC_API_KEY for Anthropic Claude",
+            "  4. Set GEMINI_API_KEY for Google Gemini (fast & free tier)",
+            "  5. Set OPENAI_API_KEY for OpenAI GPT-4",
         ])
         return '\n'.join(lines)
 

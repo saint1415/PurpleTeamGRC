@@ -1637,7 +1637,7 @@ tr:hover td { background: rgba(108,99,255,0.06); }
             } else {
                 $('ai-status-badge').textContent = 'offline';
                 $('ai-status-badge').className = 'status-pill status-failed';
-                $('ai-status-detail').innerHTML = '<div style="color:var(--text-muted)">'+ escapeHtml(data.message || 'AI not available') +'<br><br>Run <code style="color:var(--accent)">python bin/setup-ai.py</code> to set up local AI models for air-gapped operation.</div>';
+                $('ai-status-detail').innerHTML = '<div style="color:var(--text-muted)">'+ escapeHtml(data.message || 'AI not available') +'<br><br>Options:<br>1. Run <code style="color:var(--accent)">python bin/setup-ai.py</code> for local AI (air-gapped)<br>2. Run <code style="color:var(--accent)">python bin/setup-ai.py --step35</code> for Step 3.5 Flash local (111GB, 120GB+ VRAM)<br>3. Set <code style="color:var(--accent)">STEPFUN_API_KEY</code> for Step 3.5 Flash cloud<br>4. Set <code style="color:var(--accent)">GEMINI_API_KEY</code> for Google Gemini<br>5. Set <code style="color:var(--accent)">ANTHROPIC_API_KEY</code> for Claude<br>6. Set <code style="color:var(--accent)">OPENAI_API_KEY</code> for GPT-4</div>';
             }
         });
     }
