@@ -76,6 +76,26 @@ try:
 except ImportError:
     get_compliance_mapper = None
 
+try:
+    from lib.scheduler import get_scheduler
+except ImportError:
+    get_scheduler = None
+
+try:
+    from lib.notifications import get_notification_manager
+except ImportError:
+    get_notification_manager = None
+
+try:
+    from lib.ai_engine import get_ai_engine
+except ImportError:
+    get_ai_engine = None
+
+try:
+    from lib.licensing import get_license_manager
+except ImportError:
+    get_license_manager = None
+
 from web.auth import get_auth, APIKeyAuth
 from web.dashboard import generate_dashboard_html
 
@@ -161,6 +181,9 @@ class PurpleTeamAPI:
 
     def _put(self, pattern: str, handler: Callable):
         self.routes.append(Route('PUT', pattern, handler))
+
+    def _delete(self, pattern: str, handler: Callable):
+        self.routes.append(Route('DELETE', pattern, handler))
 
     # ---- dispatch -------------------------------------------------------
 
@@ -251,6 +274,34 @@ class PurpleTeamAPI:
         # -- Audit ---------------------------------------------------------
         self._get('/api/v1/audit', self._audit_log)
 
+        # -- Schedules -----------------------------------------------------
+        self._get('/api/v1/schedules', self._list_schedules)
+        self._post('/api/v1/schedules', self._create_schedule)
+        self._get('/api/v1/schedules/<id>', self._get_schedule)
+        self._put('/api/v1/schedules/<id>', self._update_schedule)
+        self._delete('/api/v1/schedules/<id>', self._delete_schedule)
+        self._get('/api/v1/schedules/<id>/history', self._schedule_history)
+
+        # -- Notifications -------------------------------------------------
+        self._get('/api/v1/notifications/channels', self._list_channels)
+        self._post('/api/v1/notifications/channels', self._create_channel)
+        self._put('/api/v1/notifications/channels/<id>', self._update_channel)
+        self._delete('/api/v1/notifications/channels/<id>', self._delete_channel)
+        self._post('/api/v1/notifications/test', self._test_notification)
+        self._get('/api/v1/notifications/history', self._notification_history)
+        self._get('/api/v1/notifications/stats', self._notification_stats)
+
+        # -- Scanners (metadata) -------------------------------------------
+        self._get('/api/v1/scanners', self._list_scanners)
+
+        # -- AI Engine -----------------------------------------------------
+        self._post('/api/v1/ai/analyze', self._ai_analyze)
+        self._post('/api/v1/ai/triage', self._ai_triage)
+        self._post('/api/v1/ai/remediate', self._ai_remediate)
+        self._post('/api/v1/ai/summarize/<session_id>', self._ai_summarize)
+        self._post('/api/v1/ai/query', self._ai_query)
+        self._get('/api/v1/ai/status', self._ai_status)
+
     # ------------------------------------------------------------------
     # Health / Stats
     # ------------------------------------------------------------------
@@ -268,6 +319,10 @@ class PurpleTeamAPI:
             'discovery': get_discovery_engine is not None,
             'reports': get_report_generator is not None,
             'compliance': get_compliance_mapper is not None,
+            'scheduler': get_scheduler is not None,
+            'notifications': get_notification_manager is not None,
+            'ai_engine': get_ai_engine is not None,
+            'licensing': get_license_manager is not None,
         }
         return json_response({
             'status': 'healthy',
@@ -795,6 +850,337 @@ class PurpleTeamAPI:
             since=query.get('since'),
         )
         return json_response({'count': len(entries), 'entries': entries})
+
+    # ------------------------------------------------------------------
+    # Schedules
+    # ------------------------------------------------------------------
+
+    def _list_schedules(self, **kw) -> Tuple[bytes, int, str]:
+        if not get_scheduler:
+            return error_response('Scheduler module not available', 503)
+        schedules = get_scheduler().get_all_schedules()
+        return json_response({'count': len(schedules), 'schedules': schedules})
+
+    def _create_schedule(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        if not get_scheduler:
+            return error_response('Scheduler module not available', 503)
+        if not body:
+            return error_response('Request body required')
+        name = body.get('name')
+        scanner_type = body.get('scanner_type')
+        cron_expression = body.get('cron_expression')
+        if not name or not scanner_type or not cron_expression:
+            return error_response('name, scanner_type, and cron_expression are required')
+        try:
+            sched = get_scheduler()
+            schedule_id = sched.create_schedule(
+                name=name,
+                scanner_type=scanner_type,
+                cron_expression=cron_expression,
+                targets=body.get('targets', []),
+                scan_type=body.get('scan_type', 'standard'),
+                description=body.get('description', ''),
+                created_by=body.get('created_by', 'api'),
+            )
+        except ValueError as e:
+            return error_response(str(e), 400)
+        if get_audit_trail:
+            get_audit_trail().log('schedule_created', target_type='schedule',
+                                 target_id=schedule_id, details=body)
+        return json_response({'schedule_id': schedule_id}, 201)
+
+    def _get_schedule(self, params: Dict, **kw) -> Tuple[bytes, int, str]:
+        if not get_scheduler:
+            return error_response('Scheduler module not available', 503)
+        schedule = get_scheduler().get_schedule(params['id'])
+        if not schedule:
+            return error_response('Schedule not found', 404)
+        return json_response(schedule)
+
+    def _update_schedule(self, params: Dict, body: Optional[Dict],
+                         **kw) -> Tuple[bytes, int, str]:
+        if not get_scheduler:
+            return error_response('Scheduler module not available', 503)
+        if not body:
+            return error_response('Request body required')
+        try:
+            get_scheduler().update_schedule(params['id'], **body)
+        except ValueError as e:
+            return error_response(str(e), 400)
+        if get_audit_trail:
+            get_audit_trail().log('schedule_updated', target_type='schedule',
+                                 target_id=params['id'], details=body)
+        return json_response({'updated': True, 'schedule_id': params['id']})
+
+    def _delete_schedule(self, params: Dict, **kw) -> Tuple[bytes, int, str]:
+        if not get_scheduler:
+            return error_response('Scheduler module not available', 503)
+        schedule = get_scheduler().get_schedule(params['id'])
+        if not schedule:
+            return error_response('Schedule not found', 404)
+        get_scheduler().delete_schedule(params['id'])
+        if get_audit_trail:
+            get_audit_trail().log('schedule_deleted', target_type='schedule',
+                                 target_id=params['id'])
+        return json_response({'deleted': True, 'schedule_id': params['id']})
+
+    def _schedule_history(self, params: Dict, query: Dict,
+                          **kw) -> Tuple[bytes, int, str]:
+        if not get_scheduler:
+            return error_response('Scheduler module not available', 503)
+        limit = int(query.get('limit', '20'))
+        runs = get_scheduler().get_run_history(params['id'], limit=limit)
+        return json_response({'count': len(runs), 'runs': runs})
+
+    # ------------------------------------------------------------------
+    # Notifications
+    # ------------------------------------------------------------------
+
+    _SECRET_FIELDS = frozenset({
+        'smtp_pass', 'auth_token', 'secret_access_key',
+        'access_key_id', 'webhook_url',
+    })
+
+    @staticmethod
+    def _mask_config(config: Dict) -> Dict:
+        """Mask sensitive config fields for API responses."""
+        masked = {}
+        for k, v in config.items():
+            if k in PurpleTeamAPI._SECRET_FIELDS and isinstance(v, str) and len(v) > 2:
+                masked[k] = v[:2] + '********'
+            else:
+                masked[k] = v
+        return masked
+
+    def _list_channels(self, **kw) -> Tuple[bytes, int, str]:
+        if not get_notification_manager:
+            return error_response('Notification module not available', 503)
+        channels = get_notification_manager().get_channels()
+        for ch in channels:
+            if isinstance(ch.get('config'), dict):
+                ch['config'] = self._mask_config(ch['config'])
+        return json_response({'count': len(channels), 'channels': channels})
+
+    def _create_channel(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        if not get_notification_manager:
+            return error_response('Notification module not available', 503)
+        if not body:
+            return error_response('Request body required')
+        name = body.get('name')
+        channel_type = body.get('channel_type')
+        config = body.get('config', {})
+        if not name or not channel_type:
+            return error_response('name and channel_type are required')
+        try:
+            channel_id = get_notification_manager().add_channel(name, channel_type, config)
+        except ValueError as e:
+            return error_response(str(e), 400)
+        if get_audit_trail:
+            get_audit_trail().log('channel_created', target_type='notification_channel',
+                                 target_id=channel_id, details={'name': name, 'type': channel_type})
+        return json_response({'channel_id': channel_id}, 201)
+
+    def _update_channel(self, params: Dict, body: Optional[Dict],
+                        **kw) -> Tuple[bytes, int, str]:
+        if not get_notification_manager:
+            return error_response('Notification module not available', 503)
+        if not body:
+            return error_response('Request body required')
+        try:
+            get_notification_manager().update_channel(params['id'], **body)
+        except ValueError as e:
+            return error_response(str(e), 400)
+        return json_response({'updated': True, 'channel_id': params['id']})
+
+    def _delete_channel(self, params: Dict, **kw) -> Tuple[bytes, int, str]:
+        if not get_notification_manager:
+            return error_response('Notification module not available', 503)
+        get_notification_manager().remove_channel(params['id'])
+        if get_audit_trail:
+            get_audit_trail().log('channel_deleted', target_type='notification_channel',
+                                 target_id=params['id'])
+        return json_response({'deleted': True, 'channel_id': params['id']})
+
+    def _test_notification(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        if not get_notification_manager:
+            return error_response('Notification module not available', 503)
+        if not body:
+            return error_response('Request body required')
+        channel_id = body.get('channel_id')
+        if not channel_id:
+            return error_response('channel_id is required')
+        nm = get_notification_manager()
+        channels = nm.get_channels()
+        channel = None
+        for ch in channels:
+            if ch['channel_id'] == channel_id:
+                channel = ch
+                break
+        if not channel:
+            return error_response('Channel not found', 404)
+        try:
+            nm._dispatch(
+                channel,
+                'Test Notification',
+                'This is a test notification from Purple Team GRC.',
+                'INFO',
+            )
+            return json_response({'success': True, 'message': 'Test notification sent'})
+        except Exception as e:
+            return json_response({'success': False, 'message': str(e)}, 200)
+
+    def _notification_history(self, query: Dict, **kw) -> Tuple[bytes, int, str]:
+        if not get_notification_manager:
+            return error_response('Notification module not available', 503)
+        nm = get_notification_manager()
+        history = nm.get_notification_history(
+            limit=int(query.get('limit', '50')),
+            event_type=query.get('event_type'),
+            status=query.get('status'),
+        )
+        return json_response({'count': len(history), 'notifications': history})
+
+    def _notification_stats(self, **kw) -> Tuple[bytes, int, str]:
+        if not get_notification_manager:
+            return error_response('Notification module not available', 503)
+        stats = get_notification_manager().get_statistics()
+        return json_response(stats)
+
+    # ------------------------------------------------------------------
+    # Scanners (metadata)
+    # ------------------------------------------------------------------
+
+    def _list_scanners(self, **kw) -> Tuple[bytes, int, str]:
+        scanners = [
+            {'id': 'network', 'name': 'Network Scanner',
+             'description': 'TCP/UDP port scanning, service detection, OS fingerprinting',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'vulnerability', 'name': 'Vulnerability Scanner',
+             'description': 'CVE-based vulnerability detection with CVSS scoring',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'web', 'name': 'Web Application Scanner',
+             'description': 'OWASP Top 10, XSS, SQLi, directory traversal, header analysis',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'ssl', 'name': 'SSL/TLS Scanner',
+             'description': 'Certificate validation, cipher suite analysis, protocol checks',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'windows', 'name': 'Windows Security Scanner',
+             'description': 'Windows configuration, GPO, patch level, user/group audit',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'linux', 'name': 'Linux Security Scanner',
+             'description': 'Linux hardening checks, SSH config, file permissions, services',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'ad', 'name': 'Active Directory Scanner',
+             'description': 'AD security assessment, Kerberos, LDAP, trust relationships',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'cloud', 'name': 'Cloud Security Scanner',
+             'description': 'AWS/Azure/GCP misconfiguration, IAM, storage, networking',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'container', 'name': 'Container Scanner',
+             'description': 'Docker/K8s security, image vulnerabilities, runtime config',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'sbom', 'name': 'SBOM Scanner',
+             'description': 'Software Bill of Materials, dependency analysis, license audit',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'compliance', 'name': 'Compliance Scanner',
+             'description': 'Framework compliance checks (NIST, HIPAA, PCI-DSS, SOC2, ISO)',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'credential', 'name': 'Credential Scanner',
+             'description': 'Password policy, leaked credential detection, default creds',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'asm', 'name': 'Attack Surface Scanner',
+             'description': 'External attack surface mapping, exposed services, DNS enum',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'openvas', 'name': 'OpenVAS Integration',
+             'description': 'OpenVAS/GVM vulnerability scanning integration',
+             'scan_depths': ['quick', 'standard', 'deep']},
+            {'id': 'full', 'name': 'Full Scan Suite',
+             'description': 'Runs all applicable scanners against targets',
+             'scan_depths': ['quick', 'standard', 'deep']},
+        ]
+        return json_response({'count': len(scanners), 'scanners': scanners})
+
+    # ------------------------------------------------------------------
+    # AI Engine
+    # ------------------------------------------------------------------
+
+    def _ai_analyze(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        if not get_ai_engine:
+            return error_response('AI engine not available', 503)
+        if not body or not body.get('finding'):
+            return error_response('finding object required in body')
+        try:
+            result = get_ai_engine().analyze_finding(body['finding'])
+            return json_response(result)
+        except Exception as e:
+            return error_response(str(e), 500)
+
+    def _ai_triage(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        if not get_ai_engine:
+            return error_response('AI engine not available', 503)
+        if not body or not body.get('findings'):
+            return error_response('findings list required in body')
+        try:
+            result = get_ai_engine().triage_findings(body['findings'])
+            return json_response({'findings': result})
+        except Exception as e:
+            return error_response(str(e), 500)
+
+    def _ai_remediate(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        if not get_ai_engine:
+            return error_response('AI engine not available', 503)
+        if not body or not body.get('finding'):
+            return error_response('finding object required in body')
+        try:
+            result = get_ai_engine().generate_remediation(body['finding'])
+            return json_response({'remediation': result})
+        except Exception as e:
+            return error_response(str(e), 500)
+
+    def _ai_summarize(self, params: Dict, **kw) -> Tuple[bytes, int, str]:
+        if not get_ai_engine:
+            return error_response('AI engine not available', 503)
+        try:
+            result = get_ai_engine().summarize_scan(params['session_id'])
+            return json_response({'summary': result})
+        except Exception as e:
+            return error_response(str(e), 500)
+
+    def _ai_query(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        if not get_ai_engine:
+            return error_response('AI engine not available', 503)
+        if not body or not body.get('question'):
+            return error_response('question is required in body')
+        try:
+            result = get_ai_engine().query(
+                body['question'],
+                context=body.get('context'),
+            )
+            return json_response({'answer': result})
+        except Exception as e:
+            return error_response(str(e), 500)
+
+    def _ai_status(self, **kw) -> Tuple[bytes, int, str]:
+        if not get_ai_engine:
+            return json_response({
+                'available': False,
+                'backend': 'none',
+                'message': 'AI engine module not installed',
+            })
+        try:
+            engine = get_ai_engine()
+            return json_response({
+                'available': True,
+                'backend': engine.backend,
+                'model': getattr(engine, 'model_name', 'unknown'),
+                'message': f'AI engine ready ({engine.backend})',
+            })
+        except Exception as e:
+            return json_response({
+                'available': False,
+                'backend': 'error',
+                'message': str(e),
+            })
 
 
 # =========================================================================
