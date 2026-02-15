@@ -1,4 +1,4 @@
-name: Update NVD CVE Intelligence
+name: Update NVD CVE & Intel Feeds
 
 on:
   # Run every 4 hours
@@ -36,11 +36,12 @@ jobs:
           python -m pip install --upgrade pip
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Run incremental CVE update
+      - name: Run incremental CVE and intel feed update
         env:
           NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python bin/update-intel.py --incremental
+          python bin/update-intel.py --incremental --feeds
 
       - name: Check for changes
         id: git-check
@@ -57,5 +58,5 @@ jobs:
         if: steps.git-check.outputs.changed == 'true'
         run: |
           git add data/
-          git commit -m "chore: incremental CVE update $(date -u +%Y-%m-%d) [skip ci]"
+          git commit -m "chore: incremental CVE + intel feed update $(date -u +%Y-%m-%d) [skip ci]"
           git push

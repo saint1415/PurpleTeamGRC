@@ -266,6 +266,29 @@ class IntelFeedManager:
             (feed_name, now, record_count),
         )
 
+    def _fetch_with_retry(self, url: str, headers: Optional[Dict[str, str]] = None,
+                          max_retries: int = 3, timeout: int = 60) -> bytes:
+        """Fetch URL with exponential backoff retry for transient failures."""
+        for attempt in range(max_retries):
+            try:
+                req = urllib.request.Request(url, headers=headers or {})
+                resp = urllib.request.urlopen(req, timeout=timeout)
+                return resp.read()
+            except urllib.error.HTTPError as e:
+                if e.code in (429, 503) and attempt < max_retries - 1:
+                    wait = (2 ** attempt) * 5  # 5s, 10s, 20s
+                    logger.warning(f"Rate limited ({e.code}), retrying in {wait}s...")
+                    time.sleep(wait)
+                    continue
+                raise
+            except (urllib.error.URLError, TimeoutError) as e:
+                if attempt < max_retries - 1:
+                    wait = (2 ** attempt) * 3
+                    logger.warning(f"Network error, retrying in {wait}s: {e}")
+                    time.sleep(wait)
+                    continue
+                raise
+
     # ==================================================================
     # 1. ExploitDB
     # ==================================================================
@@ -379,7 +402,7 @@ class IntelFeedManager:
 
         url = f"https://osv-vulnerabilities.storage.googleapis.com/{ecosystem}/all.zip"
         try:
-            req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
+            req = urllib.request.Request(url, headers={"User-Agent": "PurpleTeamGRC/7.0 IntelFeedManager"})
             ctx = ssl.create_default_context()
             resp = urllib.request.urlopen(req, timeout=120, context=ctx)
             zip_data = resp.read()

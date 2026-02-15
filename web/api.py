@@ -395,6 +395,18 @@ class PurpleTeamAPI:
 
         # -- License / Tier ------------------------------------------------
         self._get('/api/v1/license', self._license_info)
+        self._post('/api/v1/license/activate', self._activate_license)
+
+        # -- Network auto-discovery ----------------------------------------
+        self._get('/api/v1/network/local', self._network_local_info)
+
+        # -- Export (per-session) ------------------------------------------
+        self._get('/api/v1/scans/<session_id>/export', self._export_scan)
+
+        # -- Maintenance / Purge -------------------------------------------
+        self._post('/api/v1/maintenance/purge-scans', self._purge_scans)
+        self._post('/api/v1/maintenance/purge-notifications', self._purge_notifications)
+        self._post('/api/v1/maintenance/purge-audit', self._purge_audit)
 
         # -- AI Engine -----------------------------------------------------
         self._post('/api/v1/ai/analyze', self._ai_analyze)
@@ -1279,6 +1291,229 @@ class PurpleTeamAPI:
             'limits': lm.get_limits(),
             'license': lm.get_license_info(),
         })
+
+    # ------------------------------------------------------------------
+    # License activation
+    # ------------------------------------------------------------------
+
+    def _activate_license(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        """Activate a Pro/Enterprise license by saving the license payload."""
+        if not get_license_manager:
+            return error_response('License module not available', 503)
+        if not body:
+            return error_response('Request body required', 400)
+
+        lm = get_license_manager()
+
+        # Accept either a full license JSON or just a license key string
+        if 'tier' in body and 'signature' in body:
+            # Full license payload
+            license_data = body
+        else:
+            return error_response(
+                'Invalid license format. Provide tier, organization, expires, and signature fields.', 400
+            )
+
+        # Validate the license
+        if not lm._validate_license(license_data):
+            return error_response('Invalid or expired license', 400)
+
+        # Save to data/license.json
+        license_path = lm.license_path
+        license_path.parent.mkdir(parents=True, exist_ok=True)
+        with open(license_path, 'w', encoding='utf-8') as f:
+            json.dump(license_data, f, indent=2)
+
+        # Reload
+        lm._load_license()
+
+        if get_audit_trail:
+            try:
+                get_audit_trail().log('license_activated', 'api',
+                                      details=json.dumps({'tier': lm.get_tier()}))
+            except Exception:
+                pass
+
+        return json_response({
+            'activated': True,
+            'tier': lm.get_tier(),
+            'label': lm.get_tier_label(),
+            'organization': license_data.get('organization', ''),
+            'expires': license_data.get('expires', ''),
+        })
+
+    # ------------------------------------------------------------------
+    # Network local info (auto-discovery for quick scan)
+    # ------------------------------------------------------------------
+
+    def _network_local_info(self, **kw) -> Tuple[bytes, int, str]:
+        """Return local network info for auto-populating scan targets."""
+        import socket
+        info = {
+            'hostname': socket.gethostname(),
+            'interfaces': [],
+            'suggested_targets': [],
+        }
+
+        # Get local IPs
+        try:
+            # Get all IPs associated with this hostname
+            hostname = socket.gethostname()
+            addrs = socket.getaddrinfo(hostname, None, socket.AF_INET)
+            seen = set()
+            for addr in addrs:
+                ip = addr[4][0]
+                if ip not in seen and not ip.startswith('127.'):
+                    seen.add(ip)
+                    # Derive /24 subnet
+                    parts = ip.split('.')
+                    subnet = '.'.join(parts[:3]) + '.0/24'
+                    info['interfaces'].append({
+                        'ip': ip,
+                        'subnet': subnet,
+                    })
+                    info['suggested_targets'].append(ip)
+                    info['suggested_targets'].append(subnet)
+        except Exception:
+            pass
+
+        # Also try netifaces for richer data
+        try:
+            import netifaces
+            for iface in netifaces.interfaces():
+                addrs = netifaces.ifaddresses(iface)
+                if netifaces.AF_INET in addrs:
+                    for addr in addrs[netifaces.AF_INET]:
+                        ip = addr.get('addr', '')
+                        netmask = addr.get('netmask', '')
+                        if ip and not ip.startswith('127.') and ip not in [
+                            i['ip'] for i in info['interfaces']
+                        ]:
+                            parts = ip.split('.')
+                            subnet = '.'.join(parts[:3]) + '.0/24'
+                            info['interfaces'].append({
+                                'ip': ip,
+                                'netmask': netmask,
+                                'subnet': subnet,
+                                'interface': iface,
+                            })
+                            if ip not in info['suggested_targets']:
+                                info['suggested_targets'].append(ip)
+                            if subnet not in info['suggested_targets']:
+                                info['suggested_targets'].append(subnet)
+        except ImportError:
+            pass
+
+        # Add known assets from inventory
+        if get_asset_inventory:
+            try:
+                inv = get_asset_inventory()
+                assets = inv.find_assets(status='active')
+                asset_ips = [a.get('ip_address') for a in assets
+                             if a.get('ip_address') and a['ip_address'] not in info['suggested_targets']]
+                info['known_assets'] = assets[:50]  # Limit for UI
+                info['suggested_targets'].extend(asset_ips[:20])
+            except Exception:
+                info['known_assets'] = []
+        else:
+            info['known_assets'] = []
+
+        return json_response(info)
+
+    # ------------------------------------------------------------------
+    # Export scan results (per session, CSV or JSON)
+    # ------------------------------------------------------------------
+
+    def _export_scan(self, params: Dict, query: Dict, **kw) -> Tuple[bytes, int, str]:
+        """Export scan findings as CSV or JSON."""
+        if not get_evidence_manager:
+            return error_response('Evidence module not available', 503)
+
+        session_id = params.get('session_id', '')
+        fmt = query.get('format', 'json')
+        em = get_evidence_manager()
+
+        findings = em.get_findings_for_session(session_id)
+        if not findings:
+            return error_response('No findings for this session', 404)
+
+        if fmt == 'csv':
+            # Build CSV
+            if not findings:
+                return (b'No findings', 200, 'text/plain')
+            headers = ['severity', 'title', 'description', 'affected_asset',
+                       'cvss_score', 'cve_ids', 'remediation', 'timestamp']
+            lines = [','.join(headers)]
+            for f in findings:
+                row = []
+                for h in headers:
+                    val = str(f.get(h, '')).replace('"', '""')
+                    if ',' in val or '"' in val or '\n' in val:
+                        val = '"' + val + '"'
+                    row.append(val)
+                lines.append(','.join(row))
+            csv_bytes = '\n'.join(lines).encode('utf-8')
+            return (csv_bytes, 200, 'text/csv')
+        else:
+            return json_response({
+                'session_id': session_id,
+                'count': len(findings),
+                'findings': findings,
+            })
+
+    # ------------------------------------------------------------------
+    # Maintenance / Purge
+    # ------------------------------------------------------------------
+
+    def _purge_scans(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        """Purge old scan data. Body: {older_than_days: 30}"""
+        if not get_evidence_manager:
+            return error_response('Evidence module not available', 503)
+        days = (body or {}).get('older_than_days', 30)
+        em = get_evidence_manager()
+        try:
+            count = em.cleanup_old_evidence(days)
+            if get_audit_trail:
+                get_audit_trail().log('purge_scans', 'api',
+                                      details=json.dumps({'days': days, 'purged': count}))
+            return json_response({'purged': count, 'older_than_days': days})
+        except Exception as e:
+            return error_response(str(e), 500)
+
+    def _purge_notifications(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        """Purge old notification history."""
+        if not get_notification_manager:
+            return error_response('Notification module not available', 503)
+        days = (body or {}).get('older_than_days', 30)
+        nm = get_notification_manager()
+        try:
+            # Use the DB directly to purge old notifications
+            import sqlite3
+            db_path = nm.db_path
+            cutoff = (datetime.utcnow() - __import__('datetime').timedelta(days=days)).isoformat()
+            with sqlite3.connect(db_path) as conn:
+                cursor = conn.execute(
+                    'DELETE FROM notification_history WHERE timestamp < ?', (cutoff,)
+                )
+                count = cursor.rowcount
+            if get_audit_trail:
+                get_audit_trail().log('purge_notifications', 'api',
+                                      details=json.dumps({'days': days, 'purged': count}))
+            return json_response({'purged': count, 'older_than_days': days})
+        except Exception as e:
+            return error_response(str(e), 500)
+
+    def _purge_audit(self, body: Optional[Dict], **kw) -> Tuple[bytes, int, str]:
+        """Purge old audit log entries."""
+        if not get_audit_trail:
+            return error_response('Audit module not available', 503)
+        days = (body or {}).get('older_than_days', 90)
+        at = get_audit_trail()
+        try:
+            count = at.purge_old(days)
+            return json_response({'purged': count, 'older_than_days': days})
+        except Exception as e:
+            return error_response(str(e), 500)
 
     def _ai_status(self, **kw) -> Tuple[bytes, int, str]:
         if not get_ai_engine:

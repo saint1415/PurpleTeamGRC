@@ -1,13 +1,13 @@
-name: Bundle Security Tools
+name: Update Compliance Frameworks
 
 on:
-  # Monthly automatic update + manual trigger
+  # Weekly check for framework updates
   schedule:
-    - cron: '0 3 1 * *'  # 1st of every month at 3 AM UTC
+    - cron: '0 6 * * 1'  # Every Monday at 6 AM UTC
   workflow_dispatch:
 
 jobs:
-  bundle-tools:
+  update-frameworks:
     runs-on: ubuntu-latest
 
     permissions:
@@ -20,6 +20,9 @@ jobs:
           lfs: true
           token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Checkout LFS objects
+        run: git lfs checkout
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
@@ -29,16 +32,19 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
+          pip install pyyaml
           if [ -f requirements.txt ]; then pip install -r requirements.txt; fi
 
-      - name: Download and bundle security tools
+      - name: Sync compliance frameworks from PolicyUpdate repo
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          python bin/bundle-tools.py --all
+          python bin/update-frameworks.py
 
       - name: Check for changes
         id: git-check
         run: |
-          git diff --exit-code || echo "changed=true" >> $GITHUB_OUTPUT
+          git diff --exit-code config/frameworks/ || echo "changed=true" >> $GITHUB_OUTPUT
 
       - name: Configure Git
         if: steps.git-check.outputs.changed == 'true'
@@ -49,6 +55,6 @@ jobs:
       - name: Commit and push changes
         if: steps.git-check.outputs.changed == 'true'
         run: |
-          git add tools/
-          git commit -m "chore: update bundled security tools $(date -u +%Y-%m-%d) [skip ci]"
+          git add config/frameworks/
+          git commit -m "chore: sync compliance frameworks from PolicyUpdate $(date -u +%Y-%m-%d) [skip ci]"
           git push

@@ -5,7 +5,7 @@ Multi-page SPA using inline CSS and JavaScript.
 No external CDN dependencies (air-gapped operation).
 Calls the REST API via fetch() for live data.
 
-Tabs: Overview | Scan Center | Schedules | Notifications | AI Assistant
+Tabs: Overview | Scan Center | Schedules | Notifications | AI Assistant | Settings
 """
 
 
@@ -529,7 +529,43 @@ tr:hover td { background: rgba(108,99,255,0.06); }
         <div class="ub-text" id="upgrade-banner-text">
             You're using <strong>PurpleTeam Community</strong>. Upgrade to <strong>Pro</strong> for deep scans, scheduled automation, full reporting, unlimited AI, and all 15 scanners.
         </div>
+        <button class="btn btn-primary btn-sm" onclick="showUpgradeModal()" style="white-space:nowrap">Activate License</button>
         <button class="ub-dismiss" onclick="this.parentElement.classList.remove('visible')" title="Dismiss">&times;</button>
+    </div>
+
+    <!-- Upgrade Modal -->
+    <div id="upgrade-modal" style="display:none;position:fixed;top:0;left:0;right:0;bottom:0;background:rgba(0,0,0,0.7);z-index:9998;align-items:center;justify-content:center">
+        <div style="background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);padding:28px;max-width:700px;width:90%;max-height:85vh;overflow-y:auto;box-shadow:0 8px 40px rgba(0,0,0,0.5)">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px">
+                <h2 style="font-size:1.2rem;color:var(--text-bright)">Activate License</h2>
+                <button onclick="hideUpgradeModal()" style="background:none;border:none;color:var(--text-muted);font-size:1.4rem;cursor:pointer">&times;</button>
+            </div>
+
+            <!-- Tier Comparison -->
+            <table style="width:100%;margin-bottom:20px;font-size:0.82rem">
+                <thead><tr><th>Feature</th><th style="text-align:center"><span class="tier-badge tier-community">Community</span></th><th style="text-align:center"><span class="tier-badge tier-pro">Pro</span></th><th style="text-align:center"><span class="tier-badge tier-enterprise">Enterprise</span></th></tr></thead>
+                <tbody>
+                    <tr><td>Scanners</td><td style="text-align:center">4 core</td><td style="text-align:center;color:var(--resolved)">All 16</td><td style="text-align:center;color:var(--resolved)">All 16</td></tr>
+                    <tr><td>Scan Depth</td><td style="text-align:center">Quick only</td><td style="text-align:center;color:var(--resolved)">Quick + Standard + Deep</td><td style="text-align:center;color:var(--resolved)">All depths</td></tr>
+                    <tr><td>Targets per scan</td><td style="text-align:center">16</td><td style="text-align:center;color:var(--resolved)">256</td><td style="text-align:center;color:var(--resolved)">Unlimited</td></tr>
+                    <tr><td>Scheduled Scans</td><td style="text-align:center;color:var(--critical)">No</td><td style="text-align:center;color:var(--resolved)">Yes</td><td style="text-align:center;color:var(--resolved)">Yes</td></tr>
+                    <tr><td>AI Queries / Day</td><td style="text-align:center">10</td><td style="text-align:center;color:var(--resolved)">1000</td><td style="text-align:center;color:var(--resolved)">Unlimited</td></tr>
+                    <tr><td>Export Formats</td><td style="text-align:center">CSV, JSON</td><td style="text-align:center;color:var(--resolved)">All 11 formats</td><td style="text-align:center;color:var(--resolved)">All 11 formats</td></tr>
+                    <tr><td>Notifications</td><td style="text-align:center">Email, Webhook</td><td style="text-align:center;color:var(--resolved)">All 9 channels</td><td style="text-align:center;color:var(--resolved)">All 9 channels</td></tr>
+                    <tr><td>Compliance Frameworks</td><td style="text-align:center">3</td><td style="text-align:center;color:var(--resolved)">All 23+</td><td style="text-align:center;color:var(--resolved)">All 23+</td></tr>
+                </tbody>
+            </table>
+
+            <!-- License Activation Form -->
+            <div class="form-group">
+                <label>License Key</label>
+                <textarea id="license-key-input" rows="4" placeholder="Paste your license key here (JSON format)" style="font-family:var(--font-data);font-size:0.78rem"></textarea>
+            </div>
+            <div style="display:flex;gap:10px;align-items:center">
+                <button class="btn btn-primary" onclick="activateLicense()">Activate License</button>
+                <span id="license-activate-status" style="font-size:0.82rem;color:var(--text-muted)"></span>
+            </div>
+        </div>
     </div>
 
     <!-- Tab Navigation -->
@@ -539,6 +575,7 @@ tr:hover td { background: rgba(108,99,255,0.06); }
         <button class="tab-btn" data-tab="schedules" onclick="switchTab('schedules')">Schedules</button>
         <button class="tab-btn" data-tab="notifications" onclick="switchTab('notifications')">Notifications</button>
         <button class="tab-btn" data-tab="ai-assistant" onclick="switchTab('ai-assistant')">AI Assistant</button>
+        <button class="tab-btn" data-tab="settings" onclick="switchTab('settings')">Settings</button>
     </nav>
 
     <!-- ============================================================
@@ -640,8 +677,14 @@ tr:hover td { background: rgba(108,99,255,0.06); }
                 </div>
                 <div class="form-group">
                     <label>Targets</label>
+                    <div style="display:flex;gap:6px;margin-bottom:6px">
+                        <button class="btn btn-outline btn-sm" onclick="autoDetectTargets()" title="Detect local IPs and subnets">Auto-detect</button>
+                        <select id="sc-asset-picker" onchange="addAssetToTargets(this)" style="flex:1;padding:4px 8px;background:var(--bg-primary);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-size:0.8rem">
+                            <option value="">-- Add from known assets --</option>
+                        </select>
+                    </div>
                     <textarea id="sc-targets" placeholder="Enter IPs, CIDRs, or hostnames (one per line)"></textarea>
-                    <div class="help-text">Examples: 192.168.1.0/24, 10.0.0.1, example.com</div>
+                    <div class="help-text">Click Auto-detect to find local networks, or select from known assets above</div>
                 </div>
                 <div class="form-group">
                     <label>Scan Depth</label>
@@ -670,6 +713,10 @@ tr:hover td { background: rgba(108,99,255,0.06); }
         <div class="card" id="sc-findings-panel" style="display:none;margin-top:16px">
             <div class="card-header">
                 <span class="card-title">Findings for: <span id="sc-findings-session"></span></span>
+                <div style="display:flex;gap:6px">
+                    <button class="btn btn-outline btn-sm" onclick="exportFindings('csv')">Export CSV</button>
+                    <button class="btn btn-outline btn-sm" onclick="exportFindings('json')">Export JSON</button>
+                </div>
             </div>
             <div id="sc-findings-list"><div class="loading">Loading findings...</div></div>
         </div>
@@ -854,6 +901,70 @@ tr:hover td { background: rgba(108,99,255,0.06); }
         </div>
     </div><!-- /page-ai-assistant -->
 
+    <!-- ============================================================
+         TAB 6: Settings
+         ============================================================ -->
+    <div class="tab-page" id="page-settings">
+        <div class="grid grid-2">
+            <!-- License Info -->
+            <div class="card">
+                <div class="card-header"><span class="card-title">License Information</span></div>
+                <div id="settings-license-info"><div class="loading">Loading...</div></div>
+                <div style="margin-top:12px">
+                    <button class="btn btn-primary btn-sm" onclick="showUpgradeModal()">Activate / Change License</button>
+                </div>
+            </div>
+
+            <!-- Data Maintenance -->
+            <div class="card">
+                <div class="card-header"><span class="card-title">Data Maintenance</span></div>
+                <div style="display:flex;flex-direction:column;gap:14px">
+                    <div style="padding:12px;background:var(--bg-primary);border-radius:var(--radius)">
+                        <div style="font-weight:600;margin-bottom:8px">Purge Old Scan Data</div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <label style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap">Older than</label>
+                            <input type="number" id="purge-scans-days" value="90" min="1" max="365" style="width:70px;padding:4px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-data)"/>
+                            <label style="font-size:0.8rem;color:var(--text-muted)">days</label>
+                            <button class="btn btn-danger btn-sm" onclick="purgeData('scans')">Purge Scans</button>
+                        </div>
+                    </div>
+                    <div style="padding:12px;background:var(--bg-primary);border-radius:var(--radius)">
+                        <div style="font-weight:600;margin-bottom:8px">Purge Notification History</div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <label style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap">Older than</label>
+                            <input type="number" id="purge-notif-days" value="30" min="1" max="365" style="width:70px;padding:4px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-data)"/>
+                            <label style="font-size:0.8rem;color:var(--text-muted)">days</label>
+                            <button class="btn btn-danger btn-sm" onclick="purgeData('notifications')">Purge Notifications</button>
+                        </div>
+                    </div>
+                    <div style="padding:12px;background:var(--bg-primary);border-radius:var(--radius)">
+                        <div style="font-weight:600;margin-bottom:8px">Purge Audit Logs</div>
+                        <div style="display:flex;gap:8px;align-items:center">
+                            <label style="font-size:0.8rem;color:var(--text-muted);white-space:nowrap">Older than</label>
+                            <input type="number" id="purge-audit-days" value="180" min="1" max="730" style="width:70px;padding:4px 8px;background:var(--bg-card);border:1px solid var(--border);border-radius:var(--radius);color:var(--text);font-family:var(--font-data)"/>
+                            <label style="font-size:0.8rem;color:var(--text-muted)">days</label>
+                            <button class="btn btn-danger btn-sm" onclick="purgeData('audit')">Purge Audit Logs</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2" style="margin-top:0">
+            <!-- System Info -->
+            <div class="card">
+                <div class="card-header"><span class="card-title">System Information</span></div>
+                <div id="settings-system-info"><div class="loading">Loading...</div></div>
+            </div>
+
+            <!-- Available Tools -->
+            <div class="card">
+                <div class="card-header"><span class="card-title">Available Scanners</span></div>
+                <div id="settings-scanners-list"><div class="loading">Loading...</div></div>
+            </div>
+        </div>
+    </div><!-- /page-settings -->
+
     <!-- Footer -->
     <div class="footer">
         Purple Team GRC v7.0 &mdash; Dashboard auto-refreshes every 60 seconds
@@ -961,6 +1072,7 @@ tr:hover td { background: rgba(108,99,255,0.06); }
         else if (tabId === 'schedules') { loadSchedules(); }
         else if (tabId === 'notifications') { loadNotifications(); }
         else if (tabId === 'ai-assistant') { loadAIStatus(); }
+        else if (tabId === 'settings') { loadSettings(); }
     }
 
     // ---- SVG Chart Generators ------------------------------------------
@@ -1245,6 +1357,7 @@ tr:hover td { background: rgba(108,99,255,0.06); }
     function loadScanCenter() {
         loadScannerTypes();
         loadScanCenterTable();
+        loadAssetPicker();
     }
 
     function loadScannerTypes() {
@@ -1261,6 +1374,53 @@ tr:hover td { background: rgba(108,99,255,0.06); }
             });
         });
     }
+
+    window.autoDetectTargets = function() {
+        showToast('Detecting local network...', 'info');
+        fetchAPI('/network/local').then(function(data) {
+            if (!data) { showToast('Auto-detect failed', 'error'); return; }
+            var targets = [];
+            if (data.subnets && data.subnets.length) {
+                data.subnets.forEach(function(s) { targets.push(s); });
+            } else if (data.local_ips && data.local_ips.length) {
+                data.local_ips.forEach(function(ip) { targets.push(ip); });
+            }
+            if (targets.length > 0) {
+                var existing = $('sc-targets').value.trim();
+                var newVal = existing ? existing + '\n' + targets.join('\n') : targets.join('\n');
+                $('sc-targets').value = newVal;
+                showToast('Found ' + targets.length + ' target(s)', 'success');
+            } else {
+                showToast('No local networks detected', 'info');
+            }
+        });
+    };
+
+    function loadAssetPicker() {
+        fetchAPI('/assets?limit=200').then(function(data) {
+            var sel = $('sc-asset-picker');
+            if (!sel) return;
+            sel.innerHTML = '<option value="">-- Add from known assets --</option>';
+            if (!data || (!data.assets && !data.items)) return;
+            var assets = data.assets || data.items || [];
+            assets.forEach(function(a) {
+                var opt = document.createElement('option');
+                var ip = a.ip_address || a.hostname || a.name || a.asset_id || '';
+                opt.value = ip;
+                opt.textContent = ip + (a.hostname && a.hostname !== ip ? ' (' + a.hostname + ')' : '') + (a.os ? ' - ' + a.os : '');
+                sel.appendChild(opt);
+            });
+        });
+    }
+
+    window.addAssetToTargets = function(sel) {
+        if (!sel.value) return;
+        var existing = $('sc-targets').value.trim();
+        if (existing.indexOf(sel.value) === -1) {
+            $('sc-targets').value = existing ? existing + '\n' + sel.value : sel.value;
+        }
+        sel.value = '';
+    };
 
     window.launchScan = function() {
         var scannerType = $('sc-scanner-type').value;
@@ -1313,6 +1473,28 @@ tr:hover td { background: rgba(108,99,255,0.06); }
             }
             renderFindings(data.findings, 'sc-findings-list');
         });
+    };
+
+    window.exportFindings = function(format) {
+        var sessionId = $('sc-findings-session').textContent;
+        if (!sessionId) { showToast('No scan selected', 'error'); return; }
+        var url = API_BASE + '/scans/' + encodeURIComponent(sessionId) + '/export?format=' + format;
+        fetch(url, { headers: API_KEY ? { 'X-API-Key': API_KEY } : {} })
+            .then(function(r) {
+                if (!r.ok) return r.json().then(function(d) { throw new Error(d.message || 'Export failed'); });
+                return r.blob().then(function(blob) { return { blob: blob, filename: 'findings-' + sessionId.substring(0,8) + '.' + format }; });
+            })
+            .then(function(result) {
+                var a = document.createElement('a');
+                a.href = URL.createObjectURL(result.blob);
+                a.download = result.filename;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(a.href);
+                showToast('Exported as ' + format.toUpperCase(), 'success');
+            })
+            .catch(function(e) { showToast('Export failed: ' + e.message, 'error'); });
     };
 
     // =====================================================================
@@ -1671,6 +1853,106 @@ tr:hover td { background: rgba(108,99,255,0.06); }
     };
 
     // =====================================================================
+    // SETTINGS TAB
+    // =====================================================================
+
+    function loadSettings() {
+        loadSettingsLicense();
+        loadSettingsSystem();
+        loadSettingsScanners();
+    }
+
+    function loadSettingsLicense() {
+        fetchAPI('/license').then(function(data) {
+            if (!data) { $('settings-license-info').innerHTML = '<div class="loading">Unable to load</div>'; return; }
+            var html = '<div style="display:flex;flex-direction:column;gap:8px;font-size:0.85rem">';
+            html += '<div><strong>Current Tier:</strong> <span class="tier-badge tier-'+ (data.tier || 'community') +'">'+ escapeHtml(data.label || data.tier || 'community') +'</span></div>';
+            if (data.organization) html += '<div><strong>Organization:</strong> '+ escapeHtml(data.organization) +'</div>';
+            if (data.expires) html += '<div><strong>Expires:</strong> '+ escapeHtml(data.expires) +'</div>';
+            if (data.limits) {
+                html += '<div style="margin-top:8px"><strong>Limits:</strong></div>';
+                html += '<div style="padding:8px;background:var(--bg-primary);border-radius:var(--radius);font-family:var(--font-data);font-size:0.78rem">';
+                Object.keys(data.limits).forEach(function(k) {
+                    var v = data.limits[k];
+                    html += '<div>'+ escapeHtml(k) +': '+ escapeHtml(String(v === null ? 'unlimited' : v)) +'</div>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+            $('settings-license-info').innerHTML = html;
+        });
+    }
+
+    function loadSettingsSystem() {
+        fetchAPI('/health').then(function(data) {
+            if (!data) { $('settings-system-info').innerHTML = '<div class="loading">Unable to load</div>'; return; }
+            var html = '<div style="display:flex;flex-direction:column;gap:6px;font-size:0.85rem">';
+            html += '<div><strong>Version:</strong> '+ escapeHtml(data.version || '--') +'</div>';
+            html += '<div><strong>Status:</strong> <span style="color:var(--resolved)">'+ escapeHtml(data.status || '--') +'</span></div>';
+            html += '<div><strong>Uptime:</strong> '+ (data.uptime_seconds ? Math.round(data.uptime_seconds / 60) + ' minutes' : '--') +'</div>';
+            if (data.modules) {
+                html += '<div style="margin-top:8px"><strong>Modules:</strong></div>';
+                html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;font-size:0.78rem">';
+                Object.keys(data.modules).forEach(function(m) {
+                    var loaded = data.modules[m];
+                    var color = loaded ? 'var(--resolved)' : 'var(--critical)';
+                    var icon = loaded ? 'OK' : 'Missing';
+                    html += '<div><span style="color:'+ color +';font-family:var(--font-data)">'+ icon +'</span> '+ escapeHtml(m) +'</div>';
+                });
+                html += '</div>';
+            }
+            html += '</div>';
+            $('settings-system-info').innerHTML = html;
+        });
+    }
+
+    function loadSettingsScanners() {
+        fetchAPI('/scanners').then(function(data) {
+            if (!data || !data.scanners) { $('settings-scanners-list').innerHTML = '<div class="loading">Unable to load</div>'; return; }
+            var html = '<div style="display:flex;flex-direction:column;gap:6px">';
+            data.scanners.forEach(function(s) {
+                html += '<div style="padding:6px 0;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px">';
+                html += '<div style="font-weight:600;font-size:0.85rem;flex:1">'+ escapeHtml(s.name) +'</div>';
+                if (s.depths) html += '<div style="font-size:0.72rem;color:var(--text-muted)">Depths: '+ escapeHtml(s.depths.join(', ')) +'</div>';
+                html += '</div>';
+            });
+            html += '</div>';
+            $('settings-scanners-list').innerHTML = html;
+        });
+    }
+
+    window.purgeData = function(type) {
+        var daysInput;
+        var endpoint;
+        var label;
+        if (type === 'scans') {
+            daysInput = $('purge-scans-days');
+            endpoint = '/maintenance/purge-scans';
+            label = 'scan data';
+        } else if (type === 'notifications') {
+            daysInput = $('purge-notif-days');
+            endpoint = '/maintenance/purge-notifications';
+            label = 'notification history';
+        } else if (type === 'audit') {
+            daysInput = $('purge-audit-days');
+            endpoint = '/maintenance/purge-audit';
+            label = 'audit logs';
+        } else return;
+
+        var days = parseInt(daysInput.value) || 90;
+        if (!confirm('Permanently delete ' + label + ' older than ' + days + ' days? This cannot be undone.')) return;
+
+        fetchAPI(endpoint, {
+            method: 'POST',
+            body: { older_than_days: days }
+        }).then(function(data) {
+            if (!data) { showToast('Purge failed', 'error'); return; }
+            if (data.error) { showToast(data.message || 'Purge failed', 'error'); return; }
+            showToast('Purged ' + (data.purged || 0) + ' ' + label + ' records', 'success');
+        });
+    };
+
+    // =====================================================================
     // REFRESH
     // =====================================================================
 
@@ -1727,6 +2009,41 @@ tr:hover td { background: rgba(108,99,255,0.06); }
             }
         });
     }
+
+    window.showUpgradeModal = function() {
+        $('upgrade-modal').style.display = 'flex';
+    };
+
+    window.hideUpgradeModal = function() {
+        $('upgrade-modal').style.display = 'none';
+    };
+
+    window.activateLicense = function() {
+        var keyText = $('license-key-input').value.trim();
+        if (!keyText) { showToast('Please paste a license key', 'error'); return; }
+        var parsed;
+        try { parsed = JSON.parse(keyText); } catch(e) { showToast('Invalid license format. Must be valid JSON.', 'error'); return; }
+        $('license-activate-status').textContent = 'Activating...';
+        fetchAPI('/license/activate', {
+            method: 'POST',
+            body: parsed
+        }).then(function(data) {
+            if (!data) { $('license-activate-status').textContent = 'Failed'; showToast('Activation failed', 'error'); return; }
+            if (data.error) { $('license-activate-status').textContent = ''; showToast(data.message || 'Invalid license', 'error'); return; }
+            $('license-activate-status').textContent = '';
+            showToast('License activated! Tier: ' + (data.tier || 'pro'), 'success');
+            hideUpgradeModal();
+            loadLicenseInfo();
+            // Reload current tab to reflect new permissions
+            tabLoaded = { overview: false };
+            switchTab(activeTab);
+        });
+    };
+
+    // Close modal on backdrop click
+    $('upgrade-modal').addEventListener('click', function(e) {
+        if (e.target === this) hideUpgradeModal();
+    });
 
     // Handle 403 upgrade-required responses from API
     var origFetchAPI = fetchAPI;

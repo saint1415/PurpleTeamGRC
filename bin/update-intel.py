@@ -6,7 +6,8 @@ Standalone script to refresh all threat intelligence data.
 Run this on a connected machine, then copy the USB to an airgapped system.
 
 Usage:
-    python3 bin/update-intel.py                   # Incremental update (default)
+    python3 bin/update-intel.py                   # Incremental update (default, includes feeds)
+    python3 bin/update-intel.py --all             # Update everything: NVD + KEV + EPSS + feeds
     python3 bin/update-intel.py --full             # Full NVD bulk download + all intel feeds
     python3 bin/update-intel.py --incremental      # Only new/modified since last run
     python3 bin/update-intel.py --year 2024        # Download a specific year
@@ -16,6 +17,7 @@ Usage:
     python3 bin/update-intel.py --feeds            # Update all intel feeds (ExploitDB, OSV, etc.)
     python3 bin/update-intel.py --feeds-only       # Only update intel feeds, skip NVD/KEV/EPSS
     python3 bin/update-intel.py --status           # Show cache status
+    python3 bin/update-intel.py --check            # Check freshness, exit 1 if stale
 """
 
 import sys
@@ -330,7 +332,7 @@ def update_feeds():
 
 
 def show_status():
-    """Show current cache status."""
+    """Show current cache status with freshness indicators."""
     from threat_intel import get_threat_intel
 
     ti = get_threat_intel()
@@ -365,7 +367,7 @@ def show_status():
         print()
         print("  NVD: module not available")
 
-    # Intel Feeds status
+    # Intel Feeds status with staleness indicators
     try:
         from intel_feeds import IntelFeedManager
         mgr = IntelFeedManager()
@@ -384,13 +386,97 @@ def show_status():
             print("    Last updates:")
             for feed_name, info in sorted(meta.items()):
                 last = info.get('last_updated', 'never')
-                print("      {}: {}".format(feed_name, last))
+                if last != 'never':
+                    from datetime import datetime as _dt, timezone as _tz
+                    try:
+                        dt = _dt.fromisoformat(last)
+                        age_hours = (_dt.now(_tz.utc) - dt).total_seconds() / 3600
+                        stale_marker = " (STALE)" if age_hours > 48 else ""
+                        print("      {}: {:.0f}h ago{}".format(feed_name, age_hours, stale_marker))
+                    except Exception:
+                        print("      {}: {}".format(feed_name, last))
+                else:
+                    print("      {}: never".format(feed_name))
     except ImportError:
         print()
         print("  Intel Feeds: module not available")
     except Exception as e:
         print()
         print("  Intel Feeds: error reading stats ({})".format(e))
+
+    # Compliance framework freshness
+    try:
+        from compliance import get_compliance_mapper
+        mapper = get_compliance_mapper()
+        freshness = mapper.check_framework_freshness()
+        stale_fw = [f for f in freshness if f.get('stale')]
+        print()
+        print("  Compliance Frameworks: {} loaded, {} stale".format(len(freshness), len(stale_fw)))
+        if stale_fw:
+            for f in stale_fw:
+                print("    WARNING: {} not updated in {:.0f} days".format(f['name'], f['file_age_days']))
+    except Exception:
+        pass
+
+
+def check_freshness():
+    """Check data freshness and exit with non-zero if any critical data is stale.
+
+    Thresholds: NVD >24h, KEV >48h, feeds >72h.
+    """
+    from threat_intel import get_threat_intel
+
+    ti = get_threat_intel()
+    stale_info = ti.is_cache_stale()
+    kev_stats = ti.get_kev_stats()
+    issues = []
+
+    # Check KEV staleness (>48h)
+    kev_age = kev_stats.get('cache_age_hours', 999)
+    if kev_age > 48:
+        issues.append("KEV catalog is {:.0f}h old (threshold: 48h)".format(kev_age))
+
+    # Check NVD staleness (>24h)
+    try:
+        from vuln_database import get_vuln_database
+        vdb = get_vuln_database()
+        stats = vdb.get_statistics()
+        if stats.get('cached_cves', 0) == 0:
+            issues.append("NVD cache is empty")
+    except Exception:
+        issues.append("NVD module not available")
+
+    # Check feed staleness (>72h)
+    try:
+        from intel_feeds import IntelFeedManager
+        mgr = IntelFeedManager()
+        feed_stats = mgr.get_stats()
+        meta = feed_stats.get('_meta', {})
+        from datetime import datetime as _dt, timezone as _tz
+        for feed_name, info in meta.items():
+            last = info.get('last_updated', 'never')
+            if last == 'never':
+                issues.append("Feed '{}' has never been updated".format(feed_name))
+            else:
+                try:
+                    dt = _dt.fromisoformat(last)
+                    age_hours = (_dt.now(_tz.utc) - dt).total_seconds() / 3600
+                    if age_hours > 72:
+                        issues.append("Feed '{}' is {:.0f}h old (threshold: 72h)".format(
+                            feed_name, age_hours))
+                except Exception:
+                    pass
+    except Exception:
+        pass
+
+    if issues:
+        print("STALE DATA DETECTED:")
+        for issue in issues:
+            print("  - {}".format(issue))
+        sys.exit(1)
+    else:
+        print("All data sources are fresh.")
+        sys.exit(0)
 
 
 def main():
@@ -412,6 +498,10 @@ def main():
                        help='Also update all intel feeds (ExploitDB, OSV, GitHub, CISA, MITRE, abuse.ch)')
     parser.add_argument('--feeds-only', action='store_true',
                        help='Only update intel feeds, skip NVD/KEV/EPSS')
+    parser.add_argument('--all', action='store_true',
+                       help='Update everything: NVD (incremental), KEV, EPSS, and all intel feeds')
+    parser.add_argument('--check', action='store_true',
+                       help='Check data freshness and exit with non-zero if stale')
     parser.add_argument('--status', action='store_true',
                        help='Show current cache status')
     parser.add_argument('--api-key', type=str,
@@ -432,10 +522,20 @@ def main():
         show_status()
         return
 
+    if args.check:
+        check_freshness()
+        return
+
     start = time.time()
 
+    # Handle --all: update everything
+    if args.all:
+        update_kev()
+        update_nvd_incremental()
+        update_epss()
+        update_feeds()
     # Handle --feeds-only: just update intel feeds and exit
-    if args.feeds_only:
+    elif args.feeds_only:
         update_feeds()
     # Handle new bulk download modes
     elif args.full:
@@ -469,10 +569,9 @@ def main():
         if args.epss_only or not specific:
             update_epss()
 
-        # --feeds flag: also run intel feeds after standard updates
-        if args.feeds or (not specific):
-            if args.feeds:
-                update_feeds()
+        # Always run feeds in default mode (no flags = update everything)
+        if args.feeds or not specific:
+            update_feeds()
 
     elapsed = time.time() - start
 

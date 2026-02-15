@@ -43,6 +43,8 @@ class BackgroundWorker:
         self.last_notification_check = datetime.utcnow()
         self.last_exception_cleanup = datetime.utcnow()
         self.last_agent_check = datetime.utcnow()
+        self.last_feed_update = datetime.utcnow()
+        self.last_epss_refresh = datetime.utcnow()
 
     def run_scheduled_scans(self):
         """Check for and execute due scheduled scans."""
@@ -186,6 +188,31 @@ class BackgroundWorker:
         except Exception as e:
             self.logger.error(f"Error in process_agent_checkins: {e}")
 
+    def update_intel_feeds(self):
+        """Run all intel feed updates."""
+        try:
+            from intel_feeds import IntelFeedManager
+            self.logger.info("Starting intel feed update...")
+            mgr = IntelFeedManager()
+            results = mgr.update_all()
+            total = results.get('_total', 0)
+            self.logger.info(f"Intel feeds updated: {total} total records")
+            self.last_feed_update = datetime.utcnow()
+        except Exception as e:
+            self.logger.error(f"Error in update_intel_feeds: {e}")
+
+    def refresh_epss_scores(self):
+        """Refresh EPSS scores if stale."""
+        try:
+            from threat_intel import get_threat_intel
+            ti = get_threat_intel()
+            refreshed = ti.refresh_if_stale()
+            if refreshed.get('kev'):
+                self.logger.info("KEV catalog refreshed")
+            self.last_epss_refresh = datetime.utcnow()
+        except Exception as e:
+            self.logger.error(f"Error refreshing EPSS/KEV: {e}")
+
     def run(self):
         """Main worker loop."""
         self.logger.info("Background worker started")
@@ -197,6 +224,8 @@ class BackgroundWorker:
         NOTIFICATION_INTERVAL = 300  # Check notifications every 5 minutes
         EXCEPTION_CLEANUP_INTERVAL = 3600  # Clean up exceptions every hour
         AGENT_CHECK_INTERVAL = 600  # Check agents every 10 minutes
+        FEED_UPDATE_INTERVAL = 24 * 3600  # Update intel feeds every 24 hours
+        EPSS_REFRESH_INTERVAL = 24 * 3600  # Refresh EPSS every 24 hours
 
         while not _shutdown_requested:
             try:
@@ -220,6 +249,14 @@ class BackgroundWorker:
                 # Process agent check-ins (every 10 minutes)
                 if (now - self.last_agent_check).total_seconds() >= AGENT_CHECK_INTERVAL:
                     self.process_agent_checkins()
+
+                # Update intel feeds (every 24 hours)
+                if (now - self.last_feed_update).total_seconds() >= FEED_UPDATE_INTERVAL:
+                    self.update_intel_feeds()
+
+                # Refresh EPSS scores (every 24 hours)
+                if (now - self.last_epss_refresh).total_seconds() >= EPSS_REFRESH_INTERVAL:
+                    self.refresh_epss_scores()
 
                 # Sleep for the schedule check interval
                 time.sleep(SCHEDULE_CHECK_INTERVAL)

@@ -667,6 +667,33 @@ class ComplianceMapper:
         """
         return self.controls.get(framework, {})
 
+    def check_framework_freshness(self) -> List[dict]:
+        """Check age of each framework YAML and flag stale ones.
+
+        Returns list of dicts with framework info and staleness warnings.
+        A framework is considered stale if its YAML file hasn't been
+        modified in over 90 days.
+        """
+        import time as _time
+        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        results = []
+        for meta in self._framework_metadata:
+            fw_id = meta['id']
+            version = meta.get('version', '')
+            yaml_path = os.path.join(base_dir, 'config', 'frameworks', f'{fw_id}.yaml')
+            if os.path.exists(yaml_path):
+                mtime = os.path.getmtime(yaml_path)
+                age_days = (_time.time() - mtime) / 86400
+                results.append({
+                    'id': fw_id,
+                    'name': meta.get('name', fw_id),
+                    'version': version,
+                    'control_count': meta.get('control_count', 0),
+                    'file_age_days': round(age_days, 1),
+                    'stale': age_days > 90,
+                })
+        return results
+
     def get_all_frameworks(self) -> List[dict]:
         """Get metadata for all known frameworks.
 
